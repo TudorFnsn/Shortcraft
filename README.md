@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shortcraft
 
-## Getting Started
+AI short-form video generator — turn an idea into a vertical video (TikTok / Reels /
+Shorts) with script, images, clips, voiceover and subtitles generated for you.
+Sold as monthly credits + top-ups.
 
-First, run the development server:
+The pipeline chains swappable AI model providers behind a single adapter contract,
+so the entire app runs end-to-end on **deterministic mocks with zero API keys**
+(`MOCK_PROVIDERS=true`, the default). Real providers are flipped on per-adapter later.
+
+## Stack
+
+Next.js (App Router) + TypeScript (strict) + Tailwind + shadcn/ui · Supabase
+(auth/db/storage) · Stripe (credits + subscriptions) · fal.ai / Anthropic /
+ElevenLabs / a managed render API behind provider adapters · Vercel.
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # runs on mocks with nothing filled in
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Dev server (mock providers by default) |
+| `npm test` | Vitest — must stay green with no secrets |
+| `npm run typecheck` | `tsc --noEmit` (strict + `noUncheckedIndexedAccess`) |
+| `npm run format` | Prettier |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The pipeline is a state machine:
+`draft → scripting → images → clips → voiceover → subtitles → stitching → done`
+(`→ failed` auto-refunds credits). Credits are an append-only ledger
+(balance = SUM of deltas). See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the
+conventions and module layout.
