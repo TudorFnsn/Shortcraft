@@ -39,12 +39,16 @@ whole design centers on **swappable providers** and an **auditable credit ledger
   - `providers/` — adapter contracts (`types.ts`), `mocks.ts`, `registry.ts`.
     The `Provider.run()` either COMPLETES inline or returns an ASYNC job resolved
     later by webhook/cron — this is what keeps us serverless-only.
-  - `credits/` — the ledger math.
-  - `render/` — the pure state machine (`machine.ts`); the DB-backed orchestrator
-    lands on top of it.
+  - `credits/` — ledger math (`ledger.ts`) + job ops over the repo (`service.ts`).
+  - `render/` — pure state machine (`machine.ts`), `pricing.ts` (reserve estimate),
+    repository ports (`repository.ts`) with an in-memory impl (`repository.memory.ts`),
+    and the `orchestrator.ts` that drives a job end-to-end over those ports.
+- `supabase/migrations/` — schema source of truth: tables, atomic credit functions
+  (`reserve_credits`/`add_credits`), new-user trial-credit trigger, RLS.
 - `src/lib` — `env.ts` (typed, mock-friendly), `result.ts`, `logger.ts`, and (next)
-  the Supabase clients.
-- `tests/` — vitest unit + pipeline tests; Playwright e2e added in Phase 0 finish.
+  the Supabase repository impl + clients.
+- `tests/` — vitest unit + pipeline + orchestrator tests; Playwright e2e added in
+  the Phase 0 finish.
 
 ## Commands
 
