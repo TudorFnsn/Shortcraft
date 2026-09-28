@@ -15,7 +15,7 @@ export default async function CreatePage() {
         <h1 className="text-2xl font-semibold">Create a video</h1>
         <span className="text-sm text-neutral-400">{balance.toLocaleString()} credits</span>
       </div>
-      <CreateForm />
+      <CreateForm balance={balance} />
     </main>
   );
 }

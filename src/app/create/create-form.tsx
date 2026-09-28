@@ -1,22 +1,31 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { THEMES } from '@/config/themes';
+import { estimateJobCredits } from '@/features/render/pricing';
 
 const DURATIONS = [15, 30, 60, 90, 120];
 
-export function CreateForm() {
+export function CreateForm({ balance }: { balance: number }) {
   const router = useRouter();
   const [topic, setTopic] = useState('');
   const [themeId, setThemeId] = useState<string>(THEMES[0]?.id ?? 'office-drama');
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(15);
   const [tier, setTier] = useState<'standard' | 'premium'>('standard');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Live estimate so the cost is visible before generating (no surprise paywall).
+  const estimate = useMemo(
+    () => estimateJobCredits({ targetDurationSec: duration, modelTier: tier }),
+    [duration, tier],
+  );
+  const affordable = estimate <= balance;
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!affordable) return;
     setLoading(true);
     setError(null);
 
@@ -98,14 +107,28 @@ export function CreateForm() {
         </label>
       </div>
 
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-neutral-400">
+          Est. <span className="text-neutral-200">~{estimate.toLocaleString()}</span> credits
+        </span>
+        <span className={affordable ? 'text-neutral-500' : 'text-red-400'}>
+          you have {balance.toLocaleString()}
+        </span>
+      </div>
+
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !affordable}
         className="rounded-md bg-white px-4 py-2.5 font-medium text-neutral-900 hover:bg-neutral-200 disabled:opacity-50"
       >
         {loading ? 'Generating…' : 'Generate video'}
       </button>
 
+      {!affordable && (
+        <p className="text-sm text-red-400">
+          Not enough credits for this video — pick a shorter length or lower quality.
+        </p>
+      )}
       {error && <p className="text-sm text-red-400">{error}</p>}
     </form>
   );
