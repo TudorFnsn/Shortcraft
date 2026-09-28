@@ -33,7 +33,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'standard',
     label: 'Script writer',
     providerId: 'mock:script',
-    creditsPerUnit: 300, // flat, per generation
+    creditsPerUnit: 100, // flat, per generation
     costUsdPerUnit: 0.02,
   },
   {
@@ -42,7 +42,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'standard',
     label: 'Standard image',
     providerId: 'mock:image',
-    creditsPerUnit: 500, // per image
+    creditsPerUnit: 80, // per image
     costUsdPerUnit: 0.03,
   },
   {
@@ -51,7 +51,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'premium',
     label: 'Premium image',
     providerId: 'mock:image',
-    creditsPerUnit: 1200,
+    creditsPerUnit: 200,
     costUsdPerUnit: 0.08,
   },
   {
@@ -60,7 +60,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'standard',
     label: 'Standard video',
     providerId: 'mock:video',
-    creditsPerUnit: 1500, // per second
+    creditsPerUnit: 80, // per second
     costUsdPerUnit: 0.1,
   },
   {
@@ -69,7 +69,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'premium',
     label: 'Premium video',
     providerId: 'mock:video',
-    creditsPerUnit: 4000, // per second
+    creditsPerUnit: 220, // per second
     costUsdPerUnit: 0.3,
   },
   {
@@ -78,7 +78,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'standard',
     label: 'Voiceover',
     providerId: 'mock:voice',
-    creditsPerUnit: 40, // per second
+    creditsPerUnit: 8, // per second
     costUsdPerUnit: 0.002,
   },
   {
@@ -87,7 +87,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'standard',
     label: 'Final render',
     providerId: 'mock:render',
-    creditsPerUnit: 500, // flat, per render
+    creditsPerUnit: 100, // flat, per render
     costUsdPerUnit: 0.02,
   },
 ];
