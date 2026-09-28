@@ -12,6 +12,9 @@ export async function Header() {
         {siteConfig.name}
       </Link>
       <nav className="flex items-center gap-4 text-sm">
+        <Link href="/pricing" className="text-neutral-300 hover:text-white">
+          Pricing
+        </Link>
         {user ? (
           <>
             <Link href="/create" className="text-neutral-300 hover:text-white">

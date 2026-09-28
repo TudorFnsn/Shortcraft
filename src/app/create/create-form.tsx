@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { THEMES } from '@/config/themes';
 import { estimateJobCredits } from '@/features/render/pricing';
@@ -126,7 +127,11 @@ export function CreateForm({ balance }: { balance: number }) {
 
       {!affordable && (
         <p className="text-sm text-red-400">
-          Not enough credits for this video — pick a shorter length or lower quality.
+          Not enough credits — pick a shorter length, or{' '}
+          <Link href="/pricing" className="underline">
+            get more credits
+          </Link>
+          .
         </p>
       )}
       {error && <p className="text-sm text-red-400">{error}</p>}
