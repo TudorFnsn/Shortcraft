@@ -48,9 +48,19 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   if (seen) {
     if (seen.code === '23505') {
       log.info('duplicate stripe event ignored');
-      return;
+      return; // already processed
     }
-    throw new Error(`stripe_events insert failed: ${seen.message}`); // fail -> Stripe retries
+    const missingTable =
+      seen.code === '42P01' || // raw Postgres: undefined_table
+      seen.code === 'PGRST205' || // PostgREST: table not in schema cache
+      /schema cache|find the table/i.test(seen.message ?? '');
+    if (missingTable) {
+      // stripe_events table not created yet — idempotency disabled, but don't
+      // block delivery. Run migration 0002 to enable it.
+      log.warn('stripe_events table missing; idempotency disabled (run migration 0002)');
+    } else {
+      throw new Error(`stripe_events insert failed: ${seen.message}`); // fail -> Stripe retries
+    }
   }
 
   const stripe = getStripe();
