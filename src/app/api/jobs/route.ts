@@ -9,6 +9,8 @@ import { getCurrentUser } from '@/features/auth/session';
 import { runRenderJob } from '@/features/render/orchestrator';
 import { getStore } from '@/features/render/store';
 import { isThemeId } from '@/config/themes';
+import { PLANS } from '@/config/plans';
+import { checkPlanLimits } from '@/features/billing/entitlements';
 
 const Body = z.object({
   topic: z.string().min(3).max(300),
@@ -27,6 +29,17 @@ export async function POST(request: Request) {
   }
 
   const store = getStore();
+
+  // Plan gate before any job row or credit hold exists.
+  const plan = PLANS[await store.planOf(user.id)];
+  const allowed = checkPlanLimits(plan, parsed.data);
+  if (!allowed.ok) {
+    return Response.json(
+      { error: allowed.error.code, message: allowed.error.message },
+      { status: 403 },
+    );
+  }
+
   const job = await store.createJob({
     userId: user.id,
     topic: parsed.data.topic,
