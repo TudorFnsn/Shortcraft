@@ -7,6 +7,12 @@
  */
 import { appError, err, ok, type Result, type AppError } from '@/lib/result';
 import type { WordTiming } from '@/features/providers/types';
+import type { PlanId } from '@/config/plans';
+import {
+  effectivePlanId,
+  type PlanRepository,
+  type SubscriptionSnapshot,
+} from '@/features/billing/entitlements';
 import type {
   AssetKind,
   CreateJobInput,
@@ -28,16 +34,27 @@ interface CreditTx {
   jobId?: string;
 }
 
-export class InMemoryStore implements RenderRepository, CreditRepository {
+export class InMemoryStore implements RenderRepository, CreditRepository, PlanRepository {
   private jobs = new Map<string, RenderJobRecord>();
   private scenes = new Map<string, SceneRecord>();
   private assets: { id: string; userId: string; jobId: string; kind: AssetKind; url: string }[] =
     [];
   private credits: CreditTx[] = [];
+  private subscriptions = new Map<string, SubscriptionSnapshot>();
 
   /** Test helper: seed a user with a starting balance. */
   seedCredits(userId: string, amount: number): void {
     this.credits.push({ userId, delta: amount, reason: 'trial_grant' });
+  }
+
+  /** Test helper: give a user a subscription (status defaults to active). */
+  setSubscription(userId: string, planId: PlanId, status = 'active'): void {
+    this.subscriptions.set(userId, { planId, status });
+  }
+
+  // ── PlanRepository ────────────────────────────────────────────────────────
+  async planOf(userId: string): Promise<PlanId> {
+    return effectivePlanId(this.subscriptions.get(userId) ?? null);
   }
 
   // ── RenderRepository ──────────────────────────────────────────────────────

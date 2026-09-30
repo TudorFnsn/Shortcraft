@@ -25,6 +25,7 @@ export function unwrap<T, E>(r: Result<T, E>): T {
 /** Stable, machine-readable error codes used across features. */
 export type AppErrorCode =
   | 'insufficient_credits'
+  | 'plan_limit'
   | 'moderation_blocked'
   | 'provider_failed'
   | 'invalid_input'

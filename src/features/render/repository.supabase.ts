@@ -9,6 +9,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
 import type { WordTiming } from '@/features/providers/types';
+import type { PlanId } from '@/config/plans';
+import { effectivePlanId, type PlanRepository } from '@/features/billing/entitlements';
 import type { RenderStatus } from './machine';
 import type {
   AssetKind,
@@ -104,7 +106,7 @@ function jobPatchToRow(patch: Partial<RenderJobRecord>): Record<string, unknown>
   return row;
 }
 
-export class SupabaseStore implements RenderRepository, CreditRepository {
+export class SupabaseStore implements RenderRepository, CreditRepository, PlanRepository {
   private db: SupabaseClient;
 
   constructor(client?: SupabaseClient) {
@@ -197,6 +199,18 @@ export class SupabaseStore implements RenderRepository, CreditRepository {
       .single();
     if (error) throw new Error(`saveAsset: ${error.message}`);
     return { id: (data as { id: string }).id, url: (data as { url: string }).url };
+  }
+
+  // ── PlanRepository ────────────────────────────────────────────────────────
+  async planOf(userId: string): Promise<PlanId> {
+    const { data, error } = await this.db
+      .from('subscriptions')
+      .select('plan_id, status')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw new Error(`planOf: ${error.message}`);
+    const row = data as { plan_id: string; status: string } | null;
+    return effectivePlanId(row ? { planId: row.plan_id, status: row.status } : null);
   }
 
   // ── CreditRepository ──────────────────────────────────────────────────────

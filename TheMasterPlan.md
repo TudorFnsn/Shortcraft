@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 56 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 66 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -45,7 +45,7 @@ gross margin/video, paid churn.
 - **Credit ledger:** append-only (`credit_transactions`), balance = SUM(delta); atomic `reserve_credits` / `add_credits` Postgres functions (advisory-locked, no overspend).
 - **Render pipeline:** state machine `draft→scripting→images→clips→voiceover→subtitles→stitching→done` (`→failed` auto-refunds); DB-backed orchestrator; reserve→settle credit flow. The reserve is a guaranteed **upper bound**: scenes priced at `MAX_SCENE_SEC`, the script's plan is clamped to the budget, and the bill is capped at the hold (overruns log a `warn` = margin leak to watch).
 - **Supabase:** auth (email/password), Postgres schema + RLS, storage-ready. Connection + schema verified live.
-- **App:** landing, `/login`, `/create` (topic + theme + length + quality, live cost estimate + affordability gate), `/gallery` (jobs + balance), header with auth state.
+- **App:** landing, `/login`, `/create` (topic + theme + length + quality, live cost estimate + affordability gate + plan gate with "(Pro)" upgrade hints), `/gallery` (jobs + balance), header with auth state.
 - **Billing (Stripe, sandbox-verified end-to-end):** products/prices (plans + top-ups, lookup_keys + credit metadata), `/pricing`, `POST /api/checkout`, `POST /api/webhooks/stripe` (grants credits, syncs subscription), `POST /api/billing/portal`. A live sandbox purchase with a test card granted 20,000 credits.
 
 **Proven loop:** sign up → 3,000 trial credits → generate → paywall → pay → credits granted → generate more. All persisted in real Supabase; payment via real Stripe (test mode).
@@ -72,7 +72,7 @@ src/features/
   providers/       adapter contract, mocks, registry
   credits/         ledger math + job credit ops
   render/          state machine, pricing, repository ports + supabase/in-memory impls, orchestrator, store
-  billing/         stripe customer, checkout, webhook handler
+  billing/         stripe customer, checkout, webhook handler, entitlements (plan limits)
   auth/            server-side session helper
 src/app/           landing, login, create, gallery, pricing, api/{jobs,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
@@ -90,7 +90,8 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [ ] Run migration `0002_stripe_events` on the DB (re-enables webhook idempotency; currently degrades gracefully with a warning).
 - [x] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle. _(PR `ceo/credit-estimate-upper-bound`, 2026-09-30)_
 - [x] CI on every PR + push to `main` (format, lint, typecheck, test, build — mock mode, no secrets); fixed the `/pricing` lint error + Prettier drift. _(PR `ceo/ci-lint`, 2026-09-30)_
-- [ ] Plan gating on `/create` (enforce max duration / model tier / character limits per plan).
+- [x] Plan gating on `/create` (max duration + model tier per plan; server-enforced in `POST /api/jobs`, mirrored in the form with upgrade hints). _(PR `ceo/plan-gating`, 2026-09-30)_ Character limits wait for the Characters feature.
+- [ ] Handle `customer.subscription.updated` in the Stripe webhook (status + plan changes like upgrades/downgrades/`unpaid`) so `subscriptions.status` — which now drives plan limits — stays accurate.
 - [ ] Add a processed-events safety + minimal alerting on webhook failures.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
@@ -168,6 +169,7 @@ Trial: 3,000 credits (≈ one short video).
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-09-30** — Plan gating: `entitlements` module + `PlanRepository` port (Supabase reads `subscriptions`; in-memory for tests). `POST /api/jobs` returns 403 `plan_limit` before creating a job or holding credits; `/create` shows locked options labelled with the plan that unlocks them. +10 tests. (CEO routine, same-day follow-up)
 - **2026-09-30** — CI added (GitHub Actions: format, lint, typecheck, test, build; mock mode, no secrets). Fixed the `/pricing` React-Compiler lint error (`location.assign` instead of assigning `href`), allowed `_`-prefixed unused args, formatted the repo, made `typecheck` self-sufficient via `next typegen`. (CEO routine, same-day follow-up)
 - **2026-09-30** — Credit hold is now a hard upper bound. Found that 6s/9s/15s jobs (15s is the default!) charged _more_ than they reserved, so settle could push a balance negative. Estimate now prices scenes at `MAX_SCENE_SEC`; orchestrator clamps the script plan and caps the bill at the hold. +26 tests (every length × tier, plus an over-delivering script model). (CEO routine)
 - **2026-09-30** — Created TheMasterPlan + the CEO/dev-team operating workflow; stood up the daily "Shortcraft CEO" cloud routine (Opus 5.5, PR-gated).
@@ -184,5 +186,6 @@ Trial: 3,000 credits (≈ one short video).
 - **Provider adapter + model catalog** → swap models monthly without touching pipeline; pricing centralized.
 - **Append-only credit ledger** → auditable, race-safe.
 - **Markdown source of truth** (not .docx) → diffable, agent-editable, version-controlled.
+- **No subscription ⇒ Starter limits** (2026-09-30) → trial and lapsed users can make ≤30s standard videos; premium quality and longer videos are the upgrade reason. Live statuses = `active`/`trialing`/`past_due` (grace during dunning). Limits live on the `subscriptions` row, not `profiles.plan_id`, because cancellation only updates `subscriptions`.
 - **CI gates every PR** (2026-09-30) → the daily CEO routine ships unattended PRs; CI is the reviewer's first line of defence, so lint/format are enforced (errors fail the build), not advisory.
 - **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).
