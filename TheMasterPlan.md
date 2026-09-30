@@ -1,0 +1,172 @@
+# TheMasterPlan — Shortcraft
+
+> **Single source of truth** for Shortcraft. Every meaningful change to the app
+> updates this file (status, roadmap, changelog). If reality and this document
+> disagree, fix whichever is wrong in the same change. Read this before planning
+> any work.
+>
+> Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
+> "heartbeat" that drives this project).
+>
+> Last updated: 2026-09-30
+
+---
+
+## 1. Vision & thesis
+
+Shortcraft turns an idea into a ready-to-post vertical video (TikTok / Reels /
+Shorts): script → image per scene → video clip per scene → voiceover → subtitles
+→ stitched MP4. Sold as **monthly credits + one-time top-ups**.
+
+The engineering truth: the "AI" is orchestration of third-party model APIs. We win
+or lose on **(1) unit economics** (a video must cost less in API spend than the
+credits it burns) and **(2) distribution**. The architecture is therefore built
+around a **swappable provider layer** and an **auditable credit ledger**, and the
+whole app runs on **deterministic mocks with zero API keys** so we can build and
+test everything before spending a cent.
+
+**North-star metric:** weekly paying-retained creators (people who make ≥1 video/week
+and stay subscribed). Leading indicators: activation (signup→first video), visitor→paid,
+gross margin/video, paid churn.
+
+---
+
+## 2. Current status (implemented)
+
+**Phase 0 — Foundations ✅**
+- Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
+- Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
+- Vitest + Prettier + strict tsconfig. 30 unit/integration tests green.
+
+**Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
+- **Provider layer:** one adapter contract for script/image/video/voice/render; deterministic mocks; model→adapter registry. `MOCK_PROVIDERS=true` runs the whole pipeline offline.
+- **Credit ledger:** append-only (`credit_transactions`), balance = SUM(delta); atomic `reserve_credits` / `add_credits` Postgres functions (advisory-locked, no overspend).
+- **Render pipeline:** state machine `draft→scripting→images→clips→voiceover→subtitles→stitching→done` (`→failed` auto-refunds); DB-backed orchestrator; reserve→settle credit flow.
+- **Supabase:** auth (email/password), Postgres schema + RLS, storage-ready. Connection + schema verified live.
+- **App:** landing, `/login`, `/create` (topic + theme + length + quality, live cost estimate + affordability gate), `/gallery` (jobs + balance), header with auth state.
+- **Billing (Stripe, sandbox-verified end-to-end):** products/prices (plans + top-ups, lookup_keys + credit metadata), `/pricing`, `POST /api/checkout`, `POST /api/webhooks/stripe` (grants credits, syncs subscription), `POST /api/billing/portal`. A live sandbox purchase with a test card granted 20,000 credits.
+
+**Proven loop:** sign up → 3,000 trial credits → generate → paywall → pay → credits granted → generate more. All persisted in real Supabase; payment via real Stripe (test mode).
+
+---
+
+## 3. Architecture (how it's built)
+
+- **Feature-first** modules under `src/features/*`. Nothing calls a provider directly — only via `features/providers/registry.ts`, `features/render`, `features/credits`, `features/billing`.
+- **Serverless-only pipeline:** each provider `run()` either completes inline (fast/sync models, and all mocks) or returns an async job resolved later by a vendor webhook + a cron fallback. This is what lets minutes-long renders run on Vercel with no self-managed worker. (Async branch is designed but not yet wired — see §5.)
+- **Money & state:** append-only ledger; reserve/settle/refund; every render records `api_cost_usd` for the margin gate. Webhooks verify signatures; idempotent via `stripe_events`.
+- **Migrations are the schema source of truth** (`supabase/migrations`).
+- Full conventions: `docs/ARCHITECTURE.md`.
+
+**Stack:** Next.js/React/TS · Supabase (auth/db/storage) · Stripe · providers (fal.ai, Anthropic, ElevenLabs, a render API) behind adapters · Vercel (target) · PostHog/Sentry/Resend (planned).
+
+---
+
+## 4. Repository map
+
+```
+src/config/        brand, plans/top-ups, model catalog + pricing, themes
+src/features/
+  providers/       adapter contract, mocks, registry
+  credits/         ledger math + job credit ops
+  render/          state machine, pricing, repository ports + supabase/in-memory impls, orchestrator, store
+  billing/         stripe customer, checkout, webhook handler
+  auth/            server-side session helper
+src/app/           landing, login, create, gallery, pricing, api/{jobs,checkout,webhooks/stripe,billing/portal,health}
+src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
+src/utils/stripe   stripe client
+supabase/migrations 0001_init, 0002_stripe_events
+scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices)
+```
+
+---
+
+## 5. Roadmap — what's next (priority order)
+
+### NOW — Phase 1 hardening (before real traffic)
+- [ ] Run migration `0002_stripe_events` on the DB (re-enables webhook idempotency; currently degrades gracefully with a warning).
+- [ ] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle.
+- [ ] Plan gating on `/create` (enforce max duration / model tier / character limits per plan).
+- [ ] Add a processed-events safety + minimal alerting on webhook failures.
+
+### NEXT — Phase 2: Real providers (make videos real + lock margins)
+- [ ] Live adapters behind the existing interfaces: fal.ai (image, video), Anthropic (script), ElevenLabs (voice + word timings), render API (stitch + subtitle burn).
+- [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
+- [ ] **Margin gate:** replace placeholder `costUsdPerUnit` with measured costs; confirm each plan is profitable at full burn before enabling live mode; adjust plan credits/prices.
+- [ ] Media storage: move assets to Cloudflare R2 (no egress); signed URLs; retention.
+- [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
+
+### NEXT — Phase 3: Ship it
+- [ ] Deploy to Vercel (env, Supabase prod project, Stripe live keys, public webhook endpoint).
+- [ ] CI (typecheck + tests on push), Sentry + PostHog wired, Resend transactional email.
+- [ ] Legal: ToS/Privacy, cookie banner (reject-all), EU AI Act AI-generated labelling (visible + metadata).
+
+### LATER — Phase 4: Retention & ARPU
+- [ ] Characters (consistent reference across scenes).
+- [ ] Studio (edit/regenerate one scene).
+- [ ] Series (recurring cast + story bible).
+- [ ] AI Agent (chat that calls the existing pipeline — no second pipeline).
+- [ ] Direct posting to TikTok/YouTube/IG (apply for TikTok Content Posting API early — weeks of lead time).
+- [ ] Affiliate program (typically the best-paying channel in this niche).
+- [ ] Yearly plans.
+
+**Out of scope (deliberate):** "buy followers / Boost" (violates platform + Stripe rules), self-hosted GPUs/model training, mobile app, microservices, timeline editor.
+
+---
+
+## 6. Shipment / launch strategy
+
+1. **Own faceless accounts from day 0** — 5–10 niche accounts posting daily with the tool; link in bio.
+2. **Affiliates** — 30% recurring for creators in the "faceless channel / make money online" niche.
+3. **SEO** — 2–3 pages/week: keyword guides ("AI TikTok video generator", "faceless video generator"), one page per theme with examples, model-comparison pages.
+4. **Paid ads** (Meta/TikTok) only once signup→paid converts; use our own generated videos as the ads; kill any cohort where CAC > first-month revenue.
+5. **Launch bursts** — Product Hunt, relevant subreddits (rules-compliant), build-in-public on X.
+6. **Retention** — weekly trend-based themes, onboarding email sequence, reminder emails for unused credits.
+
+---
+
+## 7. Monetization & pricing (current placeholders)
+
+Plans (EUR/mo): Starter €14.99 / 30k credits · Pro €29.99 / 100k · Ultra €79.99 / 250k.
+Top-ups: 20k €12 · 60k €29 · 150k €59.
+Internal credit scale (recalibrated): a 12s standard video ≈ ~1.4k credits, a 15s ≈ ~2k.
+Trial: 3,000 credits (≈ one short video).
+
+**⚠️ Margins are not yet validated** — `costUsdPerUnit` are placeholders. The margin gate in Phase 2 sets real prices. Until then, treat pricing as provisional.
+
+---
+
+## 8. Risks & mitigations
+- **API cost > credit value** → margin gate before live; cheapest-model defaults; cap video length.
+- **Provider price/behavior changes** → adapter layer isolates swaps.
+- **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
+- **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
+- **Webhook double-grant** → `stripe_events` idempotency (run 0002).
+
+---
+
+## 9. Ops runbook (state that isn't in code)
+- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today.
+- **Pending DB migration:** `0002_stripe_events` not yet applied (webhook idempotency disabled, graceful).
+- **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
+- **Node ≥ 22 required** (`engines`); dev on Node 24.
+- **Repo:** github.com/TudorFnsn/Shortcraft (branch-per-feature → fast-forward `main`).
+- **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
+
+---
+
+## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-09-30** — Created TheMasterPlan + the CEO/dev-team operating workflow.
+- **2026-09-30** — Stripe billing verified live in sandbox (checkout → webhook → 20k credits granted). Webhook made resilient to a missing idempotency table.
+- **2026-09-29** — Stripe integration built: products/prices, checkout, webhook, portal, `/pricing`; migration 0002.
+- **2026-09-28/29** — Create-form affordability fix (default 15s + live estimate). Supabase integration: repository, auth, `/create` + `/gallery`; verified end-to-end live. Node upgraded 20→24. Credit scale recalibrated.
+- **2026-09-24/25** — Foundation: provider adapters + mocks, credit ledger, render state machine, config/lib, tooling, DB schema + orchestrator. 30 tests green.
+
+---
+
+## 11. Decision log (why, not just what)
+- **Serverless + webhook/cron pipeline** over a worker service → stay on Vercel+Supabase.
+- **Provider adapter + model catalog** → swap models monthly without touching pipeline; pricing centralized.
+- **Append-only credit ledger** → auditable, race-safe.
+- **Markdown source of truth** (not .docx) → diffable, agent-editable, version-controlled.
