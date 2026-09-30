@@ -152,12 +152,13 @@ Trial: 3,000 credits (≈ one short video).
 - **Node ≥ 22 required** (`engines`); dev on Node 24.
 - **Repo:** github.com/TudorFnsn/Shortcraft (branch-per-feature → fast-forward `main`).
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
+- **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
-- **2026-09-30** — Created TheMasterPlan + the CEO/dev-team operating workflow.
+- **2026-09-30** — Created TheMasterPlan + the CEO/dev-team operating workflow; stood up the daily "Shortcraft CEO" cloud routine (Opus 5.5, PR-gated).
 - **2026-09-30** — Stripe billing verified live in sandbox (checkout → webhook → 20k credits granted). Webhook made resilient to a missing idempotency table.
 - **2026-09-29** — Stripe integration built: products/prices, checkout, webhook, portal, `/pricing`; migration 0002.
 - **2026-09-28/29** — Create-form affordability fix (default 15s + live estimate). Supabase integration: repository, auth, `/create` + `/gallery`; verified end-to-end live. Node upgraded 20→24. Credit scale recalibrated.
