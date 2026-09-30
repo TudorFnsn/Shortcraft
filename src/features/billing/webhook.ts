@@ -99,7 +99,10 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           },
           { onConflict: 'user_id' },
         );
-        await admin.from('profiles').update({ plan_id: planId ?? 'starter' }).eq('id', userId);
+        await admin
+          .from('profiles')
+          .update({ plan_id: planId ?? 'starter' })
+          .eq('id', userId);
       }
       log.info('checkout completed', { userId, credits, isSub, planId });
       break;

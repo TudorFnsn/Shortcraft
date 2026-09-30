@@ -25,7 +25,7 @@ export default function PricingPage() {
     }
     const data = await res.json().catch(() => ({}));
     if (data.url) {
-      window.location.href = data.url; // to Stripe Checkout
+      window.location.assign(data.url); // to Stripe Checkout
       return;
     }
     setBusy(null);
@@ -52,7 +52,11 @@ export default function PricingPage() {
               </p>
               <ul className="mt-1 flex-1 space-y-1 text-sm text-neutral-300">
                 <li>Up to {plan.limits.maxVideoDurationSec}s videos</li>
-                <li>{plan.limits.modelTiers.includes('premium') ? 'Standard + premium models' : 'Standard models'}</li>
+                <li>
+                  {plan.limits.modelTiers.includes('premium')
+                    ? 'Standard + premium models'
+                    : 'Standard models'}
+                </li>
                 {plan.limits.studio && <li>Studio editor</li>}
                 {plan.limits.series && <li>Series</li>}
               </ul>
