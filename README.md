@@ -24,12 +24,12 @@ npm run dev
 
 ## Scripts
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Dev server (mock providers by default) |
-| `npm test` | Vitest — must stay green with no secrets |
+| Command             | Purpose                                              |
+| ------------------- | ---------------------------------------------------- |
+| `npm run dev`       | Dev server (mock providers by default)               |
+| `npm test`          | Vitest — must stay green with no secrets             |
 | `npm run typecheck` | `tsc --noEmit` (strict + `noUncheckedIndexedAccess`) |
-| `npm run format` | Prettier |
+| `npm run format`    | Prettier                                             |
 
 ## Architecture
 

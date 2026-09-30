@@ -34,11 +34,13 @@ gross margin/video, paid churn.
 ## 2. Current status (implemented)
 
 **Phase 0 — Foundations ✅**
+
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
 - Vitest + Prettier + strict tsconfig. 56 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
+
 - **Provider layer:** one adapter contract for script/image/video/voice/render; deterministic mocks; model→adapter registry. `MOCK_PROVIDERS=true` runs the whole pipeline offline.
 - **Credit ledger:** append-only (`credit_transactions`), balance = SUM(delta); atomic `reserve_credits` / `add_credits` Postgres functions (advisory-locked, no overspend).
 - **Render pipeline:** state machine `draft→scripting→images→clips→voiceover→subtitles→stitching→done` (`→failed` auto-refunds); DB-backed orchestrator; reserve→settle credit flow. The reserve is a guaranteed **upper bound**: scenes priced at `MAX_SCENE_SEC`, the script's plan is clamped to the budget, and the bill is capped at the hold (overruns log a `warn` = margin leak to watch).
@@ -84,13 +86,15 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 ## 5. Roadmap — what's next (priority order)
 
 ### NOW — Phase 1 hardening (before real traffic)
+
 - [ ] Run migration `0002_stripe_events` on the DB (re-enables webhook idempotency; currently degrades gracefully with a warning).
-- [x] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle. *(PR `ceo/credit-estimate-upper-bound`, 2026-09-30)*
-- [ ] Fix the pre-existing lint error in `src/app/pricing/page.tsx:28` ("value cannot be modified") + Prettier drift in 3 files, then add CI (typecheck + test + lint) so `main` stays green. Note: `npm run typecheck` needs `next build`/`next typegen` first (generated `LayoutProps`).
+- [x] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle. _(PR `ceo/credit-estimate-upper-bound`, 2026-09-30)_
+- [x] CI on every PR + push to `main` (format, lint, typecheck, test, build — mock mode, no secrets); fixed the `/pricing` lint error + Prettier drift. _(PR `ceo/ci-lint`, 2026-09-30)_
 - [ ] Plan gating on `/create` (enforce max duration / model tier / character limits per plan).
 - [ ] Add a processed-events safety + minimal alerting on webhook failures.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
+
 - [ ] Live adapters behind the existing interfaces: fal.ai (image, video), Anthropic (script), ElevenLabs (voice + word timings), render API (stitch + subtitle burn).
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
 - [ ] **Margin gate:** replace placeholder `costUsdPerUnit` with measured costs; confirm each plan is profitable at full burn before enabling live mode; adjust plan credits/prices.
@@ -98,11 +102,13 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
 
 ### NEXT — Phase 3: Ship it
+
 - [ ] Deploy to Vercel (env, Supabase prod project, Stripe live keys, public webhook endpoint).
-- [ ] CI (typecheck + tests on push), Sentry + PostHog wired, Resend transactional email.
+- [ ] Sentry + PostHog wired, Resend transactional email. (CI ✅ done in Phase 1.)
 - [ ] Legal: ToS/Privacy, cookie banner (reject-all), EU AI Act AI-generated labelling (visible + metadata).
 
 ### LATER — Phase 4: Retention & ARPU
+
 - [ ] Characters (consistent reference across scenes).
 - [ ] Studio (edit/regenerate one scene).
 - [ ] Series (recurring cast + story bible).
@@ -138,6 +144,7 @@ Trial: 3,000 credits (≈ one short video).
 ---
 
 ## 8. Risks & mitigations
+
 - **API cost > credit value** → margin gate before live; cheapest-model defaults; cap video length.
 - **Provider price/behavior changes** → adapter layer isolates swaps.
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
@@ -147,10 +154,12 @@ Trial: 3,000 credits (≈ one short video).
 ---
 
 ## 9. Ops runbook (state that isn't in code)
+
 - **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today.
 - **Pending DB migration:** `0002_stripe_events` not yet applied (webhook idempotency disabled, graceful).
 - **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
-- **Node ≥ 22 required** (`engines`); dev on Node 24.
+- **Node ≥ 22 required** (`engines`); dev + CI on Node 24.
+- **CI:** `.github/workflows/ci.yml` runs `format:check → lint → typecheck → test → next build` in mock mode. `npm run typecheck` runs `next typegen` first (Next's generated `LayoutProps`/route types), so it works on a fresh clone.
 - **Repo:** github.com/TudorFnsn/Shortcraft (branch-per-feature → fast-forward `main`).
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
@@ -159,7 +168,8 @@ Trial: 3,000 credits (≈ one short video).
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
-- **2026-09-30** — Credit hold is now a hard upper bound. Found that 6s/9s/15s jobs (15s is the default!) charged *more* than they reserved, so settle could push a balance negative. Estimate now prices scenes at `MAX_SCENE_SEC`; orchestrator clamps the script plan and caps the bill at the hold. +26 tests (every length × tier, plus an over-delivering script model). (CEO routine)
+- **2026-09-30** — CI added (GitHub Actions: format, lint, typecheck, test, build; mock mode, no secrets). Fixed the `/pricing` React-Compiler lint error (`location.assign` instead of assigning `href`), allowed `_`-prefixed unused args, formatted the repo, made `typecheck` self-sufficient via `next typegen`. (CEO routine, same-day follow-up)
+- **2026-09-30** — Credit hold is now a hard upper bound. Found that 6s/9s/15s jobs (15s is the default!) charged _more_ than they reserved, so settle could push a balance negative. Estimate now prices scenes at `MAX_SCENE_SEC`; orchestrator clamps the script plan and caps the bill at the hold. +26 tests (every length × tier, plus an over-delivering script model). (CEO routine)
 - **2026-09-30** — Created TheMasterPlan + the CEO/dev-team operating workflow; stood up the daily "Shortcraft CEO" cloud routine (Opus 5.5, PR-gated).
 - **2026-09-30** — Stripe billing verified live in sandbox (checkout → webhook → 20k credits granted). Webhook made resilient to a missing idempotency table.
 - **2026-09-29** — Stripe integration built: products/prices, checkout, webhook, portal, `/pricing`; migration 0002.
@@ -169,8 +179,10 @@ Trial: 3,000 credits (≈ one short video).
 ---
 
 ## 11. Decision log (why, not just what)
+
 - **Serverless + webhook/cron pipeline** over a worker service → stay on Vercel+Supabase.
 - **Provider adapter + model catalog** → swap models monthly without touching pipeline; pricing centralized.
 - **Append-only credit ledger** → auditable, race-safe.
 - **Markdown source of truth** (not .docx) → diffable, agent-editable, version-controlled.
+- **CI gates every PR** (2026-09-30) → the daily CEO routine ships unattended PRs; CI is the reviewer's first line of defence, so lint/format are enforced (errors fail the build), not advisory.
 - **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).
