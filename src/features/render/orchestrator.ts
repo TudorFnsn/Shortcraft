@@ -23,7 +23,7 @@ import {
 import type { ProviderContext, ProviderOutcome, RenderClip } from '@/features/providers/types';
 import { refundJob, reserveForJob, settleJob } from '@/features/credits/service';
 import { advance } from './machine';
-import { estimateJobCredits } from './pricing';
+import { billableCredits, estimateJobCredits, fitScenesToBudget } from './pricing';
 import type { CreditRepository, RenderJobRecord, RenderRepository } from './repository';
 
 export interface OrchestratorDeps {
@@ -86,9 +86,10 @@ export async function runRenderJob(
     charged += script.costCredits(scriptInput);
     apiCostUsd += scriptRes.costUsd;
     await repo.updateJob(jobId, { title: scriptRes.output.title });
+    const plannedScenes = fitScenesToBudget(scriptRes.output.scenes, job.targetDurationSec);
     const scenes = await repo.addScenes(
       jobId,
-      scriptRes.output.scenes.map((s) => ({
+      plannedScenes.map((s) => ({
         idx: s.index,
         narration: s.narration,
         imagePrompt: s.imagePrompt,
@@ -166,15 +167,20 @@ export async function runRenderJob(
     });
 
     // 7. settle + done ------------------------------------------------------
-    await settleJob(credits, job.userId, jobId, estimate, charged);
+    // The hold is the ceiling: an overrun is our margin leak, never the user's debt.
+    const billed = billableCredits(estimate, charged);
+    if (billed < charged) {
+      log.warn('metered credits exceeded the hold; capped', { charged, estimate });
+    }
+    await settleJob(credits, job.userId, jobId, estimate, billed);
     await repo.updateJob(jobId, {
       status: advance('stitching'), // 'done'
       outputAssetUrl: asset.url,
-      actualCredits: charged,
+      actualCredits: billed,
       apiCostUsd: round4(apiCostUsd),
     });
 
-    log.info('render job completed', { charged, estimate, apiCostUsd });
+    log.info('render job completed', { charged, billed, estimate, apiCostUsd });
     const done = await repo.getJob(jobId);
     return done ? ok(done) : err(appError('internal', 'job vanished after completion'));
   } catch (cause) {
