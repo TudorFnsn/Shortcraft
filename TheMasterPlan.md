@@ -36,12 +36,12 @@ gross margin/video, paid churn.
 **Phase 0 — Foundations ✅**
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 30 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 56 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 - **Provider layer:** one adapter contract for script/image/video/voice/render; deterministic mocks; model→adapter registry. `MOCK_PROVIDERS=true` runs the whole pipeline offline.
 - **Credit ledger:** append-only (`credit_transactions`), balance = SUM(delta); atomic `reserve_credits` / `add_credits` Postgres functions (advisory-locked, no overspend).
-- **Render pipeline:** state machine `draft→scripting→images→clips→voiceover→subtitles→stitching→done` (`→failed` auto-refunds); DB-backed orchestrator; reserve→settle credit flow.
+- **Render pipeline:** state machine `draft→scripting→images→clips→voiceover→subtitles→stitching→done` (`→failed` auto-refunds); DB-backed orchestrator; reserve→settle credit flow. The reserve is a guaranteed **upper bound**: scenes priced at `MAX_SCENE_SEC`, the script's plan is clamped to the budget, and the bill is capped at the hold (overruns log a `warn` = margin leak to watch).
 - **Supabase:** auth (email/password), Postgres schema + RLS, storage-ready. Connection + schema verified live.
 - **App:** landing, `/login`, `/create` (topic + theme + length + quality, live cost estimate + affordability gate), `/gallery` (jobs + balance), header with auth state.
 - **Billing (Stripe, sandbox-verified end-to-end):** products/prices (plans + top-ups, lookup_keys + credit metadata), `/pricing`, `POST /api/checkout`, `POST /api/webhooks/stripe` (grants credits, syncs subscription), `POST /api/billing/portal`. A live sandbox purchase with a test card granted 20,000 credits.
@@ -85,7 +85,8 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 ### NOW — Phase 1 hardening (before real traffic)
 - [ ] Run migration `0002_stripe_events` on the DB (re-enables webhook idempotency; currently degrades gracefully with a warning).
-- [ ] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle.
+- [x] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle. *(PR `ceo/credit-estimate-upper-bound`, 2026-09-30)*
+- [ ] Fix the pre-existing lint error in `src/app/pricing/page.tsx:28` ("value cannot be modified") + Prettier drift in 3 files, then add CI (typecheck + test + lint) so `main` stays green. Note: `npm run typecheck` needs `next build`/`next typegen` first (generated `LayoutProps`).
 - [ ] Plan gating on `/create` (enforce max duration / model tier / character limits per plan).
 - [ ] Add a processed-events safety + minimal alerting on webhook failures.
 
@@ -158,6 +159,7 @@ Trial: 3,000 credits (≈ one short video).
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-09-30** — Credit hold is now a hard upper bound. Found that 6s/9s/15s jobs (15s is the default!) charged *more* than they reserved, so settle could push a balance negative. Estimate now prices scenes at `MAX_SCENE_SEC`; orchestrator clamps the script plan and caps the bill at the hold. +26 tests (every length × tier, plus an over-delivering script model). (CEO routine)
 - **2026-09-30** — Created TheMasterPlan + the CEO/dev-team operating workflow; stood up the daily "Shortcraft CEO" cloud routine (Opus 5.5, PR-gated).
 - **2026-09-30** — Stripe billing verified live in sandbox (checkout → webhook → 20k credits granted). Webhook made resilient to a missing idempotency table.
 - **2026-09-29** — Stripe integration built: products/prices, checkout, webhook, portal, `/pricing`; migration 0002.
@@ -171,3 +173,4 @@ Trial: 3,000 credits (≈ one short video).
 - **Provider adapter + model catalog** → swap models monthly without touching pipeline; pricing centralized.
 - **Append-only credit ledger** → auditable, race-safe.
 - **Markdown source of truth** (not .docx) → diffable, agent-editable, version-controlled.
+- **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).
