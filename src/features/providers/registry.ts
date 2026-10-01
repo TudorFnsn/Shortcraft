@@ -5,9 +5,13 @@
  * adapters (fal.ai / Anthropic / ElevenLabs / render API) get registered here as
  * they're built; until then, asking for a live adapter fails loudly. Nothing
  * else in the app constructs a provider directly.
+ *
+ * Live mode is also margin-gated: while any plan or top-up would lose money at
+ * full burn (see `features/billing/margin.ts`), live adapters are refused.
  */
 import { getModel, type ModelSpec } from '@/config/models';
 import { env } from '@/lib/env';
+import { assessMargins, describeFailures } from '@/features/billing/margin';
 import {
   createMockImageProvider,
   createMockRenderProvider,
@@ -32,9 +36,20 @@ export function registerLiveAdapter(providerId: string, factory: LiveFactory): v
   liveAdapters.set(providerId, factory);
 }
 
+/** Throws while pricing is unprofitable at full burn. Pure math, cheap to re-run. */
+export function assertMarginGate(report = assessMargins()): void {
+  if (!report.ok) {
+    throw new Error(
+      `Margin gate failed — refusing live providers. ${describeFailures(report)}. ` +
+        `Fix credits/prices in config, or run with MOCK_PROVIDERS=true.`,
+    );
+  }
+}
+
 function resolve(modelId: string, mock: (m: ModelSpec) => unknown): unknown {
   const model = getModel(modelId);
   if (env.MOCK_PROVIDERS) return mock(model);
+  assertMarginGate();
   const live = liveAdapters.get(model.providerId);
   if (!live) {
     throw new Error(

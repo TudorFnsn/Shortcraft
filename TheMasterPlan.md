@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-09-30
+> Last updated: 2026-10-01
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 66 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 78 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -78,7 +78,7 @@ src/app/           landing, login, create, gallery, pricing, api/{jobs,checkout,
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events
-scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices)
+scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate)
 ```
 
 ---
@@ -98,7 +98,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 - [ ] Live adapters behind the existing interfaces: fal.ai (image, video), Anthropic (script), ElevenLabs (voice + word timings), render API (stitch + subtitle burn).
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
-- [ ] **Margin gate:** replace placeholder `costUsdPerUnit` with measured costs; confirm each plan is profitable at full burn before enabling live mode; adjust plan credits/prices.
+- [~] **Margin gate:** gate + report built and enforced (live adapters refused while any product is < 3x at full burn). _(PR `ceo/margin-gate`, 2026-10-01)_ Remaining: replace placeholder `costUsdPerUnit` with measured costs, then **reprice** (see §7 — every product currently fails) until `npx tsx scripts/margin-report.mts` passes.
 - [ ] Media storage: move assets to Cloudflare R2 (no egress); signed URLs; retention.
 - [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
 
@@ -140,13 +140,24 @@ Top-ups: 20k €12 · 60k €29 · 150k €59.
 Internal credit scale (recalibrated): a 12s standard video ≈ ~1.4k credits, a 15s ≈ ~2k.
 Trial: 3,000 credits (≈ one short video).
 
-**⚠️ Margins are not yet validated** — `costUsdPerUnit` are placeholders. The margin gate in Phase 2 sets real prices. Until then, treat pricing as provisional.
+**🚨 Margin gate FAILS today (2026-10-01, placeholder costs).** At full burn on the worst-case shape a buyer may make, net revenue (after 20% VAT, Stripe fees, €→$1.08) covers only **0.22–0.43x** of API cost — every product loses money:
+
+| Product         | Credits | Net rev | Worst-case API cost | Multiple | Max credits at 3x |
+| --------------- | ------- | ------- | ------------------- | -------- | ----------------- |
+| Starter €14.99  | 30k     | $12.98  | $30.09 (27s std)    | 0.43x    | ~4.3k             |
+| Pro €29.99      | 100k    | $26.24  | $119.81 (87s prem)  | 0.22x    | ~7.3k             |
+| Ultra €79.99    | 250k    | $70.43  | $300.06 (117s prem) | 0.23x    | ~19.6k            |
+| Top-up 20k €12  | 20k     | $10.34  | $24.01              | 0.43x    | ~2.9k             |
+| Top-up 60k €29  | 60k     | $25.36  | $72.02              | 0.35x    | ~7.0k             |
+| Top-up 150k €59 | 150k    | $51.87  | $180.04             | 0.29x    | ~14.4k            |
+
+Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 credits/s for $0.10/s (800 credits/$), so a 30k-credit plan is ~$37 of video. Fix path (owner decision, not done by the routine): measure real costs first (fal.ai LTX/Kling may be far below $0.10/s), then raise `creditsPerUnit` ~7–14x **or** shrink grants to the "max credits" column — and re-check that the trial still covers one video. Pricing stays provisional until the report passes.
 
 ---
 
 ## 8. Risks & mitigations
 
-- **API cost > credit value** → margin gate before live; cheapest-model defaults; cap video length.
+- **API cost > credit value** → **currently true on placeholder costs (§7)**; margin gate now blocks live mode until fixed; cheapest-model defaults; cap video length.
 - **Provider price/behavior changes** → adapter layer isolates swaps.
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
 - **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
@@ -169,6 +180,8 @@ Trial: 3,000 credits (≈ one short video).
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-01** — Margin gate: `features/billing/margin.ts` prices every job shape a plan allows at the reserve's upper bound, takes net revenue after VAT + Stripe fees, and reports each plan/top-up's revenue ÷ worst-case API cost; the provider registry refuses live adapters while any product is below 3x. `scripts/margin-report.mts` prints the table. Finding: **every product is at 0.22–0.43x on placeholder costs** (§7). +12 tests. Yesterday's `customer.subscription.updated` work is open as PR #4, awaiting review. (CEO routine)
+
 - **2026-09-30** — Plan gating: `entitlements` module + `PlanRepository` port (Supabase reads `subscriptions`; in-memory for tests). `POST /api/jobs` returns 403 `plan_limit` before creating a job or holding credits; `/create` shows locked options labelled with the plan that unlocks them. +10 tests. (CEO routine, same-day follow-up)
 - **2026-09-30** — CI added (GitHub Actions: format, lint, typecheck, test, build; mock mode, no secrets). Fixed the `/pricing` React-Compiler lint error (`location.assign` instead of assigning `href`), allowed `_`-prefixed unused args, formatted the repo, made `typecheck` self-sufficient via `next typegen`. (CEO routine, same-day follow-up)
 - **2026-09-30** — Credit hold is now a hard upper bound. Found that 6s/9s/15s jobs (15s is the default!) charged _more_ than they reserved, so settle could push a balance negative. Estimate now prices scenes at `MAX_SCENE_SEC`; orchestrator clamps the script plan and caps the bill at the hold. +26 tests (every length × tier, plus an over-delivering script model). (CEO routine)
@@ -187,5 +200,6 @@ Trial: 3,000 credits (≈ one short video).
 - **Append-only credit ledger** → auditable, race-safe.
 - **Markdown source of truth** (not .docx) → diffable, agent-editable, version-controlled.
 - **No subscription ⇒ Starter limits** (2026-09-30) → trial and lapsed users can make ≤30s standard videos; premium quality and longer videos are the upgrade reason. Live statuses = `active`/`trialing`/`past_due` (grace during dunning). Limits live on the `subscriptions` row, not `profiles.plan_id`, because cancellation only updates `subscriptions`.
+- **Margin gate is fail-closed for live mode** (2026-10-01) → no live provider call while any product earns < 3x its worst-case API cost at full burn. Worst case (not a typical 15s video) because credits are fungible and heavy users self-select; VAT + Stripe fees deducted because EU consumer prices include VAT. The trial is reported as acquisition cost, not gated. Trade-off: going live is blocked until costs are measured and pricing is changed, which is intentional, because shipping at today's numbers would lose money on every paying user.
 - **CI gates every PR** (2026-09-30) → the daily CEO routine ships unattended PRs; CI is the reviewer's first line of defence, so lint/format are enforced (errors fail the build), not advisory.
 - **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).
