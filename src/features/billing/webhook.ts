@@ -7,13 +7,20 @@
  *    record the subscription + plan.
  *  - invoice.paid (billing_reason=subscription_cycle): renewals — grant that
  *    plan's monthly credits (looked up from our config by the profile's plan).
+ *  - customer.subscription.updated: mirror status, plan (upgrades/downgrades
+ *    via the portal) and period end. Re-fetches the subscription so an
+ *    out-of-order delivery can't regress state.
  *  - customer.subscription.deleted: mark the subscription canceled.
+ *
+ * Subscription events match our row by stripe_subscription_id, so a stale
+ * event for an old subscription never touches a customer's newer one.
  *
  * Idempotent: each event id is recorded once in stripe_events before handling.
  */
 import type Stripe from 'stripe';
 import { PLANS, type PlanId } from '@/config/plans';
 import { logger } from '@/lib/logger';
+import { subscriptionUpdateFromStripe } from '@/features/billing/subscription-sync';
 import { getStripe } from '@/utils/stripe';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 
@@ -125,21 +132,40 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       break;
     }
 
+    case 'customer.subscription.updated': {
+      // Events can arrive out of order; Stripe's current object is the truth.
+      const sub = await stripe.subscriptions.retrieve(event.data.object.id);
+      const next = subscriptionUpdateFromStripe(sub);
+      const { data: rows, error } = await admin
+        .from('subscriptions')
+        .update({
+          status: next.status,
+          current_period_end: next.currentPeriodEnd,
+          ...(next.planId ? { plan_id: next.planId } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', sub.id)
+        .select('user_id');
+      if (error) throw new Error(`subscription update failed: ${error.message}`);
+      const userId = rows?.[0]?.user_id as string | undefined;
+      // Renewal grants read profiles.plan_id, so keep it in step with the plan.
+      if (userId && next.planId) {
+        await admin.from('profiles').update({ plan_id: next.planId }).eq('id', userId);
+      }
+      if (!userId) log.warn('subscription.updated for unknown subscription', { sub: sub.id });
+      if (next.planId === null) log.warn('subscription has no known plan price', { sub: sub.id });
+      log.info('subscription synced', { userId, ...next });
+      break;
+    }
+
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
-      const cust = customerId(sub.customer);
-      if (!cust) break;
-      const { data: profile } = await admin
-        .from('profiles')
-        .select('id')
-        .eq('stripe_customer_id', cust)
-        .maybeSingle();
-      if (profile) {
-        await admin
-          .from('subscriptions')
-          .update({ status: 'canceled', updated_at: new Date().toISOString() })
-          .eq('user_id', profile.id);
-      }
+      const { error } = await admin
+        .from('subscriptions')
+        .update({ status: 'canceled', updated_at: new Date().toISOString() })
+        .eq('stripe_subscription_id', sub.id);
+      if (error) throw new Error(`subscription cancel failed: ${error.message}`);
+      log.info('subscription canceled', { sub: sub.id });
       break;
     }
 

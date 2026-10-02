@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-09-30
+> Last updated: 2026-10-02
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 66 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 71 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -91,7 +91,9 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle. _(PR `ceo/credit-estimate-upper-bound`, 2026-09-30)_
 - [x] CI on every PR + push to `main` (format, lint, typecheck, test, build — mock mode, no secrets); fixed the `/pricing` lint error + Prettier drift. _(PR `ceo/ci-lint`, 2026-09-30)_
 - [x] Plan gating on `/create` (max duration + model tier per plan; server-enforced in `POST /api/jobs`, mirrored in the form with upgrade hints). _(PR `ceo/plan-gating`, 2026-09-30)_ Character limits wait for the Characters feature.
-- [ ] Handle `customer.subscription.updated` in the Stripe webhook (status + plan changes like upgrades/downgrades/`unpaid`) so `subscriptions.status` — which now drives plan limits — stays accurate.
+- [x] Handle `customer.subscription.updated` in the Stripe webhook (status, plan up/downgrades, period end; re-fetched from Stripe so out-of-order events can't regress state; also syncs `profiles.plan_id` for renewal grants). Subscription events now match by `stripe_subscription_id`. _(PR `ceo/subscription-sync`, 2026-10-02)_
+- [ ] **Ops:** make sure the Stripe webhook endpoint (dashboard / `stripe listen`) is subscribed to `customer.subscription.updated` (plus `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`).
+- [ ] Decide + implement mid-cycle **upgrade credits**: Stripe prorates the money on a portal upgrade (`invoice.paid`, `billing_reason=subscription_update`) but we grant no extra credits until the next cycle. Proposal: grant `newPlan.monthlyCredits − oldPlan.monthlyCredits` on that invoice.
 - [ ] Add a processed-events safety + minimal alerting on webhook failures.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
@@ -151,6 +153,7 @@ Trial: 3,000 credits (≈ one short video).
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
 - **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
 - **Webhook double-grant** → `stripe_events` idempotency (run 0002).
+- **Paid plan outliving payment** → `subscription.updated` mirrors `unpaid`/`paused` so limits drop to Starter; requires the endpoint to be subscribed to that event.
 
 ---
 
@@ -169,6 +172,7 @@ Trial: 3,000 credits (≈ one short video).
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-02** — Subscription sync: Stripe webhook now handles `customer.subscription.updated` (status incl. `unpaid`/`paused`, portal plan changes, `current_period_end`) via a pure, tested `subscriptionUpdateFromStripe` mapper; `.deleted` and `.updated` match rows by `stripe_subscription_id` (a stale event for an old subscription can no longer cancel a newer one). +5 tests. (CEO routine)
 - **2026-09-30** — Plan gating: `entitlements` module + `PlanRepository` port (Supabase reads `subscriptions`; in-memory for tests). `POST /api/jobs` returns 403 `plan_limit` before creating a job or holding credits; `/create` shows locked options labelled with the plan that unlocks them. +10 tests. (CEO routine, same-day follow-up)
 - **2026-09-30** — CI added (GitHub Actions: format, lint, typecheck, test, build; mock mode, no secrets). Fixed the `/pricing` React-Compiler lint error (`location.assign` instead of assigning `href`), allowed `_`-prefixed unused args, formatted the repo, made `typecheck` self-sufficient via `next typegen`. (CEO routine, same-day follow-up)
 - **2026-09-30** — Credit hold is now a hard upper bound. Found that 6s/9s/15s jobs (15s is the default!) charged _more_ than they reserved, so settle could push a balance negative. Estimate now prices scenes at `MAX_SCENE_SEC`; orchestrator clamps the script plan and caps the bill at the hold. +26 tests (every length × tier, plus an over-delivering script model). (CEO routine)
@@ -189,3 +193,4 @@ Trial: 3,000 credits (≈ one short video).
 - **No subscription ⇒ Starter limits** (2026-09-30) → trial and lapsed users can make ≤30s standard videos; premium quality and longer videos are the upgrade reason. Live statuses = `active`/`trialing`/`past_due` (grace during dunning). Limits live on the `subscriptions` row, not `profiles.plan_id`, because cancellation only updates `subscriptions`.
 - **CI gates every PR** (2026-09-30) → the daily CEO routine ships unattended PRs; CI is the reviewer's first line of defence, so lint/format are enforced (errors fail the build), not advisory.
 - **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).
+- **Stripe is the source of truth for subscription state** (2026-10-02) → on `customer.subscription.updated` we re-fetch the subscription instead of trusting the event payload (Stripe doesn't guarantee delivery order). Plan changes take effect on limits immediately; no credit claw-back on downgrade (credits already granted were paid for). Unknown prices keep the stored plan rather than guessing.
