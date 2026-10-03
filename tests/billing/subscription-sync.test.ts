@@ -1,6 +1,9 @@
 import type Stripe from 'stripe';
 import { describe, expect, it } from 'vitest';
-import { subscriptionRowFromStripe } from '@/features/billing/subscription-sync';
+import {
+  currentSubscriptionFor,
+  subscriptionRowFromStripe,
+} from '@/features/billing/subscription-sync';
 import { effectivePlanId } from '@/features/billing/entitlements';
 
 /** Minimal Subscription fixture — only the fields the mapper reads. */
@@ -74,5 +77,34 @@ describe('lifecycle → plan limits', () => {
     expect(limitsAfter('unpaid')).toBe('starter');
     expect(limitsAfter('paused')).toBe('starter');
     expect(limitsAfter('canceled')).toBe('starter');
+  });
+});
+
+describe('currentSubscriptionFor', () => {
+  const event = (type: string, object: Stripe.Subscription) =>
+    ({ type, data: { object } }) as unknown as Stripe.CustomerSubscriptionUpdatedEvent;
+
+  it('re-fetches on .updated so a late, stale payload cannot regress state', async () => {
+    const stale = sub('incomplete', [{ planId: 'pro' }]);
+    const live = sub('active', [{ planId: 'pro' }]);
+    const fetched: string[] = [];
+    const result = await currentSubscriptionFor(
+      event('customer.subscription.updated', stale),
+      (id) => {
+        fetched.push(id);
+        return Promise.resolve(live);
+      },
+    );
+    expect(fetched).toEqual(['sub_123']);
+    expect(result.status).toBe('active');
+  });
+
+  it('trusts the payload on .deleted (terminal state, no API call)', async () => {
+    const canceled = sub('canceled', [{ planId: 'pro' }]);
+    const result = await currentSubscriptionFor(
+      event('customer.subscription.deleted', canceled),
+      () => Promise.reject(new Error('should not fetch')),
+    );
+    expect(result.status).toBe('canceled');
   });
 });

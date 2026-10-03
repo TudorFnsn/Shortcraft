@@ -34,3 +34,16 @@ export function subscriptionRowFromStripe(sub: Stripe.Subscription): Subscriptio
       periodEnds.length > 0 ? new Date(Math.max(...periodEnds) * 1000).toISOString() : null,
   };
 }
+
+/**
+ * The subscription state to sync for an event. Stripe doesn't guarantee
+ * delivery order, so for `.updated` we re-fetch the current object rather than
+ * trust the (possibly stale) payload; `.deleted` is terminal, so its payload is final.
+ */
+export async function currentSubscriptionFor(
+  event: Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionDeletedEvent,
+  retrieve: (id: string) => Promise<Stripe.Subscription>,
+): Promise<Stripe.Subscription> {
+  if (event.type === 'customer.subscription.deleted') return event.data.object;
+  return retrieve(event.data.object.id);
+}

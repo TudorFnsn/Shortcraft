@@ -8,7 +8,8 @@
  *  - invoice.paid (billing_reason=subscription_cycle): renewals — grant that
  *    plan's monthly credits (looked up from our config by the profile's plan).
  *  - customer.subscription.updated / .deleted: sync plan + status (upgrades,
- *    downgrades, dunning, cancel) — these drive plan limits.
+ *    downgrades, dunning, cancel) — these drive plan limits. `.updated` is
+ *    re-fetched from Stripe because delivery order isn't guaranteed.
  *
  * Idempotent: each event id is recorded once in stripe_events before handling.
  */
@@ -16,7 +17,7 @@ import type Stripe from 'stripe';
 import { PLANS, type PlanId } from '@/config/plans';
 import { logger } from '@/lib/logger';
 import { getStripe } from '@/utils/stripe';
-import { subscriptionRowFromStripe } from './subscription-sync';
+import { currentSubscriptionFor, subscriptionRowFromStripe } from './subscription-sync';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
@@ -129,7 +130,7 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
 
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
-      const sub = event.data.object;
+      const sub = await currentSubscriptionFor(event, (id) => stripe.subscriptions.retrieve(id));
       const cust = customerId(sub.customer);
       if (!cust) break;
       const { data: profile } = await admin
