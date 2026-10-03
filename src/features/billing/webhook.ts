@@ -7,7 +7,9 @@
  *    record the subscription + plan.
  *  - invoice.paid (billing_reason=subscription_cycle): renewals — grant that
  *    plan's monthly credits (looked up from our config by the profile's plan).
- *  - customer.subscription.deleted: mark the subscription canceled.
+ *  - customer.subscription.updated / .deleted: sync plan + status (upgrades,
+ *    downgrades, dunning, cancel) — these drive plan limits. `.updated` is
+ *    re-fetched from Stripe because delivery order isn't guaranteed.
  *
  * Idempotent: each event id is recorded once in stripe_events before handling.
  */
@@ -15,6 +17,7 @@ import type Stripe from 'stripe';
 import { PLANS, type PlanId } from '@/config/plans';
 import { logger } from '@/lib/logger';
 import { getStripe } from '@/utils/stripe';
+import { currentSubscriptionFor, subscriptionRowFromStripe } from './subscription-sync';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
@@ -125,8 +128,9 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       break;
     }
 
+    case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
-      const sub = event.data.object;
+      const sub = await currentSubscriptionFor(event, (id) => stripe.subscriptions.retrieve(id));
       const cust = customerId(sub.customer);
       if (!cust) break;
       const { data: profile } = await admin
@@ -134,12 +138,44 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
         .select('id')
         .eq('stripe_customer_id', cust)
         .maybeSingle();
-      if (profile) {
-        await admin
-          .from('subscriptions')
-          .update({ status: 'canceled', updated_at: new Date().toISOString() })
-          .eq('user_id', profile.id);
+      if (!profile) {
+        log.warn('subscription event for unknown customer', { customer: cust });
+        break;
       }
+
+      const row = subscriptionRowFromStripe(sub);
+      const { data: existing } = await admin
+        .from('subscriptions')
+        .select('stripe_subscription_id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+      // Ignore stale events for a subscription the user has since replaced.
+      const storedSubId = (existing as { stripe_subscription_id: string | null } | null)
+        ?.stripe_subscription_id;
+      if (storedSubId && storedSubId !== row.stripeSubscriptionId) {
+        log.info('ignoring event for superseded subscription', { sub: row.stripeSubscriptionId });
+        break;
+      }
+
+      const planId = row.planId ?? undefined; // unknown plan → keep the stored one
+      if (!existing && !planId) {
+        log.warn('subscription event without a known plan and no stored row; skipped');
+        break;
+      }
+      const { error } = await admin.from('subscriptions').upsert(
+        {
+          user_id: profile.id,
+          ...(planId ? { plan_id: planId } : {}),
+          status: row.status,
+          stripe_subscription_id: row.stripeSubscriptionId,
+          current_period_end: row.currentPeriodEnd,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      );
+      if (error) throw new Error(`subscription sync failed: ${error.message}`); // Stripe retries
+      if (planId) await admin.from('profiles').update({ plan_id: planId }).eq('id', profile.id);
+      log.info('subscription synced', { userId: profile.id, status: row.status, planId });
       break;
     }
 
