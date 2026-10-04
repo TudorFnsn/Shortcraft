@@ -11,8 +11,8 @@ import { estimateJobCredits } from '@/features/render/pricing';
 const DURATIONS = [15, 30, 60, 90, 120];
 
 const TIERS: { id: ModelTier; label: string }[] = [
-  { id: 'standard', label: 'Standard' },
-  { id: 'premium', label: 'Premium' },
+  { id: 'standard', label: 'Standard — animated stills' },
+  { id: 'premium', label: 'Premium — AI video' },
 ];
 
 /** " (Pro)" suffix naming the plan that unlocks an option. */

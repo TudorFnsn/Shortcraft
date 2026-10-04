@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 90 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 110 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -60,7 +60,7 @@ gross margin/video, paid churn.
 - **Migrations are the schema source of truth** (`supabase/migrations`).
 - Full conventions: `docs/ARCHITECTURE.md`.
 
-**Stack:** Next.js/React/TS · Supabase (auth/db/storage) · Stripe · providers (fal.ai, Anthropic, ElevenLabs, a render API) behind adapters · Vercel (target) · PostHog/Sentry/Resend (planned).
+**Stack:** Next.js/React/TS · Supabase (auth/db/storage) · Stripe · providers (fal.ai, Anthropic, ElevenLabs) behind adapters + in-house ffmpeg renderer · Vercel (target) · PostHog/Sentry/Resend (planned).
 
 ---
 
@@ -99,9 +99,9 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
 
-- [ ] Live adapters behind the existing interfaces: fal.ai (image, video), Anthropic (script), ElevenLabs (voice + word timings), render API (stitch + subtitle burn).
+- [ ] Live adapters behind the existing interfaces: fal.ai (image, premium video), Anthropic (script), ElevenLabs (voice + word timings). The renderer is in-house: `ffmpeg-plan.ts` + `ffmpeg-render.ts` work end to end locally; the live adapter still needs asset download + upload, so it lands with media storage (R2).
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
-- [~] **Margin gate:** gate + report built and enforced (live adapters refused while any product is < 3x at full burn). _(PR `ceo/margin-gate`, 2026-10-01)_ Placeholder costs replaced with researched list prices _(PR `ceo/real-provider-costs`, 2026-10-04)_: the gate still fails (0.28–0.56x). **Owner decision needed on the §7 proposal** (animated-stills Standard tier + in-house render + one cost-based credit scale), then build it and re-run `npx tsx scripts/margin-report.mts`. Swap in measured costs once live adapters run.
+- [~] **Margin gate:** gate + report enforced _(PR `ceo/margin-gate`, 2026-10-01)_; researched costs in the catalog _(PR `ceo/real-provider-costs`, 2026-10-04)_; Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`, 2026-10-04)_ → Starter passes at 9.4x, trial burn $0.14. **Still failing: everything that can buy premium AI video** (Pro 0.55x, Ultra 0.59x, top-ups 0.73–1.08x) because premium is charged 220 cr/s for ~$0.12/s. **Owner decision:** raise `video-premium` to ≥1,420 cr/s (smallest value that passes, see §7), or limit premium to an AI "hero shot" on one scene. Swap in measured costs once live adapters run.
 - [ ] Media storage: move assets to Cloudflare R2 (no egress); signed URLs; retention.
 - [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
 
@@ -158,7 +158,7 @@ Trial: 3,000 credits (≈ one short video).
 2. **Credits aren't proportional to cost.** The worst case moved to the **shortest** video (6s standard), because the flat render fee costs $0.30 but is charged 100 credits. Premium is the reverse: 220 cr/s for $0.12/s, so it's overpriced relative to standard.
 3. **Prices were researched, not measured.** Direct provider pages were blocked from the routine's network, so the figures come from search snippets of aggregator and fal.ai pages; they disagree by up to 2x per model. Measure on real calls before going live.
 
-**Proposal (owner decision — nothing changed in pricing yet):**
+**Proposal (A + B approved and built 2026-10-04; C not approved):**
 
 - **A. Make Standard an "animated stills" tier.** Ken Burns pan/zoom over the scene image + voice + captions (the format most faceless channels use). It needs no video model: ~$0.07 for a 15s video. Premium keeps AI video clips.
 - **B. Render in-house** (ffmpeg on a serverless function) instead of a hosted render API: ~$0.01 vs $0.30 per video.
@@ -175,6 +175,8 @@ With A+B+C and the current plan prices + grants, the gate **passes**: Starter 5.
 | 30s premium (AI) | 45,570  | $3.80    | 0             | 2          | 5            | 0          |
 
 Premium AI video stays genuinely expensive; a cheaper variant is to animate only the hook scene ("hero shot") and use stills for the rest.
+
+**Status after A + B (2026-10-04, credits unchanged):** Standard costs ~$0.07 for 15s instead of ~$1.80. Gate: Starter **9.4x** ✅, Pro 0.55x, Ultra 0.59x, top-ups 0.73–1.08x; trial burn **$0.14** (was $2.79). Everything that fails, fails on its worst case: long premium (AI video) jobs. The smallest single fix is to raise `video-premium` from 220 to **1,420 cr/s** (Pro then passes at exactly 3.0x, Ultra 3.2x, top-ups 4.0–5.9x). A 30s premium video would then cost ~44k credits (Pro ≈ 2/month). Standard prices stay as they are (15s ≈ 2,024 credits, ~14/month on Starter), so Standard now carries a ~9x margin. Option C would instead pass that margin on to customers as roughly 2.5x more videos per plan.
 
 **Sources (search snippets, 2026-09/10):** fal.ai model and learn pages (LTX-2 Fast, Seedance 2.x, Wan 2.5); teamday.ai, devtk.ai, fluxnote.io and tryinfer.com price comparisons (Kling 3.0, Veo 3.1 Fast, Wan); fal.ai FLUX pricing via modelslab.com and pricepertoken.com; ElevenLabs Flash $0.05/1k chars via apiframe.ai and developer.puter.com; Shotstack and Creatomate pricing pages; Anthropic list prices (Sonnet 5.5 $2/$10 per MTok).
 
@@ -205,6 +207,7 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-04** — Standard tier = animated stills + in-house render (owner approved A + B of §7). New `local:ken-burns` video adapter (no video model, $0, runs in mock and live mode) and in-house ffmpeg renderer (`ffmpeg-plan.ts`: one-pass zoompan stills / fitted AI clips / concat / burned-in ASS captions / voiceover → H.264 MP4; `ffmpeg-render.ts` runner; `scripts/render-smoke.mts` renders a real 1080×1920 MP4 and checks it with ffprobe). `RenderClip`/`VideoOutput` are now still-or-video unions. Customer credit prices unchanged; tier labels now say "animated stills" / "AI video". Gate: Starter passes (9.4x), premium-capable products still fail; trial burn $2.79 → $0.14. +14 tests (110 total). (interactive session)
 - **2026-10-04** — Real provider costs: `costUsdPerUnit` in `config/models.ts` now holds researched list prices (fal video/FLUX, ElevenLabs Flash, Sonnet-class script, hosted render API) instead of placeholders. Gate still fails (0.28–0.56x; trial burn $2.79). §7 rewritten with low/mid/high scenarios and a repricing proposal that passes at 3x. No pricing or credit changes yet. (interactive session)
 - **2026-10-04** — Webhook retry safety: idempotency moved into `event-ledger.ts` (`processStripeEventOnce` + Supabase/in-memory ledgers). A handler failure releases the event claim so Stripe retries for real; `grant()` throws on `add_credits` errors; checkout grants credits after recording the subscription; route logs a stable `alert` tag. +6 tests (96 total). (CEO routine)
 - **2026-10-04** — Mid-cycle upgrade credits: on a live `customer.subscription.updated` plan upgrade, the webhook grants the monthly-allotment **difference** (new − old) immediately (`upgradeCreditDelta`), instead of waiting for the next renewal. Idempotent (after the upsert the stored plan equals the new plan; per-event `stripe_events` guard); downgrades never claw back. +3 tests (90 total). (interactive session)
@@ -234,6 +237,7 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 - **Finish open PRs before starting new ones** (2026-10-03) → with PR-gated autonomy, review is the bottleneck; a fresh PR for an item already in review wastes reviewer time. The routine improves an open CEO PR (on its branch) when that's the highest-leverage move.
 - **Margin gate is fail-closed for live mode** (2026-10-01) → no live provider call while any product earns < 3x its worst-case API cost at full burn. Worst case (not a typical 15s video) because credits are fungible and heavy users self-select; VAT + Stripe fees deducted because EU consumer prices include VAT. The trial is reported as acquisition cost, not gated. Trade-off: going live is blocked until costs are measured and pricing is changed, which is intentional, because shipping at today's numbers would lose money on every paying user.
 - **CI gates every PR** (2026-09-30) → the daily CEO routine ships unattended PRs; CI is the reviewer's first line of defence, so lint/format are enforced (errors fail the build), not advisory.
+- **Standard = animated stills, rendered in-house** (2026-10-04, owner-approved) → per-scene AI video was ~95% of a standard video's cost; Ken Burns over the scene image is the format faceless channels already use, and ffmpeg on our own compute replaces a ~$0.30/video render API. Credits stay the same for customers (option C not approved), so the saving is margin for now. The renderer is a pure, unit-tested plan builder plus a thin runner, so the same command runs locally, in tests and on serverless.
 - **Researched costs go in the catalog now; prices wait for the owner** (2026-10-04) → the gate should judge against the best numbers we have, not placeholders that looked closer to passing. Repricing changes what customers get, so it stays a proposal (§7) until Tudor decides.
 - **Webhook: release-on-failure, grant last** (2026-10-04) → retrying a failed event beats silently dropping it: a lost grant is a paying customer with nothing, a chargeback, a churn. Ordering each branch so the grant is the final write makes the retry safe without a schema change; the full fix (ledger idempotency key) is queued as migration 0003.
 - **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).

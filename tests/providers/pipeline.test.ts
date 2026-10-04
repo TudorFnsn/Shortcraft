@@ -57,13 +57,23 @@ describe('mock render pipeline', () => {
           ctx,
         ),
       );
-      expect(clip.videoUrl).toMatch(/^mock:\/\/video\//);
+      // Standard tier: the scene image itself, animated by our renderer.
+      expect(clip.kind).toBe('still');
+      if (clip.kind !== 'still') throw new Error('expected an animated still');
+      expect(clip.imageUrl).toBe(img.imageUrl);
       expect(
         video.costCredits({ imageUrl: img.imageUrl, motionPrompt: '', durationSec: 6 }),
       ).toBeGreaterThan(0);
 
-      clips.push({ videoUrl: clip.videoUrl, startMs: cursorMs });
-      cursorMs += scene.durationSec * 1000;
+      const durationMs = scene.durationSec * 1000;
+      clips.push({
+        kind: 'still',
+        imageUrl: clip.imageUrl,
+        motion: clip.motion,
+        startMs: cursorMs,
+        durationMs,
+      });
+      cursorMs += durationMs;
     }
 
     const fullNarration = scriptOut.scenes.map((s) => s.narration).join(' ');
@@ -87,6 +97,18 @@ describe('mock render pipeline', () => {
     );
     expect(final.videoUrl).toMatch(/^mock:\/\/render\//);
     expect(final.durationSec).toBeGreaterThan(0);
+  });
+
+  it('uses an AI video model for premium scenes', async () => {
+    const premium = getVideoProvider('video-premium');
+    const clip = completed(
+      await premium.run(
+        { imageUrl: 'mock://image/x.png', motionPrompt: 'push', durationSec: 6 },
+        ctx,
+      ),
+    );
+    expect(clip.kind).toBe('video');
+    if (clip.kind === 'video') expect(clip.videoUrl).toMatch(/^mock:\/\/video\//);
   });
 
   it('is deterministic for the same input', async () => {

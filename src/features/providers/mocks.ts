@@ -108,6 +108,7 @@ export function createMockVideoProvider(model: ModelSpec): VideoProvider {
     costCredits: (input) => Math.ceil(input.durationSec) * model.creditsPerUnit,
     async run(input: VideoInput, _ctx: ProviderContext) {
       const output: VideoOutput = {
+        kind: 'video',
         videoUrl: `mock://video/${hash(input.imageUrl + input.motionPrompt)}.mp4`,
         durationSec: input.durationSec,
       };
@@ -157,9 +158,10 @@ export function createMockRenderProvider(model: ModelSpec): RenderProvider {
     costCredits: () => model.creditsPerUnit,
     async run(input: RenderInput, _ctx: ProviderContext) {
       const lastClip = input.clips[input.clips.length - 1];
-      const durationSec = lastClip ? Math.ceil((lastClip.startMs + 6000) / 1000) : 0;
+      const durationSec = lastClip ? Math.ceil((lastClip.startMs + lastClip.durationMs) / 1000) : 0;
+      const sources = input.clips.map((c) => (c.kind === 'video' ? c.videoUrl : c.imageUrl));
       const output: RenderOutput = {
-        videoUrl: `mock://render/${hash(input.clips.map((c) => c.videoUrl).join(','))}.mp4`,
+        videoUrl: `mock://render/${hash(sources.join(','))}.mp4`,
         durationSec,
       };
       return { kind: 'completed', output, costUsd: model.costUsdPerUnit };

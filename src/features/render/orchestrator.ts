@@ -110,7 +110,7 @@ export async function runRenderJob(
       scene.imageUrl = res.output.imageUrl;
     }
 
-    // 3. clips (image -> video) --------------------------------------------
+    // 3. clips: AI video (premium) or an animated still (standard) ----------
     await repo.updateJob(jobId, { status: advance('images') }); // 'clips'
     const video = getVideoProvider(modelIdFor('video', job.modelTier));
     const clips: RenderClip[] = [];
@@ -125,9 +125,22 @@ export async function runRenderJob(
       const res = inline(await video.run(input, ctx('clips', scene.id)));
       charged += video.costCredits(input);
       apiCostUsd += res.costUsd;
-      await repo.updateScene(scene.id, { videoUrl: res.output.videoUrl, status: 'done' });
-      clips.push({ videoUrl: res.output.videoUrl, startMs: cursorMs });
-      cursorMs += scene.durationSec * 1000;
+      const durationMs = scene.durationSec * 1000;
+      const out = res.output;
+      if (out.kind === 'video') {
+        await repo.updateScene(scene.id, { videoUrl: out.videoUrl, status: 'done' });
+        clips.push({ kind: 'video', videoUrl: out.videoUrl, startMs: cursorMs, durationMs });
+      } else {
+        await repo.updateScene(scene.id, { status: 'done' }); // the image IS the scene
+        clips.push({
+          kind: 'still',
+          imageUrl: out.imageUrl,
+          motion: out.motion,
+          startMs: cursorMs,
+          durationMs,
+        });
+      }
+      cursorMs += durationMs;
     }
 
     // 4. voiceover ----------------------------------------------------------

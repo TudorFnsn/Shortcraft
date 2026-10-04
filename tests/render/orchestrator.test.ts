@@ -12,14 +12,14 @@ function storeWithCredits(amount: number): InMemoryStore {
   return store;
 }
 
-async function draftJob(store: InMemoryStore) {
+async function draftJob(store: InMemoryStore, modelTier: 'standard' | 'premium' = 'standard') {
   return store.createJob({
     userId: USER,
     topic: 'a cat CEO runs a startup',
     themeId: 'office-drama',
     targetDurationSec: 12,
     language: 'en',
-    modelTier: 'standard',
+    modelTier,
   });
 }
 
@@ -65,9 +65,25 @@ describe('runRenderJob — happy path', () => {
     expect(estimate).toBeGreaterThanOrEqual(res.value.actualCredits);
   });
 
-  it('persists per-scene image and video urls', async () => {
+  it('animates standard scenes from their image, with no video model', async () => {
     const store = storeWithCredits(100_000);
     const job = await draftJob(store);
+    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+
+    const scenes = await store.listScenes(job.id);
+    expect(scenes.length).toBeGreaterThanOrEqual(2);
+    for (const scene of scenes) {
+      expect(scene.imageUrl).toMatch(/^mock:\/\/image\//);
+      expect(scene.videoUrl).toBeNull();
+      expect(scene.status).toBe('done');
+    }
+    // Only script + images + voice + render cost money now.
+    expect(res.ok && res.value.apiCostUsd).toBeLessThan(0.1);
+  });
+
+  it('persists per-scene AI video urls for premium jobs', async () => {
+    const store = storeWithCredits(100_000);
+    const job = await draftJob(store, 'premium');
     await runRenderJob({ repo: store, credits: store }, job.id);
 
     const scenes = await store.listScenes(job.id);
