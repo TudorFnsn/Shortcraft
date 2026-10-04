@@ -92,10 +92,16 @@ export interface VideoInput {
   motionPrompt: string;
   durationSec: number;
 }
-export interface VideoOutput {
-  videoUrl: string;
-  durationSec: number;
-}
+/** Camera move the renderer applies to a still scene image ("Ken Burns"). */
+export type StillMotion = 'push-in' | 'pull-out' | 'pan-left' | 'pan-right';
+
+/**
+ * A scene's moving picture: either a generated clip (premium AI video) or a
+ * still image the renderer animates itself (standard tier — no video model).
+ */
+export type VideoOutput =
+  | { kind: 'video'; videoUrl: string; durationSec: number }
+  | { kind: 'still'; imageUrl: string; motion: StillMotion; durationSec: number };
 export type VideoProvider = Provider<VideoInput, VideoOutput>;
 
 export interface WordTiming {
@@ -115,10 +121,9 @@ export interface VoiceOutput {
 }
 export type VoiceProvider = Provider<VoiceInput, VoiceOutput>;
 
-export interface RenderClip {
-  videoUrl: string;
-  startMs: number;
-}
+export type RenderClip =
+  | { kind: 'video'; videoUrl: string; startMs: number; durationMs: number }
+  | { kind: 'still'; imageUrl: string; motion: StillMotion; startMs: number; durationMs: number };
 export interface RenderInput {
   clips: RenderClip[];
   voiceoverUrl: string;

@@ -62,16 +62,18 @@ export const MODELS: readonly ModelSpec[] = [
     id: 'video-standard',
     kind: 'video',
     tier: 'standard',
-    label: 'Standard video',
-    providerId: 'mock:video',
-    creditsPerUnit: 80, // per second
-    costUsdPerUnit: 0.08, // 720p silent image-to-video: LTX-2 Fast ~$0.04 … Kling 3.0 ~$0.084
+    label: 'Animated stills',
+    // Ken Burns camera move over the scene image, applied by our own renderer —
+    // no video model. (Was 720p image-to-video at ~$0.08/s.)
+    providerId: 'local:ken-burns',
+    creditsPerUnit: 80, // per second (unchanged for customers)
+    costUsdPerUnit: 0,
   },
   {
     id: 'video-premium',
     kind: 'video',
     tier: 'premium',
-    label: 'Premium video',
+    label: 'AI video',
     providerId: 'mock:video',
     creditsPerUnit: 220, // per second
     costUsdPerUnit: 0.12, // 1080p: Veo 3.1 Fast ~$0.12, Kling 3.0 ~$0.11
@@ -90,9 +92,11 @@ export const MODELS: readonly ModelSpec[] = [
     kind: 'render',
     tier: 'standard',
     label: 'Final render',
-    providerId: 'mock:render',
+    // In-house ffmpeg on serverless compute (features/providers/local). Was a
+    // hosted render API at ~$0.30/video; ~$0.01 is a conservative compute bound.
+    providerId: 'local:ffmpeg',
     creditsPerUnit: 100, // flat, per render
-    costUsdPerUnit: 0.3, // hosted render API (Shotstack PAYG ~$0.30/min, 1-min minimum)
+    costUsdPerUnit: 0.01,
   },
 ];
 

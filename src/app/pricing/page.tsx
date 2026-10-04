@@ -54,8 +54,8 @@ export default function PricingPage() {
                 <li>Up to {plan.limits.maxVideoDurationSec}s videos</li>
                 <li>
                   {plan.limits.modelTiers.includes('premium')
-                    ? 'Standard + premium models'
-                    : 'Standard models'}
+                    ? 'Animated stills + AI video scenes'
+                    : 'Animated-still scenes'}
                 </li>
                 {plan.limits.studio && <li>Studio editor</li>}
                 {plan.limits.series && <li>Series</li>}

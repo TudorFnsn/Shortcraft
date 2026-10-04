@@ -6,6 +6,9 @@
  * they're built; until then, asking for a live adapter fails loudly. Nothing
  * else in the app constructs a provider directly.
  *
+ * Local adapters (no vendor, no network — e.g. Ken Burns stills) resolve the
+ * same in mock and live mode.
+ *
  * Live mode is also margin-gated: while any plan or top-up would lose money at
  * full burn (see `features/billing/margin.ts`), live adapters are refused.
  */
@@ -19,6 +22,7 @@ import {
   createMockVideoProvider,
   createMockVoiceProvider,
 } from './mocks';
+import { createKenBurnsProvider } from './local/ken-burns';
 import type {
   ImageProvider,
   RenderProvider,
@@ -30,6 +34,9 @@ import type {
 /** Factory registry for LIVE adapters, keyed by ModelSpec.providerId. */
 type LiveFactory = (model: ModelSpec) => unknown;
 const liveAdapters = new Map<string, LiveFactory>();
+
+/** Adapters that call no vendor, so they're safe (and real) in mock mode too. */
+const localAdapters = new Map<string, LiveFactory>([['local:ken-burns', createKenBurnsProvider]]);
 
 /** Called by real adapter modules at import time (Phase 1, step 5). */
 export function registerLiveAdapter(providerId: string, factory: LiveFactory): void {
@@ -48,6 +55,8 @@ export function assertMarginGate(report = assessMargins()): void {
 
 function resolve(modelId: string, mock: (m: ModelSpec) => unknown): unknown {
   const model = getModel(modelId);
+  const local = localAdapters.get(model.providerId);
+  if (local) return local(model);
   if (env.MOCK_PROVIDERS) return mock(model);
   assertMarginGate();
   const live = liveAdapters.get(model.providerId);

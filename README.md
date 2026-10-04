@@ -12,7 +12,7 @@ so the entire app runs end-to-end on **deterministic mocks with zero API keys**
 
 Next.js (App Router) + TypeScript (strict) + Tailwind + shadcn/ui · Supabase
 (auth/db/storage) · Stripe (credits + subscriptions) · fal.ai / Anthropic /
-ElevenLabs / a managed render API behind provider adapters · Vercel.
+ElevenLabs behind provider adapters · in-house ffmpeg renderer · Vercel.
 
 ## Getting started
 
