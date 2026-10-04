@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 87 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 90 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -92,7 +92,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] CI on every PR + push to `main` (format, lint, typecheck, test, build — mock mode, no secrets); fixed the `/pricing` lint error + Prettier drift. _(PR `ceo/ci-lint`, 2026-09-30)_
 - [x] Plan gating on `/create` (max duration + model tier per plan; server-enforced in `POST /api/jobs`, mirrored in the form with upgrade hints). _(PR `ceo/plan-gating`, 2026-09-30)_ Character limits wait for the Characters feature.
 - [x] Handle `customer.subscription.updated` in the Stripe webhook (upgrades/downgrades/dunning/cancel sync `subscriptions` + `profiles.plan_id`; stale events for a replaced subscription are ignored; `.updated` is re-fetched from Stripe so out-of-order delivery can't regress state). _(PR `ceo/subscription-updated`, 2026-09-30; re-fetch added 2026-10-03)_ **Action for Tudor:** enable `customer.subscription.updated` on the Stripe webhook endpoint (dashboard / `stripe listen --events`).
-- [ ] Mid-cycle upgrade credits: an upgrade's proration invoice (`billing_reason=subscription_update`) grants no credits today — the new plan's credits arrive at the next renewal. Decide: grant the difference immediately, or keep as-is.
+- [x] Mid-cycle upgrade credits: a live `customer.subscription.updated` upgrade now grants the monthly-allotment difference (new − old) immediately via `upgradeCreditDelta`; downgrades never claw back. _(2026-10-04)_
 - [ ] Add a processed-events safety + minimal alerting on webhook failures.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
@@ -181,6 +181,7 @@ Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 cred
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-04** — Mid-cycle upgrade credits: on a live `customer.subscription.updated` plan upgrade, the webhook grants the monthly-allotment **difference** (new − old) immediately (`upgradeCreditDelta`), instead of waiting for the next renewal. Idempotent (after the upsert the stored plan equals the new plan; per-event `stripe_events` guard); downgrades never claw back. +3 tests (90 total). (interactive session)
 - **2026-10-03** — PR #4 (subscription sync): `customer.subscription.updated` now re-fetches the subscription from Stripe (`currentSubscriptionFor`) instead of trusting the payload, ported from the closed duplicate #6 per the owner's review note. `.deleted` keeps its payload (terminal). +2 tests. Routine now checks open PRs before picking work. (CEO routine)
 - **2026-10-01** — Margin gate: `features/billing/margin.ts` prices every job shape a plan allows at the reserve's upper bound, takes net revenue after VAT + Stripe fees, and reports each plan/top-up's revenue ÷ worst-case API cost; the provider registry refuses live adapters while any product is below 3x. `scripts/margin-report.mts` prints the table. Finding: **every product is at 0.22–0.43x on placeholder costs** (§7). +12 tests. (CEO routine; merged after PR #4)
 - **2026-09-30** — Stripe webhook now syncs `customer.subscription.updated` + `.deleted` through one pure mapper (`subscription-sync.ts`): plan from price metadata, status, period end. Upgrades/downgrades change limits immediately; `unpaid`/`paused`/`canceled` fall back to Starter. +7 tests. (CEO routine, same-day follow-up)
@@ -197,6 +198,7 @@ Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 cred
 
 ## 11. Decision log (why, not just what)
 
+- **Upgrades grant credits immediately** (2026-10-04) → the plan-allotment difference is granted the moment a subscription upgrades mid-cycle, not at the next renewal, so the upgrade feels instant (better conversion). Downgrades grant nothing and never claw back — goodwill beats a few credits. The slight over-grant across a cycle is an accepted conversion cost.
 - **Serverless + webhook/cron pipeline** over a worker service → stay on Vercel+Supabase.
 - **Provider adapter + model catalog** → swap models monthly without touching pipeline; pricing centralized.
 - **Append-only credit ledger** → auditable, race-safe.

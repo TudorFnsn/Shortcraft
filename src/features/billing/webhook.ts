@@ -17,7 +17,11 @@ import type Stripe from 'stripe';
 import { PLANS, type PlanId } from '@/config/plans';
 import { logger } from '@/lib/logger';
 import { getStripe } from '@/utils/stripe';
-import { currentSubscriptionFor, subscriptionRowFromStripe } from './subscription-sync';
+import {
+  currentSubscriptionFor,
+  subscriptionRowFromStripe,
+  upgradeCreditDelta,
+} from './subscription-sync';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
@@ -146,12 +150,17 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       const row = subscriptionRowFromStripe(sub);
       const { data: existing } = await admin
         .from('subscriptions')
-        .select('stripe_subscription_id')
+        .select('stripe_subscription_id, plan_id')
         .eq('user_id', profile.id)
         .maybeSingle();
+      const existingRow = existing as {
+        stripe_subscription_id: string | null;
+        plan_id: string | null;
+      } | null;
+      // Captured BEFORE the upsert below so we can detect an upgrade transition.
+      const oldPlanId = existingRow?.plan_id ?? null;
       // Ignore stale events for a subscription the user has since replaced.
-      const storedSubId = (existing as { stripe_subscription_id: string | null } | null)
-        ?.stripe_subscription_id;
+      const storedSubId = existingRow?.stripe_subscription_id;
       if (storedSubId && storedSubId !== row.stripeSubscriptionId) {
         log.info('ignoring event for superseded subscription', { sub: row.stripeSubscriptionId });
         break;
@@ -175,6 +184,29 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       );
       if (error) throw new Error(`subscription sync failed: ${error.message}`); // Stripe retries
       if (planId) await admin.from('profiles').update({ plan_id: planId }).eq('id', profile.id);
+
+      // Mid-cycle upgrade: grant the plan-credit difference now instead of making
+      // the user wait until the next renewal. Only on a live, paid upgrade.
+      // Idempotent: after the upsert the stored plan equals the new plan, so a
+      // repeat event sees oldPlanId === planId and grants nothing (plus the
+      // per-event stripe_events guard).
+      if (
+        event.type === 'customer.subscription.updated' &&
+        planId &&
+        (row.status === 'active' || row.status === 'trialing')
+      ) {
+        const bonus = upgradeCreditDelta(oldPlanId, planId);
+        if (bonus > 0) {
+          await grant(admin, profile.id as string, bonus, 'monthly_grant');
+          log.info('mid-cycle upgrade credited', {
+            userId: profile.id,
+            from: oldPlanId,
+            to: planId,
+            bonus,
+          });
+        }
+      }
+
       log.info('subscription synced', { userId: profile.id, status: row.status, planId });
       break;
     }

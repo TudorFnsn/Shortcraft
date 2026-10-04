@@ -36,6 +36,19 @@ export function subscriptionRowFromStripe(sub: Stripe.Subscription): Subscriptio
 }
 
 /**
+ * Credits to grant immediately when a subscription moves to a HIGHER plan
+ * mid-cycle: the difference in monthly allotment (new − old). Floored at 0, so a
+ * downgrade, an unchanged plan, or an unknown/first-time old plan grants nothing
+ * (we never claw credits back). The new plan still grants its full allotment at
+ * the next renewal — this just makes an upgrade felt now, not weeks later.
+ */
+export function upgradeCreditDelta(fromPlan: string | null | undefined, toPlan: PlanId): number {
+  if (!fromPlan || !isPlanId(fromPlan) || fromPlan === toPlan) return 0;
+  const delta = PLANS[toPlan].monthlyCredits - PLANS[fromPlan].monthlyCredits;
+  return delta > 0 ? delta : 0;
+}
+
+/**
  * The subscription state to sync for an event. Stripe doesn't guarantee
  * delivery order, so for `.updated` we re-fetch the current object rather than
  * trust the (possibly stale) payload; `.deleted` is terminal, so its payload is final.
