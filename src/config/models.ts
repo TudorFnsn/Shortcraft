@@ -8,6 +8,10 @@
  *
  * Adding a new model = one row here + one adapter registration. No pipeline
  * changes. This is the mechanism that lets us swap models as they ship monthly.
+ *
+ * `costUsdPerUnit` = researched public list prices (2026-10-04, mid-range of the
+ * candidates per slot; see TheMasterPlan §7). Not yet measured on real calls —
+ * replace with measured costs once live adapters run.
  */
 
 export type ModelKind = 'script' | 'image' | 'video' | 'voice' | 'render';
@@ -34,7 +38,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Script writer',
     providerId: 'mock:script',
     creditsPerUnit: 100, // flat, per generation
-    costUsdPerUnit: 0.02,
+    costUsdPerUnit: 0.04, // ~2k in / 1.5k out on a Sonnet-class model
   },
   {
     id: 'image-standard',
@@ -43,7 +47,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Standard image',
     providerId: 'mock:image',
     creditsPerUnit: 80, // per image
-    costUsdPerUnit: 0.03,
+    costUsdPerUnit: 0.003, // FLUX.1 [schnell] on fal, $0.003/MP (720x1280 = 1 MP)
   },
   {
     id: 'image-premium',
@@ -52,7 +56,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Premium image',
     providerId: 'mock:image',
     creditsPerUnit: 200,
-    costUsdPerUnit: 0.08,
+    costUsdPerUnit: 0.025, // FLUX.1 [dev] on fal, $0.025/MP
   },
   {
     id: 'video-standard',
@@ -61,7 +65,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Standard video',
     providerId: 'mock:video',
     creditsPerUnit: 80, // per second
-    costUsdPerUnit: 0.1,
+    costUsdPerUnit: 0.08, // 720p silent image-to-video: LTX-2 Fast ~$0.04 … Kling 3.0 ~$0.084
   },
   {
     id: 'video-premium',
@@ -70,7 +74,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Premium video',
     providerId: 'mock:video',
     creditsPerUnit: 220, // per second
-    costUsdPerUnit: 0.3,
+    costUsdPerUnit: 0.12, // 1080p: Veo 3.1 Fast ~$0.12, Kling 3.0 ~$0.11
   },
   {
     id: 'voice-default',
@@ -79,7 +83,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Voiceover',
     providerId: 'mock:voice',
     creditsPerUnit: 8, // per second
-    costUsdPerUnit: 0.002,
+    costUsdPerUnit: 0.00075, // ElevenLabs Flash $0.05/1k chars × ~15 chars/s
   },
   {
     id: 'render-default',
@@ -88,7 +92,7 @@ export const MODELS: readonly ModelSpec[] = [
     label: 'Final render',
     providerId: 'mock:render',
     creditsPerUnit: 100, // flat, per render
-    costUsdPerUnit: 0.02,
+    costUsdPerUnit: 0.3, // hosted render API (Shotstack PAYG ~$0.30/min, 1-min minimum)
   },
 ];
 

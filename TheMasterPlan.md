@@ -87,7 +87,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 ### NOW — Phase 1 hardening (before real traffic)
 
-- [ ] Run migration `0002_stripe_events` on the DB (re-enables webhook idempotency; currently degrades gracefully with a warning).
+- [x] Run migration `0002_stripe_events` on the DB (webhook idempotency on). _(confirmed applied by Tudor, 2026-10-04)_
 - [x] Make the credit estimate an **upper bound** (reserve ≥ actual) so balances can never go negative on settle. _(PR `ceo/credit-estimate-upper-bound`, 2026-09-30)_
 - [x] CI on every PR + push to `main` (format, lint, typecheck, test, build — mock mode, no secrets); fixed the `/pricing` lint error + Prettier drift. _(PR `ceo/ci-lint`, 2026-09-30)_
 - [x] Plan gating on `/create` (max duration + model tier per plan; server-enforced in `POST /api/jobs`, mirrored in the form with upgrade hints). _(PR `ceo/plan-gating`, 2026-09-30)_ Character limits wait for the Characters feature.
@@ -95,13 +95,13 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] Mid-cycle upgrade credits: a live `customer.subscription.updated` upgrade now grants the monthly-allotment difference (new − old) immediately via `upgradeCreditDelta`; downgrades never claw back. _(2026-10-04)_
 - [x] Processed-events safety + minimal alerting: a failed handler now **releases** its `stripe_events` claim so Stripe's retry reprocesses it (before, a transient error marked a paid event done and the customer never got credits); `add_credits` errors now throw instead of being swallowed; credit grants are the last write of each branch; failures log `alert: stripe_webhook_failed` / `stripe_event_stuck`. _(PR `ceo/webhook-retry-safety`, 2026-10-04)_
 - [ ] Ledger-level idempotency: add a unique `idempotency_key` (Stripe event id) to `credit_transactions` + `add_credits` (migration 0003), so a grant can never double-apply or be lost even when a step after the plan sync fails (today: a failed mid-cycle-upgrade bonus grant is not re-granted on retry, because the plan was already updated).
-- [ ] **Owner:** apply migrations `0002_stripe_events` (+ 0003 when it lands) — without 0002 there is no dedupe at all.
+- [ ] **Owner:** apply migration 0003 when it lands.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
 
 - [ ] Live adapters behind the existing interfaces: fal.ai (image, video), Anthropic (script), ElevenLabs (voice + word timings), render API (stitch + subtitle burn).
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
-- [~] **Margin gate:** gate + report built and enforced (live adapters refused while any product is < 3x at full burn). _(PR `ceo/margin-gate`, 2026-10-01)_ Remaining: replace placeholder `costUsdPerUnit` with measured costs, then **reprice** (see §7 — every product currently fails) until `npx tsx scripts/margin-report.mts` passes.
+- [~] **Margin gate:** gate + report built and enforced (live adapters refused while any product is < 3x at full burn). _(PR `ceo/margin-gate`, 2026-10-01)_ Placeholder costs replaced with researched list prices _(PR `ceo/real-provider-costs`, 2026-10-04)_: the gate still fails (0.28–0.56x). **Owner decision needed on the §7 proposal** (animated-stills Standard tier + in-house render + one cost-based credit scale), then build it and re-run `npx tsx scripts/margin-report.mts`. Swap in measured costs once live adapters run.
 - [ ] Media storage: move assets to Cloudflare R2 (no egress); signed URLs; retention.
 - [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
 
@@ -143,18 +143,40 @@ Top-ups: 20k €12 · 60k €29 · 150k €59.
 Internal credit scale (recalibrated): a 12s standard video ≈ ~1.4k credits, a 15s ≈ ~2k.
 Trial: 3,000 credits (≈ one short video).
 
-**🚨 Margin gate FAILS today (2026-10-01, placeholder costs).** At full burn on the worst-case shape a buyer may make, net revenue (after 20% VAT, Stripe fees, €→$1.08) covers only **0.22–0.43x** of API cost — every product loses money:
+**🚨 Margin gate FAILS on researched real costs (2026-10-04).** `costUsdPerUnit` now holds public list prices (mid-range per slot, sources below), not placeholders. Real prices do **not** rescue the current model: even the cheapest scenario fails.
 
-| Product         | Credits | Net rev | Worst-case API cost | Multiple | Max credits at 3x |
-| --------------- | ------- | ------- | ------------------- | -------- | ----------------- |
-| Starter €14.99  | 30k     | $12.98  | $30.09 (27s std)    | 0.43x    | ~4.3k             |
-| Pro €29.99      | 100k    | $26.24  | $119.81 (87s prem)  | 0.22x    | ~7.3k             |
-| Ultra €79.99    | 250k    | $70.43  | $300.06 (117s prem) | 0.23x    | ~19.6k            |
-| Top-up 20k €12  | 20k     | $10.34  | $24.01              | 0.43x    | ~2.9k             |
-| Top-up 60k €29  | 60k     | $25.36  | $72.02              | 0.35x    | ~7.0k             |
-| Top-up 150k €59 | 150k    | $51.87  | $180.04             | 0.29x    | ~14.4k            |
+| Scenario (per-slot cost)                                                    | Plan multiples (Starter / Pro / Ultra) | Top-ups    | Trial burn |
+| --------------------------------------------------------------------------- | -------------------------------------- | ---------- | ---------- |
+| Old placeholders                                                            | 0.43 / 0.22 / 0.23x                    | 0.29–0.43x | $3.01      |
+| **Low** (LTX-2 Fast $0.04/s, render API $0.20)                              | 0.83 / 0.51 / 0.54x                    | 0.67–1.00x | $1.56      |
+| **Mid — committed** (720p video $0.08/s, premium $0.12/s, render API $0.30) | 0.47 / 0.28 / 0.30x                    | 0.37–0.56x | $2.79      |
+| High (video $0.10/s, FLUX dev images, render $0.40)                         | 0.35 / 0.21 / 0.23x                    | 0.28–0.42x | $3.70      |
 
-Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 credits/s for $0.10/s (800 credits/$), so a 30k-credit plan is ~$37 of video. Fix path (owner decision, not done by the routine): measure real costs first (fal.ai LTX/Kling may be far below $0.10/s), then raise `creditsPerUnit` ~7–14x **or** shrink grants to the "max credits" column — and re-check that the trial still covers one video. Pricing stays provisional until the report passes.
+**What the numbers say:**
+
+1. **Generating AI video for every scene is the cost.** A 15s standard video costs ~$1.80 (≈$1.20 video clips + $0.30 render). At 3x, Starter (€14.99) can afford ~2.4 such videos a month. No credit-scale tweak fixes that.
+2. **Credits aren't proportional to cost.** The worst case moved to the **shortest** video (6s standard), because the flat render fee costs $0.30 but is charged 100 credits. Premium is the reverse: 220 cr/s for $0.12/s, so it's overpriced relative to standard.
+3. **Prices were researched, not measured.** Direct provider pages were blocked from the routine's network, so the figures come from search snippets of aggregator and fal.ai pages; they disagree by up to 2x per model. Measure on real calls before going live.
+
+**Proposal (owner decision — nothing changed in pricing yet):**
+
+- **A. Make Standard an "animated stills" tier.** Ken Burns pan/zoom over the scene image + voice + captions (the format most faceless channels use). It needs no video model: ~$0.07 for a 15s video. Premium keeps AI video clips.
+- **B. Render in-house** (ffmpeg on a serverless function) instead of a hosted render API: ~$0.01 vs $0.30 per video.
+- **C. One credit scale tied to cost:** `creditsPerUnit = ceil(costUsd × 12,000)` for every model. Every shape then has the same markup, so no plan has a hidden worst case. 12,000 cr/$ is the smallest round scale that clears 3x on Pro, the plan with the lowest revenue per credit.
+
+With A+B+C and the current plan prices + grants, the gate **passes**: Starter 5.3x, Pro 3.2x, Ultra 3.4x, top-ups 4.2–6.2x; trial burn **$0.25**.
+
+| Video            | Credits | API cost | Starter (30k) | Pro (100k) | Ultra (250k) | Trial (3k) |
+| ---------------- | ------- | -------- | ------------- | ---------- | ------------ | ---------- |
+| 15s standard     | 888     | $0.07    | 33 / mo       | 112        | 281          | 3          |
+| 30s standard     | 1,080   | $0.09    | 27            | 92         | 231          | 2          |
+| 60s standard     | 1,560   | $0.13    | 19            | 64         | 160          | 1          |
+| 15s premium (AI) | 27,582  | $2.30    | 1             | 3          | 9            | 0          |
+| 30s premium (AI) | 45,570  | $3.80    | 0             | 2          | 5            | 0          |
+
+Premium AI video stays genuinely expensive; a cheaper variant is to animate only the hook scene ("hero shot") and use stills for the rest.
+
+**Sources (search snippets, 2026-09/10):** fal.ai model and learn pages (LTX-2 Fast, Seedance 2.x, Wan 2.5); teamday.ai, devtk.ai, fluxnote.io and tryinfer.com price comparisons (Kling 3.0, Veo 3.1 Fast, Wan); fal.ai FLUX pricing via modelslab.com and pricepertoken.com; ElevenLabs Flash $0.05/1k chars via apiframe.ai and developer.puter.com; Shotstack and Creatomate pricing pages; Anthropic list prices (Sonnet 5.5 $2/$10 per MTok).
 
 ---
 
@@ -164,14 +186,14 @@ Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 cred
 - **Provider price/behavior changes** → adapter layer isolates swaps.
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
 - **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
-- **Webhook double-grant** → `stripe_events` idempotency (run 0002).
+- **Webhook double-grant** → `stripe_events` idempotency (0002 applied); ledger-level key planned (0003).
 
 ---
 
 ## 9. Ops runbook (state that isn't in code)
 
 - **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today.
-- **Pending DB migration:** `0002_stripe_events` not yet applied (webhook idempotency disabled, graceful).
+- **DB migrations:** `0001_init` + `0002_stripe_events` applied.
 - **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
 - **Node ≥ 22 required** (`engines`); dev + CI on Node 24.
 - **CI:** `.github/workflows/ci.yml` runs `format:check → lint → typecheck → test → next build` in mock mode. `npm run typecheck` runs `next typegen` first (Next's generated `LayoutProps`/route types), so it works on a fresh clone.
@@ -183,6 +205,7 @@ Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 cred
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-04** — Real provider costs: `costUsdPerUnit` in `config/models.ts` now holds researched list prices (fal video/FLUX, ElevenLabs Flash, Sonnet-class script, hosted render API) instead of placeholders. Gate still fails (0.28–0.56x; trial burn $2.79). §7 rewritten with low/mid/high scenarios and a repricing proposal that passes at 3x. No pricing or credit changes yet. (interactive session)
 - **2026-10-04** — Webhook retry safety: idempotency moved into `event-ledger.ts` (`processStripeEventOnce` + Supabase/in-memory ledgers). A handler failure releases the event claim so Stripe retries for real; `grant()` throws on `add_credits` errors; checkout grants credits after recording the subscription; route logs a stable `alert` tag. +6 tests (96 total). (CEO routine)
 - **2026-10-04** — Mid-cycle upgrade credits: on a live `customer.subscription.updated` plan upgrade, the webhook grants the monthly-allotment **difference** (new − old) immediately (`upgradeCreditDelta`), instead of waiting for the next renewal. Idempotent (after the upsert the stored plan equals the new plan; per-event `stripe_events` guard); downgrades never claw back. +3 tests (90 total). (interactive session)
 - **2026-10-03** — PR #4 (subscription sync): `customer.subscription.updated` now re-fetches the subscription from Stripe (`currentSubscriptionFor`) instead of trusting the payload, ported from the closed duplicate #6 per the owner's review note. `.deleted` keeps its payload (terminal). +2 tests. Routine now checks open PRs before picking work. (CEO routine)
@@ -211,5 +234,6 @@ Trial burn = **$3.01 API cost per signup**. Root cause: video is charged 80 cred
 - **Finish open PRs before starting new ones** (2026-10-03) → with PR-gated autonomy, review is the bottleneck; a fresh PR for an item already in review wastes reviewer time. The routine improves an open CEO PR (on its branch) when that's the highest-leverage move.
 - **Margin gate is fail-closed for live mode** (2026-10-01) → no live provider call while any product earns < 3x its worst-case API cost at full burn. Worst case (not a typical 15s video) because credits are fungible and heavy users self-select; VAT + Stripe fees deducted because EU consumer prices include VAT. The trial is reported as acquisition cost, not gated. Trade-off: going live is blocked until costs are measured and pricing is changed, which is intentional, because shipping at today's numbers would lose money on every paying user.
 - **CI gates every PR** (2026-09-30) → the daily CEO routine ships unattended PRs; CI is the reviewer's first line of defence, so lint/format are enforced (errors fail the build), not advisory.
+- **Researched costs go in the catalog now; prices wait for the owner** (2026-10-04) → the gate should judge against the best numbers we have, not placeholders that looked closer to passing. Repricing changes what customers get, so it stays a proposal (§7) until Tudor decides.
 - **Webhook: release-on-failure, grant last** (2026-10-04) → retrying a failed event beats silently dropping it: a lost grant is a paying customer with nothing, a chargeback, a churn. Ordering each branch so the grant is the final write makes the retry safe without a schema change; the full fix (ledger idempotency key) is queued as migration 0003.
 - **The reserve hold is the price ceiling** (2026-09-30) → a user is never billed more than the estimate shown on `/create`; any metered overrun is absorbed as margin and logged, never turned into user debt. Trust + no negative balances beats squeezing a few credits. Trade-off: estimates rose ~15% for some lengths (15s standard 1,760 → 2,024, still inside the 3,000 trial).
