@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MODELS, type ModelSpec } from '@/config/models';
+import { getModel, MODELS, type ModelSpec } from '@/config/models';
 import { PLANS } from '@/config/plans';
 import {
   allowedShapes,
@@ -31,7 +31,11 @@ describe('jobBill', () => {
 
   it('prices API cost with the same upper-bound formula', () => {
     // 15s standard = 3 scenes: script + 3 × (image + 6s video + 6s voice) + render.
-    const cost = 0.02 + 3 * (0.03 + 6 * 0.1 + 6 * 0.002) + 0.02;
+    const c = (id: string) => getModel(id).costUsdPerUnit;
+    const cost =
+      c('script-default') +
+      3 * (c('image-standard') + 6 * c('video-standard') + 6 * c('voice-default')) +
+      c('render-default');
     expect(jobBill({ targetDurationSec: 15, modelTier: 'standard' }).costUsd).toBeCloseTo(cost);
   });
 });
