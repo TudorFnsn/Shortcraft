@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   currentSubscriptionFor,
   subscriptionRowFromStripe,
+  upgradeCreditDelta,
 } from '@/features/billing/subscription-sync';
 import { effectivePlanId } from '@/features/billing/entitlements';
 
@@ -77,6 +78,26 @@ describe('lifecycle → plan limits', () => {
     expect(limitsAfter('unpaid')).toBe('starter');
     expect(limitsAfter('paused')).toBe('starter');
     expect(limitsAfter('canceled')).toBe('starter');
+  });
+});
+
+describe('upgradeCreditDelta', () => {
+  it('grants the allotment difference on an upgrade', () => {
+    expect(upgradeCreditDelta('starter', 'pro')).toBe(70_000); // 100k - 30k
+    expect(upgradeCreditDelta('starter', 'ultra')).toBe(220_000); // 250k - 30k
+    expect(upgradeCreditDelta('pro', 'ultra')).toBe(150_000); // 250k - 100k
+  });
+
+  it('grants nothing on a downgrade or an unchanged plan (no clawback)', () => {
+    expect(upgradeCreditDelta('ultra', 'pro')).toBe(0);
+    expect(upgradeCreditDelta('pro', 'starter')).toBe(0);
+    expect(upgradeCreditDelta('pro', 'pro')).toBe(0);
+  });
+
+  it('grants nothing when the old plan is unknown or missing', () => {
+    expect(upgradeCreditDelta(null, 'pro')).toBe(0);
+    expect(upgradeCreditDelta(undefined, 'ultra')).toBe(0);
+    expect(upgradeCreditDelta('enterprise', 'pro')).toBe(0);
   });
 });
 
