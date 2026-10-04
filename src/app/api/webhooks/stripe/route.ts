@@ -27,7 +27,13 @@ export async function POST(request: Request) {
   try {
     await handleStripeEvent(event);
   } catch (cause) {
-    logger.error('stripe webhook handler error', { type: event.type, cause: String(cause) });
+    // `alert` is the stable tag to page on once Sentry/log alerts are wired (Phase 3).
+    logger.error('stripe webhook handler error', {
+      alert: 'stripe_webhook_failed',
+      type: event.type,
+      eventId: event.id,
+      cause: String(cause),
+    });
     return new Response('handler error', { status: 500 }); // Stripe will retry
   }
 

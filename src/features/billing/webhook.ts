@@ -11,12 +11,16 @@
  *    downgrades, dunning, cancel) — these drive plan limits. `.updated` is
  *    re-fetched from Stripe because delivery order isn't guaranteed.
  *
- * Idempotent: each event id is recorded once in stripe_events before handling.
+ * Idempotent: each event id is claimed once in stripe_events before handling,
+ * and released again if handling fails so Stripe's retry reprocesses it (see
+ * event-ledger.ts). Every credit grant is the LAST write of its branch, so a
+ * failure is either before the grant (safe to retry) or not possible after it.
  */
 import type Stripe from 'stripe';
 import { PLANS, type PlanId } from '@/config/plans';
 import { logger } from '@/lib/logger';
 import { getStripe } from '@/utils/stripe';
+import { processStripeEventOnce, SupabaseStripeEventLedger } from './event-ledger';
 import {
   currentSubscriptionFor,
   subscriptionRowFromStripe,
@@ -36,40 +40,30 @@ async function grant(
   reason: 'topup' | 'monthly_grant',
 ): Promise<void> {
   if (credits <= 0) return;
-  await admin.rpc('add_credits', {
+  const { error } = await admin.rpc('add_credits', {
     p_user: userId,
     p_delta: credits,
     p_reason: reason,
     p_job: null,
   });
+  // Throw so the event is released and retried — a silent failure here means a
+  // customer paid and got nothing.
+  if (error) throw new Error(`add_credits failed: ${error.message}`);
 }
 
 export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   const admin = createSupabaseAdminClient();
   const log = logger.with({ stripeEvent: event.type, id: event.id });
 
-  // Idempotency: first writer wins; a duplicate insert means already processed.
-  const { error: seen } = await admin
-    .from('stripe_events')
-    .insert({ id: event.id, type: event.type });
-  if (seen) {
-    if (seen.code === '23505') {
-      log.info('duplicate stripe event ignored');
-      return; // already processed
-    }
-    const missingTable =
-      seen.code === '42P01' || // raw Postgres: undefined_table
-      seen.code === 'PGRST205' || // PostgREST: table not in schema cache
-      /schema cache|find the table/i.test(seen.message ?? '');
-    if (missingTable) {
-      // stripe_events table not created yet — idempotency disabled, but don't
-      // block delivery. Run migration 0002 to enable it.
-      log.warn('stripe_events table missing; idempotency disabled (run migration 0002)');
-    } else {
-      throw new Error(`stripe_events insert failed: ${seen.message}`); // fail -> Stripe retries
-    }
-  }
+  const handle = () => applyStripeEvent(admin, event, log);
+  await processStripeEventOnce(new SupabaseStripeEventLedger(admin), event, handle, log);
+}
 
+async function applyStripeEvent(
+  admin: Admin,
+  event: Stripe.Event,
+  log: ReturnType<typeof logger.with>,
+): Promise<void> {
   const stripe = getStripe();
 
   switch (event.type) {
@@ -93,10 +87,8 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       }
 
       const isSub = session.mode === 'subscription';
-      await grant(admin, userId, credits, isSub ? 'monthly_grant' : 'topup');
-
       if (isSub && session.subscription) {
-        await admin.from('subscriptions').upsert(
+        const { error } = await admin.from('subscriptions').upsert(
           {
             user_id: userId,
             plan_id: planId ?? 'starter',
@@ -106,11 +98,13 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
           },
           { onConflict: 'user_id' },
         );
+        if (error) throw new Error(`subscription record failed: ${error.message}`);
         await admin
           .from('profiles')
           .update({ plan_id: planId ?? 'starter' })
           .eq('id', userId);
       }
+      await grant(admin, userId, credits, isSub ? 'monthly_grant' : 'topup'); // last: see header
       log.info('checkout completed', { userId, credits, isSub, planId });
       break;
     }
