@@ -11,21 +11,25 @@
  *    downgrades, dunning, cancel) — these drive plan limits. `.updated` is
  *    re-fetched from Stripe because delivery order isn't guaranteed.
  *
- * Idempotent: each event id is claimed once in stripe_events before handling,
- * and released again if handling fails so Stripe's retry reprocesses it (see
- * event-ledger.ts). Every credit grant is the LAST write of its branch, so a
- * failure is either before the grant (safe to retry) or not possible after it.
+ * Idempotent at two levels: each event id is claimed once in stripe_events
+ * before handling, and released again if handling fails so Stripe's retry
+ * reprocesses it (see event-ledger.ts). Every grant also carries a ledger
+ * idempotency key (credit-grant.ts, migration 0003), so no retry or replay can
+ * grant twice, whatever order the writes of a branch run in.
  */
 import type Stripe from 'stripe';
 import { PLANS, type PlanId } from '@/config/plans';
 import { logger } from '@/lib/logger';
 import { getStripe } from '@/utils/stripe';
-import { processStripeEventOnce, SupabaseStripeEventLedger } from './event-ledger';
 import {
-  currentSubscriptionFor,
-  subscriptionRowFromStripe,
-  upgradeCreditDelta,
-} from './subscription-sync';
+  eventGrantKey,
+  SupabaseCreditGrantLedger,
+  upgradeGrantFor,
+  type CreditGrantLedger,
+  type GrantReason,
+} from './credit-grant';
+import { processStripeEventOnce, SupabaseStripeEventLedger } from './event-ledger';
+import { currentSubscriptionFor, subscriptionRowFromStripe } from './subscription-sync';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
@@ -33,36 +37,36 @@ type Admin = ReturnType<typeof createSupabaseAdminClient>;
 const customerId = (c: string | { id: string } | null | undefined): string | null =>
   typeof c === 'string' ? c : (c?.id ?? null);
 
+type Log = ReturnType<typeof logger.with>;
+
 async function grant(
-  admin: Admin,
+  ledger: CreditGrantLedger,
+  log: Log,
   userId: string,
   credits: number,
-  reason: 'topup' | 'monthly_grant',
+  reason: GrantReason,
+  key: string,
 ): Promise<void> {
   if (credits <= 0) return;
-  const { error } = await admin.rpc('add_credits', {
-    p_user: userId,
-    p_delta: credits,
-    p_reason: reason,
-    p_job: null,
-  });
-  // Throw so the event is released and retried — a silent failure here means a
-  // customer paid and got nothing.
-  if (error) throw new Error(`add_credits failed: ${error.message}`);
+  // Throws on failure so the event is released and retried.
+  const outcome = await ledger.grantOnce(userId, credits, reason, key);
+  if (outcome === 'duplicate') log.info('credit grant already applied', { userId, key });
 }
 
 export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   const admin = createSupabaseAdminClient();
   const log = logger.with({ stripeEvent: event.type, id: event.id });
 
-  const handle = () => applyStripeEvent(admin, event, log);
+  const grants = new SupabaseCreditGrantLedger(admin, log);
+  const handle = () => applyStripeEvent(admin, grants, event, log);
   await processStripeEventOnce(new SupabaseStripeEventLedger(admin), event, handle, log);
 }
 
 async function applyStripeEvent(
   admin: Admin,
+  grants: CreditGrantLedger,
   event: Stripe.Event,
-  log: ReturnType<typeof logger.with>,
+  log: Log,
 ): Promise<void> {
   const stripe = getStripe();
 
@@ -104,7 +108,14 @@ async function applyStripeEvent(
           .update({ plan_id: planId ?? 'starter' })
           .eq('id', userId);
       }
-      await grant(admin, userId, credits, isSub ? 'monthly_grant' : 'topup'); // last: see header
+      await grant(
+        grants,
+        log,
+        userId,
+        credits,
+        isSub ? 'monthly_grant' : 'topup',
+        eventGrantKey(event.id, 'checkout'),
+      );
       log.info('checkout completed', { userId, credits, isSub, planId });
       break;
     }
@@ -121,7 +132,16 @@ async function applyStripeEvent(
         .maybeSingle();
       if (!profile) break;
       const plan = PLANS[profile.plan_id as PlanId];
-      if (plan) await grant(admin, profile.id as string, plan.monthlyCredits, 'monthly_grant');
+      if (plan) {
+        await grant(
+          grants,
+          log,
+          profile.id as string,
+          plan.monthlyCredits,
+          'monthly_grant',
+          eventGrantKey(event.id, 'renewal'),
+        );
+      }
       log.info('renewal credited', { userId: profile.id, planId: profile.plan_id });
       break;
     }
@@ -165,6 +185,39 @@ async function applyStripeEvent(
         log.warn('subscription event without a known plan and no stored row; skipped');
         break;
       }
+
+      // Mid-cycle upgrade: grant the plan-credit difference now instead of making
+      // the user wait until the next renewal. Granted BEFORE the plan write: if
+      // that write fails, the retry still sees the old plan and recomputes the
+      // same bonus, and the ledger key makes the second grant a no-op. (Granting
+      // after it lost the bonus whenever a later step failed.)
+      const upgrade =
+        event.type === 'customer.subscription.updated' && planId
+          ? upgradeGrantFor({
+              eventId: event.id,
+              subscriptionId: row.stripeSubscriptionId,
+              currentPeriodEnd: row.currentPeriodEnd,
+              status: row.status,
+              fromPlan: oldPlanId,
+              toPlan: planId,
+            })
+          : null;
+      if (upgrade) {
+        await grant(
+          grants,
+          log,
+          profile.id as string,
+          upgrade.credits,
+          'monthly_grant',
+          upgrade.key,
+        );
+        log.info('mid-cycle upgrade credited', {
+          userId: profile.id,
+          from: oldPlanId,
+          to: planId,
+          bonus: upgrade.credits,
+        });
+      }
       const { error } = await admin.from('subscriptions').upsert(
         {
           user_id: profile.id,
@@ -178,28 +231,6 @@ async function applyStripeEvent(
       );
       if (error) throw new Error(`subscription sync failed: ${error.message}`); // Stripe retries
       if (planId) await admin.from('profiles').update({ plan_id: planId }).eq('id', profile.id);
-
-      // Mid-cycle upgrade: grant the plan-credit difference now instead of making
-      // the user wait until the next renewal. Only on a live, paid upgrade.
-      // Idempotent: after the upsert the stored plan equals the new plan, so a
-      // repeat event sees oldPlanId === planId and grants nothing (plus the
-      // per-event stripe_events guard).
-      if (
-        event.type === 'customer.subscription.updated' &&
-        planId &&
-        (row.status === 'active' || row.status === 'trialing')
-      ) {
-        const bonus = upgradeCreditDelta(oldPlanId, planId);
-        if (bonus > 0) {
-          await grant(admin, profile.id as string, bonus, 'monthly_grant');
-          log.info('mid-cycle upgrade credited', {
-            userId: profile.id,
-            from: oldPlanId,
-            to: planId,
-            bonus,
-          });
-        }
-      }
 
       log.info('subscription synced', { userId: profile.id, status: row.status, planId });
       break;

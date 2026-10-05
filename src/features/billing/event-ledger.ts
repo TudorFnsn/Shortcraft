@@ -7,8 +7,9 @@
  * error (Stripe API blip, DB hiccup) would mark a paid event as "done" and the
  * customer would never get their credits.
  *
- * Handlers should do their credit grant LAST: a failure before the grant is
- * retried cleanly, and nothing after it can fail and trigger a second grant.
+ * Retries re-run the whole handler, so every credit grant goes through a keyed,
+ * idempotent ledger write (credit-grant.ts): a grant that already landed before
+ * the failure is a no-op on the retry.
  */
 import type { createSupabaseAdminClient } from '@/utils/supabase/admin';
 
