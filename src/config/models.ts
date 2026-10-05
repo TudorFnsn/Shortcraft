@@ -36,7 +36,7 @@ export const MODELS: readonly ModelSpec[] = [
     kind: 'script',
     tier: 'standard',
     label: 'Script writer',
-    providerId: 'mock:script',
+    providerId: 'anthropic:script', // Claude Sonnet 5.5 (features/providers/live)
     creditsPerUnit: 100, // flat, per generation
     costUsdPerUnit: 0.04, // ~2k in / 1.5k out on a Sonnet-class model
   },
@@ -83,7 +83,7 @@ export const MODELS: readonly ModelSpec[] = [
     kind: 'voice',
     tier: 'standard',
     label: 'Voiceover',
-    providerId: 'mock:voice',
+    providerId: 'elevenlabs:voice', // eleven_flash_v2_5 with timestamps
     creditsPerUnit: 8, // per second
     costUsdPerUnit: 0.00075, // ElevenLabs Flash $0.05/1k chars × ~15 chars/s
   },

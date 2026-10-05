@@ -13,7 +13,6 @@
  * full burn (see `features/billing/margin.ts`), live adapters are refused.
  */
 import { getModel, type ModelSpec } from '@/config/models';
-import { env } from '@/lib/env';
 import { assessMargins, describeFailures } from '@/features/billing/margin';
 import {
   createMockImageProvider,
@@ -23,6 +22,11 @@ import {
   createMockVoiceProvider,
 } from './mocks';
 import { createKenBurnsProvider } from './local/ken-burns';
+import { createAnthropicScriptProvider } from './live/anthropic-script';
+import { createElevenLabsVoiceProvider } from './live/elevenlabs-voice';
+import { SupabaseMediaStore } from './live/media-store';
+import { env, requireEnv } from '@/lib/env';
+import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import type {
   ImageProvider,
   RenderProvider,
@@ -33,7 +37,18 @@ import type {
 
 /** Factory registry for LIVE adapters, keyed by ModelSpec.providerId. */
 type LiveFactory = (model: ModelSpec) => unknown;
-const liveAdapters = new Map<string, LiveFactory>();
+const liveAdapters = new Map<string, LiveFactory>([
+  ['anthropic:script', (m) => createAnthropicScriptProvider(m)],
+  [
+    'elevenlabs:voice',
+    (m) =>
+      createElevenLabsVoiceProvider(m, {
+        apiKey: () => requireEnv('ELEVENLABS_API_KEY'),
+        store: () => new SupabaseMediaStore(createSupabaseAdminClient(), env.SUPABASE_MEDIA_BUCKET),
+        voiceId: env.ELEVENLABS_VOICE_ID,
+      }),
+  ],
+]);
 
 /** Adapters that call no vendor, so they're safe (and real) in mock mode too. */
 const localAdapters = new Map<string, LiveFactory>([['local:ken-burns', createKenBurnsProvider]]);

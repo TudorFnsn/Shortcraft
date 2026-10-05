@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 127 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 137 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -100,10 +100,11 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
 
-- [ ] Live adapters behind the existing interfaces: fal.ai (image, premium video), Anthropic (script), ElevenLabs (voice + word timings). The renderer is in-house: `ffmpeg-plan.ts` + `ffmpeg-render.ts` work end to end locally; the live adapter still needs asset download + upload, so it lands with media storage (R2).
+- [~] Live adapters behind the existing interfaces. **Done (2026-10-05, PR `ceo/live-script-voice`):** Anthropic script (`live/anthropic-script.ts`: Claude Sonnet 5.5, structured JSON output, server-side refusal fallbacks) and ElevenLabs voice (`live/elevenlabs-voice.ts`: Flash v2.5 with character timestamps → word timings, MP3 stored via `live/media-store.ts` in a private Supabase Storage bucket, signed URLs). Unit-tested with fakes; **not yet run against the real APIs** — `npx tsx scripts/live-providers-smoke.mts` does that in one command (~$0.02). **Still to do:** fal.ai image + premium video adapters, and the live render adapter (`ffmpeg-plan.ts` + `ffmpeg-render.ts` work locally; it needs asset download + upload via the media store). Live mode (`MOCK_PROVIDERS=false`) needs every step to have a live adapter, so it stays off until fal.ai + render land.
+- [ ] **Owner:** add `ANTHROPIC_API_KEY` + `ELEVENLABS_API_KEY` to `.env.local`, run the live smoke script, listen to `live-smoke/voiceover/*.mp3`; create a **private** Supabase Storage bucket named `media`.
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
 - [x] **Margin gate passes on every product** _(2026-10-05)_: gate + report _(PR `ceo/margin-gate`)_, researched costs in the catalog _(PR `ceo/real-provider-costs`)_, Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`)_, and premium AI video repriced 220 → **1,420 cr/s** (owner decision). Starter 9.4x, Pro 3.0x, Ultra 3.2x, top-ups 4.0–5.9x; trial burn $0.14. **Pro has zero headroom** — the first measured premium cost above $0.12/s fails it again, so re-run `npx tsx scripts/margin-report.mts` whenever real costs come in. A test now fails if the shipped catalog drops below 3x.
-- [ ] Media storage: move assets to Cloudflare R2 (no egress); signed URLs; retention.
+- [~] Media storage: `MediaStore` port + Supabase Storage implementation (private bucket `media`, 24h signed URLs) landed with the voice adapter. Still to do: move to Cloudflare R2 (no egress fees) behind the same port, and a retention policy.
 - [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
 
 ### NEXT — Phase 3: Ship it
@@ -208,7 +209,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 9. Ops runbook (state that isn't in code)
 
-- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today.
+- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today. Live provider env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (required for live script/voice), optional `ANTHROPIC_SCRIPT_MODEL` (default `claude-sonnet-5-5`), `ELEVENLABS_VOICE_ID` (default: ElevenLabs stock voice), `SUPABASE_MEDIA_BUCKET` (default `media`).
 - **DB migrations:** `0001_init`, `0002_stripe_events` and `0003_credit_idempotency` applied.
 - **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
 - **Node ≥ 22 required** (`engines`); dev + CI on Node 24.
@@ -221,6 +222,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-05** — First live provider adapters: Anthropic script (Claude Sonnet 5.5 via `@anthropic-ai/sdk`, zod structured output, `fallbacks: "default"`, refusal/max_tokens fail the step so the job refunds, cost from real token usage) and ElevenLabs voice (`with-timestamps`, characters → word timings, MP3 into a new `MediaStore`/Supabase Storage). Catalog `providerId`s now `anthropic:script` / `elevenlabs:voice`; registry wires both. New `scripts/live-providers-smoke.mts`. Mock mode unchanged and still the default. +10 tests (137 total). (CEO, interactive)
 - **2026-10-05** — Premium AI video repriced 220 → 1,420 cr/s (owner decision). The margin gate now **passes on every plan and top-up** (Pro 3.00x, Ultra 3.23x, top-ups 4.0–5.9x, Starter unchanged at 9.4x), so it no longer blocks live providers. Standard prices unchanged (option C deferred). New test: the shipped catalog must pass the gate. +1 test (127 total). (CEO, interactive)
 - **2026-10-05** — Migration 0003 applied to the live Supabase project by Tudor; the credit-RPC hole is confirmed closed (`authenticated` can no longer execute `add_credits`), and webhook grants now go through `grant_credits_once`. (CEO routine, on owner confirmation)
 - **2026-10-05** — Ledger idempotency + credit-RPC lockdown (migration 0003). `credit_transactions.idempotency_key` (unique, partial) + `grant_credits_once(user, delta, reason, key)`; `credit-grant.ts` port (Supabase impl falls back to `add_credits` with a warning until 0003 is applied; in-memory impl for tests). Webhook grants are keyed: checkout/renewal by event id, mid-cycle upgrade by subscription + period end + target plan, which also stops an upgrade→downgrade→upgrade toggle from earning the bonus twice in one period. The upgrade bonus now lands before the plan write, so a failed sync is retried with the bonus intact. Found while writing it: `add_credits`/`reserve_credits` were executable by `anon`/`authenticated` (free credits for anyone signed in); 0003 revokes that. SQL verified against Postgres (PGlite) with Supabase-style default grants: the hole exists before, is closed after, grants apply once per key, trial trigger intact, re-runnable. +16 tests (126 total). (CEO routine)
@@ -243,6 +245,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Script on Claude Sonnet 5.5, voice on ElevenLabs Flash, media on Supabase Storage first** (2026-10-05) → Sonnet 5.5 matches the $0.04/script the margin gate was approved on (~$0.02–0.03 typical; Opus 5.5 would roughly double it with Pro at exactly 3.0x) and is swappable via `ANTHROPIC_SCRIPT_MODEL`. Flash matches the catalog's voice price. Supabase Storage is already provisioned, so the voice adapter ships now; R2 replaces it behind the same `MediaStore` port when egress costs matter. Refusal fallbacks are on so a false-positive safety decline doesn't fail a paid job.
 
 - **Premium AI video = 1,420 cr/s; Standard keeps its margin** (2026-10-05, owner-approved) → the smallest change that makes every product clear 3x, and a single config value, so it is easy to revisit. Premium becomes a deliberate luxury (2–3 short premium videos/month on Pro); Standard is the everyday product. Passing Standard's ~9x margin on to customers (option C, ~2.5x more videos) waits until costs are measured on real calls, because the researched prices disagree by up to 2x and Pro has no headroom. Cheaper premium via a single AI "hero shot" is the next thing to model.
 
