@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 126 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 127 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -102,7 +102,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 - [ ] Live adapters behind the existing interfaces: fal.ai (image, premium video), Anthropic (script), ElevenLabs (voice + word timings). The renderer is in-house: `ffmpeg-plan.ts` + `ffmpeg-render.ts` work end to end locally; the live adapter still needs asset download + upload, so it lands with media storage (R2).
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
-- [~] **Margin gate:** gate + report enforced _(PR `ceo/margin-gate`, 2026-10-01)_; researched costs in the catalog _(PR `ceo/real-provider-costs`, 2026-10-04)_; Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`, 2026-10-04)_ → Starter passes at 9.4x, trial burn $0.14. **Still failing: everything that can buy premium AI video** (Pro 0.55x, Ultra 0.59x, top-ups 0.73–1.08x) because premium is charged 220 cr/s for ~$0.12/s. **Owner decision:** raise `video-premium` to ≥1,420 cr/s (smallest value that passes, see §7), or limit premium to an AI "hero shot" on one scene. Swap in measured costs once live adapters run.
+- [x] **Margin gate passes on every product** _(2026-10-05)_: gate + report _(PR `ceo/margin-gate`)_, researched costs in the catalog _(PR `ceo/real-provider-costs`)_, Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`)_, and premium AI video repriced 220 → **1,420 cr/s** (owner decision). Starter 9.4x, Pro 3.0x, Ultra 3.2x, top-ups 4.0–5.9x; trial burn $0.14. **Pro has zero headroom** — the first measured premium cost above $0.12/s fails it again, so re-run `npx tsx scripts/margin-report.mts` whenever real costs come in. A test now fails if the shipped catalog drops below 3x.
 - [ ] Media storage: move assets to Cloudflare R2 (no egress); signed URLs; retention.
 - [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
 
@@ -144,7 +144,7 @@ Top-ups: 20k €12 · 60k €29 · 150k €59.
 Internal credit scale (recalibrated): a 12s standard video ≈ ~1.4k credits, a 15s ≈ ~2k.
 Trial: 3,000 credits (≈ one short video).
 
-**🚨 Margin gate FAILS on researched real costs (2026-10-04).** `costUsdPerUnit` now holds public list prices (mid-range per slot, sources below), not placeholders. Real prices do **not** rescue the current model: even the cheapest scenario fails.
+**Margin gate history:** it FAILED on researched real costs (2026-10-04) and PASSES since the 2026-10-05 repricing (see "Decided 2026-10-05" below). Original analysis: `costUsdPerUnit` now holds public list prices (mid-range per slot, sources below), not placeholders. Real prices do **not** rescue the current model: even the cheapest scenario fails.
 
 | Scenario (per-slot cost)                                                    | Plan multiples (Starter / Pro / Ultra) | Top-ups    | Trial burn |
 | --------------------------------------------------------------------------- | -------------------------------------- | ---------- | ---------- |
@@ -177,6 +177,18 @@ With A+B+C and the current plan prices + grants, the gate **passes**: Starter 5.
 
 Premium AI video stays genuinely expensive; a cheaper variant is to animate only the hook scene ("hero shot") and use stills for the rest.
 
+**Decided 2026-10-05 (owner: "do your recommendations"):** premium AI video = **1,420 cr/s** (option A of the premium choice below); Standard keeps its margin (option C **not** adopted until costs are measured on real calls). Gate **PASSES**: Starter 9.4x, Pro 3.00x, Ultra 3.23x, top-ups 4.0–5.9x. Customer prices now:
+
+| Video        | Credits | Pro (100k) / mo | Ultra (250k) / mo |
+| ------------ | ------- | --------------- | ----------------- |
+| 15s standard | 2,024   | 49              | 123               |
+| 30s standard | 3,240   | 30              | 77                |
+| 15s premium  | 26,504  | 3               | 9                 |
+| 30s premium  | 44,040  | 2               | 5                 |
+| 60s premium  | 87,880  | 1               | 2                 |
+
+Follow-ups: model the "hero shot" premium variant (AI video on the hook scene only) once a live video adapter gives measured costs; revisit option C at the same time.
+
 **Status after A + B (2026-10-04, credits unchanged):** Standard costs ~$0.07 for 15s instead of ~$1.80. Gate: Starter **9.4x** ✅, Pro 0.55x, Ultra 0.59x, top-ups 0.73–1.08x; trial burn **$0.14** (was $2.79). Everything that fails, fails on its worst case: long premium (AI video) jobs. The smallest single fix is to raise `video-premium` from 220 to **1,420 cr/s** (Pro then passes at exactly 3.0x, Ultra 3.2x, top-ups 4.0–5.9x). A 30s premium video would then cost ~44k credits (Pro ≈ 2/month). Standard prices stay as they are (15s ≈ 2,024 credits, ~14/month on Starter), so Standard now carries a ~9x margin. Option C would instead pass that margin on to customers as roughly 2.5x more videos per plan.
 
 **Sources (search snippets, 2026-09/10):** fal.ai model and learn pages (LTX-2 Fast, Seedance 2.x, Wan 2.5); teamday.ai, devtk.ai, fluxnote.io and tryinfer.com price comparisons (Kling 3.0, Veo 3.1 Fast, Wan); fal.ai FLUX pricing via modelslab.com and pricepertoken.com; ElevenLabs Flash $0.05/1k chars via apiframe.ai and developer.puter.com; Shotstack and Creatomate pricing pages; Anthropic list prices (Sonnet 5.5 $2/$10 per MTok).
@@ -185,7 +197,7 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 
 ## 8. Risks & mitigations
 
-- **API cost > credit value** → **currently true on placeholder costs (§7)**; margin gate now blocks live mode until fixed; cheapest-model defaults; cap video length.
+- **API cost > credit value** → gate passes since 2026-10-05 (§7) but Pro is at exactly 3.0x: any measured cost increase fails it, and the gate then blocks live mode again (fail-closed). Re-run the margin report on measured costs.
 - **Provider price/behavior changes** → adapter layer isolates swaps.
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
 - **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
@@ -209,6 +221,7 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-05** — Premium AI video repriced 220 → 1,420 cr/s (owner decision). The margin gate now **passes on every plan and top-up** (Pro 3.00x, Ultra 3.23x, top-ups 4.0–5.9x, Starter unchanged at 9.4x), so it no longer blocks live providers. Standard prices unchanged (option C deferred). New test: the shipped catalog must pass the gate. +1 test (127 total). (CEO, interactive)
 - **2026-10-05** — Migration 0003 applied to the live Supabase project by Tudor; the credit-RPC hole is confirmed closed (`authenticated` can no longer execute `add_credits`), and webhook grants now go through `grant_credits_once`. (CEO routine, on owner confirmation)
 - **2026-10-05** — Ledger idempotency + credit-RPC lockdown (migration 0003). `credit_transactions.idempotency_key` (unique, partial) + `grant_credits_once(user, delta, reason, key)`; `credit-grant.ts` port (Supabase impl falls back to `add_credits` with a warning until 0003 is applied; in-memory impl for tests). Webhook grants are keyed: checkout/renewal by event id, mid-cycle upgrade by subscription + period end + target plan, which also stops an upgrade→downgrade→upgrade toggle from earning the bonus twice in one period. The upgrade bonus now lands before the plan write, so a failed sync is retried with the bonus intact. Found while writing it: `add_credits`/`reserve_credits` were executable by `anon`/`authenticated` (free credits for anyone signed in); 0003 revokes that. SQL verified against Postgres (PGlite) with Supabase-style default grants: the hole exists before, is closed after, grants apply once per key, trial trigger intact, re-runnable. +16 tests (126 total). (CEO routine)
 - **2026-10-04** — Standard tier = animated stills + in-house render (owner approved A + B of §7). New `local:ken-burns` video adapter (no video model, $0, runs in mock and live mode) and in-house ffmpeg renderer (`ffmpeg-plan.ts`: one-pass zoompan stills / fitted AI clips / concat / burned-in ASS captions / voiceover → H.264 MP4; `ffmpeg-render.ts` runner; `scripts/render-smoke.mts` renders a real 1080×1920 MP4 and checks it with ffprobe). `RenderClip`/`VideoOutput` are now still-or-video unions. Customer credit prices unchanged; tier labels now say "animated stills" / "AI video". Gate: Starter passes (9.4x), premium-capable products still fail; trial burn $2.79 → $0.14. +14 tests (110 total). (interactive session)
@@ -230,6 +243,8 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Premium AI video = 1,420 cr/s; Standard keeps its margin** (2026-10-05, owner-approved) → the smallest change that makes every product clear 3x, and a single config value, so it is easy to revisit. Premium becomes a deliberate luxury (2–3 short premium videos/month on Pro); Standard is the everyday product. Passing Standard's ~9x margin on to customers (option C, ~2.5x more videos) waits until costs are measured on real calls, because the researched prices disagree by up to 2x and Pro has no headroom. Cheaper premium via a single AI "hero shot" is the next thing to model.
 
 - **Credit grants are keyed in the ledger; upgrade bonus = once per period per plan** (2026-10-05) → `stripe_events` dedupes deliveries, but only the ledger can make a grant exactly-once across partial failures, so the database enforces it, not handler ordering. The upgrade key is period-scoped (not event-scoped) so a Pro→Starter→Pro toggle, roughly free after Stripe proration, can't farm the bonus. Accepted edge: Starter→Ultra→Starter→Pro in one period still pays both bonuses (bounded, rare).
 - **DB functions that move money are service-role only** (2026-10-05) → the app never calls credit RPCs with a user token, so there is no reason to expose them; a test enforces it for every future `SECURITY DEFINER` function.

@@ -112,6 +112,17 @@ describe('assessMargins', () => {
   });
 });
 
+describe('shipped catalog', () => {
+  // Guards owner-approved pricing (2026-10-05): any catalog or plan edit that
+  // drops a product below 3x must be a deliberate decision, not a side effect.
+  it('passes the margin gate for every plan and top-up', () => {
+    const report = assessMargins();
+    expect(describeFailures(report)).toBe('');
+    expect(report.ok).toBe(true);
+    expect(() => assertMarginGate(report)).not.toThrow();
+  });
+});
+
 describe('assertMarginGate', () => {
   it('blocks live providers while pricing is unprofitable', () => {
     const failing = assessMargins({
