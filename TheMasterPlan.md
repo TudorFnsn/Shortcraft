@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-04
+> Last updated: 2026-10-05
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 110 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 126 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -72,12 +72,12 @@ src/features/
   providers/       adapter contract, mocks, registry
   credits/         ledger math + job credit ops
   render/          state machine, pricing, repository ports + supabase/in-memory impls, orchestrator, store
-  billing/         stripe customer, checkout, webhook handler, entitlements (plan limits)
+  billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
 src/app/           landing, login, create, gallery, pricing, api/{jobs,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
-supabase/migrations 0001_init, 0002_stripe_events
+supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency
 scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate)
 ```
 
@@ -94,8 +94,9 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] Handle `customer.subscription.updated` in the Stripe webhook (upgrades/downgrades/dunning/cancel sync `subscriptions` + `profiles.plan_id`; stale events for a replaced subscription are ignored; `.updated` is re-fetched from Stripe so out-of-order delivery can't regress state). _(PR `ceo/subscription-updated`, 2026-09-30; re-fetch added 2026-10-03)_ **Action for Tudor:** enable `customer.subscription.updated` on the Stripe webhook endpoint (dashboard / `stripe listen --events`).
 - [x] Mid-cycle upgrade credits: a live `customer.subscription.updated` upgrade now grants the monthly-allotment difference (new − old) immediately via `upgradeCreditDelta`; downgrades never claw back. _(2026-10-04)_
 - [x] Processed-events safety + minimal alerting: a failed handler now **releases** its `stripe_events` claim so Stripe's retry reprocesses it (before, a transient error marked a paid event done and the customer never got credits); `add_credits` errors now throw instead of being swallowed; credit grants are the last write of each branch; failures log `alert: stripe_webhook_failed` / `stripe_event_stuck`. _(PR `ceo/webhook-retry-safety`, 2026-10-04)_
-- [ ] Ledger-level idempotency: add a unique `idempotency_key` (Stripe event id) to `credit_transactions` + `add_credits` (migration 0003), so a grant can never double-apply or be lost even when a step after the plan sync fails (today: a failed mid-cycle-upgrade bonus grant is not re-granted on retry, because the plan was already updated).
-- [ ] **Owner:** apply migration 0003 when it lands.
+- [x] Ledger-level idempotency: unique `credit_transactions.idempotency_key` + `grant_credits_once` (migration 0003); every webhook grant is keyed (checkout/renewal per event, upgrade per subscription + period + target plan), and the upgrade bonus is granted before the plan write so a failed sync can no longer lose it. _(PR `ceo/ledger-idempotency`, 2026-10-05)_
+- [x] **🚨 Security: credit RPCs were callable by any user.** `add_credits` / `reserve_credits` are `SECURITY DEFINER` and never had `EXECUTE` revoked, so with Supabase's default grants any signed-in user (or the anon key) could mint credits or drain another user's balance via `/rest/v1/rpc/add_credits`. Migration 0003 revokes them from `public`/`anon`/`authenticated` (service role only); a test now fails if any future definer function isn't revoked. _(same PR, 2026-10-05)_
+- [ ] **Owner (urgent, before any real traffic):** apply migration 0003 to the Supabase project (SQL editor, or `supabase db push`). It is additive and re-runnable; the app falls back to `add_credits` until it is applied. Then check: `select has_function_privilege('authenticated','public.add_credits(uuid,bigint,text,uuid)','execute');` → `false`.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
 
@@ -188,14 +189,15 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 - **Provider price/behavior changes** → adapter layer isolates swaps.
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
 - **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
-- **Webhook double-grant** → `stripe_events` idempotency (0002 applied); ledger-level key planned (0003).
+- **Webhook double-grant** → `stripe_events` idempotency (0002 applied) + ledger-level grant keys (0003, pending owner apply).
+- **Privileged DB functions exposed as RPCs** → every `SECURITY DEFINER` function must be revoked from `anon`/`authenticated` (enforced by `tests/billing/migrations-security.test.ts`).
 
 ---
 
 ## 9. Ops runbook (state that isn't in code)
 
 - **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today.
-- **DB migrations:** `0001_init` + `0002_stripe_events` applied.
+- **DB migrations:** `0001_init` + `0002_stripe_events` applied; `0003_credit_idempotency` **pending** (owner).
 - **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
 - **Node ≥ 22 required** (`engines`); dev + CI on Node 24.
 - **CI:** `.github/workflows/ci.yml` runs `format:check → lint → typecheck → test → next build` in mock mode. `npm run typecheck` runs `next typegen` first (Next's generated `LayoutProps`/route types), so it works on a fresh clone.
@@ -207,6 +209,7 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-05** — Ledger idempotency + credit-RPC lockdown (migration 0003). `credit_transactions.idempotency_key` (unique, partial) + `grant_credits_once(user, delta, reason, key)`; `credit-grant.ts` port (Supabase impl falls back to `add_credits` with a warning until 0003 is applied; in-memory impl for tests). Webhook grants are keyed: checkout/renewal by event id, mid-cycle upgrade by subscription + period end + target plan, which also stops an upgrade→downgrade→upgrade toggle from earning the bonus twice in one period. The upgrade bonus now lands before the plan write, so a failed sync is retried with the bonus intact. Found while writing it: `add_credits`/`reserve_credits` were executable by `anon`/`authenticated` (free credits for anyone signed in); 0003 revokes that. SQL verified against Postgres (PGlite) with Supabase-style default grants: the hole exists before, is closed after, grants apply once per key, trial trigger intact, re-runnable. +16 tests (126 total). (CEO routine)
 - **2026-10-04** — Standard tier = animated stills + in-house render (owner approved A + B of §7). New `local:ken-burns` video adapter (no video model, $0, runs in mock and live mode) and in-house ffmpeg renderer (`ffmpeg-plan.ts`: one-pass zoompan stills / fitted AI clips / concat / burned-in ASS captions / voiceover → H.264 MP4; `ffmpeg-render.ts` runner; `scripts/render-smoke.mts` renders a real 1080×1920 MP4 and checks it with ffprobe). `RenderClip`/`VideoOutput` are now still-or-video unions. Customer credit prices unchanged; tier labels now say "animated stills" / "AI video". Gate: Starter passes (9.4x), premium-capable products still fail; trial burn $2.79 → $0.14. +14 tests (110 total). (interactive session)
 - **2026-10-04** — Real provider costs: `costUsdPerUnit` in `config/models.ts` now holds researched list prices (fal video/FLUX, ElevenLabs Flash, Sonnet-class script, hosted render API) instead of placeholders. Gate still fails (0.28–0.56x; trial burn $2.79). §7 rewritten with low/mid/high scenarios and a repricing proposal that passes at 3x. No pricing or credit changes yet. (interactive session)
 - **2026-10-04** — Webhook retry safety: idempotency moved into `event-ledger.ts` (`processStripeEventOnce` + Supabase/in-memory ledgers). A handler failure releases the event claim so Stripe retries for real; `grant()` throws on `add_credits` errors; checkout grants credits after recording the subscription; route logs a stable `alert` tag. +6 tests (96 total). (CEO routine)
@@ -226,6 +229,9 @@ Premium AI video stays genuinely expensive; a cheaper variant is to animate only
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Credit grants are keyed in the ledger; upgrade bonus = once per period per plan** (2026-10-05) → `stripe_events` dedupes deliveries, but only the ledger can make a grant exactly-once across partial failures, so the database enforces it, not handler ordering. The upgrade key is period-scoped (not event-scoped) so a Pro→Starter→Pro toggle, roughly free after Stripe proration, can't farm the bonus. Accepted edge: Starter→Ultra→Starter→Pro in one period still pays both bonuses (bounded, rare).
+- **DB functions that move money are service-role only** (2026-10-05) → the app never calls credit RPCs with a user token, so there is no reason to expose them; a test enforces it for every future `SECURITY DEFINER` function.
 
 - **Upgrades grant credits immediately** (2026-10-04) → the plan-allotment difference is granted the moment a subscription upgrades mid-cycle, not at the next renewal, so the upgrade feels instant (better conversion). Downgrades grant nothing and never claw back — goodwill beats a few credits. The slight over-grant across a cycle is an accepted conversion cost.
 - **Serverless + webhook/cron pipeline** over a worker service → stay on Vercel+Supabase.
