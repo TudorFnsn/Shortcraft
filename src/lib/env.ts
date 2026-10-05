@@ -33,8 +33,14 @@ const schema = z.object({
 
   // AI providers (optional until MOCK_PROVIDERS=false)
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  /** Script model override; defaults to Claude Sonnet 5.5 (see anthropic-script.ts). */
+  ANTHROPIC_SCRIPT_MODEL: z.string().min(1).optional(),
   FAL_KEY: z.string().min(1).optional(),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
+  /** Narrator voice; defaults to an ElevenLabs stock voice. */
+  ELEVENLABS_VOICE_ID: z.string().min(1).optional(),
+  /** Private Supabase Storage bucket for generated media (voiceovers, renders). */
+  SUPABASE_MEDIA_BUCKET: z.string().min(1).default('media'),
   RENDER_API_KEY: z.string().min(1).optional(),
 
   // Stripe (added in the billing step)
