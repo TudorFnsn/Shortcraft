@@ -75,7 +75,7 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'premium',
     label: 'AI video',
     providerId: 'mock:video',
-    creditsPerUnit: 220, // per second
+    creditsPerUnit: 1420, // per second — smallest value that passes the 3x margin gate on Pro (owner decision 2026-10-05)
     costUsdPerUnit: 0.12, // 1080p: Veo 3.1 Fast ~$0.12, Kling 3.0 ~$0.11
   },
   {
