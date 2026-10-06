@@ -45,7 +45,7 @@ export const MODELS: readonly ModelSpec[] = [
     kind: 'image',
     tier: 'standard',
     label: 'Standard image',
-    providerId: 'mock:image',
+    providerId: 'fal:flux-schnell', // FLUX.1 [schnell] on fal.ai (features/providers/live)
     creditsPerUnit: 80, // per image
     costUsdPerUnit: 0.003, // FLUX.1 [schnell] on fal, $0.003/MP (720x1280 = 1 MP)
   },
@@ -54,7 +54,7 @@ export const MODELS: readonly ModelSpec[] = [
     kind: 'image',
     tier: 'premium',
     label: 'Premium image',
-    providerId: 'mock:image',
+    providerId: 'fal:flux-dev', // FLUX.1 [dev] on fal.ai
     creditsPerUnit: 200,
     costUsdPerUnit: 0.025, // FLUX.1 [dev] on fal, $0.025/MP
   },

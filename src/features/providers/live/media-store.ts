@@ -14,6 +14,18 @@ export interface MediaStore {
   put(path: string, bytes: Uint8Array, contentType: string): Promise<string>;
 }
 
+/**
+ * Object path for one pipeline step's output, derived from its idempotency key
+ * (`job:step:scene`): a retry of the same step overwrites the same object, and
+ * two different steps can never share a path. Do not shorten this to a hash —
+ * a 32-bit hash collides across jobs, and `put` overwrites, so one user's media
+ * would silently replace another's.
+ */
+export function mediaPath(folder: string, idempotencyKey: string, ext: string): string {
+  const safe = idempotencyKey.replace(/[^A-Za-z0-9_-]+/g, '_');
+  return `${folder}/${safe}.${ext}`;
+}
+
 /** Long enough for the render step to fetch the file, short enough not to leak forever. */
 export const SIGNED_URL_TTL_SEC = 60 * 60 * 24;
 
