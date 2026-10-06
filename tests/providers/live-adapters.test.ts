@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getModel } from '@/config/models';
 import {
+  anthropicHeaders,
   buildScriptPrompt,
   costUsdFor,
   createAnthropicScriptProvider,
@@ -132,6 +133,13 @@ describe('anthropic script adapter', () => {
     expect(
       costUsdFor(DEFAULT_SCRIPT_MODEL, { input_tokens: 2000, output_tokens: 3000 }),
     ).toBeLessThanOrEqual(model.costUsdPerUnit);
+  });
+});
+
+describe('anthropic client headers', () => {
+  it('names the workspace only when one is configured', () => {
+    expect(anthropicHeaders('wrkspc_123')).toEqual({ 'anthropic-workspace-id': 'wrkspc_123' });
+    expect(anthropicHeaders(undefined)).toEqual({});
   });
 });
 

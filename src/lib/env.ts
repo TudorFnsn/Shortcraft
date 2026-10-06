@@ -35,6 +35,8 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   /** Script model override; defaults to Claude Sonnet 5.5 (see anthropic-script.ts). */
   ANTHROPIC_SCRIPT_MODEL: z.string().min(1).optional(),
+  /** Only for an organization-level key that isn't scoped to a workspace. */
+  ANTHROPIC_WORKSPACE_ID: z.string().min(1).optional(),
   FAL_KEY: z.string().min(1).optional(),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
   /** Narrator voice; defaults to an ElevenLabs stock voice. */
