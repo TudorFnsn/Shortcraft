@@ -1,9 +1,11 @@
 /**
- * Live provider smoke test: one real script (Claude) + one real voiceover
- * (ElevenLabs), no database, no Supabase Storage. Costs about $0.02.
+ * Live provider smoke test: one real script (Claude), one real voiceover
+ * (ElevenLabs) and one real scene image (FLUX schnell on fal.ai), no database,
+ * no Supabase Storage. Costs about $0.03.
  *
- * Needs ANTHROPIC_API_KEY and ELEVENLABS_API_KEY in .env.local.
- * Writes the MP3 + script JSON to ./live-smoke/ so you can listen to it.
+ * Needs ANTHROPIC_API_KEY and ELEVENLABS_API_KEY in .env.local; FAL_KEY too for
+ * the image step (skipped when it's missing).
+ * Writes the MP3, image + script JSON to ./live-smoke/ so you can check them.
  *
  * Run: npx tsx scripts/live-providers-smoke.mts ["your topic"]
  */
@@ -25,6 +27,7 @@ const { createAnthropicScriptProvider } =
   await import('@/features/providers/live/anthropic-script');
 const { createElevenLabsVoiceProvider } =
   await import('@/features/providers/live/elevenlabs-voice');
+const { createFalImageProvider } = await import('@/features/providers/live/fal-image');
 
 const outDir = resolve('live-smoke');
 const fileStore = {
@@ -44,7 +47,7 @@ const voice = createElevenLabsVoiceProvider(getModel('voice-default'), {
   voiceId: env.ELEVENLABS_VOICE_ID,
 });
 
-console.log(`1/2 script for "${topic}" ...`);
+console.log(`1/3 script for "${topic}" ...`);
 const s = await script.run(
   { topic, themeId: 'fun-facts', targetDurationSec: 15, language: 'en' },
   { idempotencyKey: 'smoke:script' },
@@ -54,7 +57,7 @@ mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, 'script.json'), JSON.stringify(s.output, null, 2));
 console.log(`   "${s.output.title}", ${s.output.scenes.length} scenes, $${s.costUsd.toFixed(4)}`);
 
-console.log('2/2 voiceover ...');
+console.log('2/3 voiceover ...');
 const text = s.output.scenes.map((x) => x.narration).join(' ');
 const v = await voice.run(
   { text, voiceId: 'default', language: 'en' },
@@ -65,5 +68,26 @@ console.log(
   `   ${(v.output.durationMs / 1000).toFixed(1)}s audio, ${v.output.words.length} timed words, $${v.costUsd.toFixed(4)}`,
 );
 
-console.log(`\nOK. Total $${(s.costUsd + v.costUsd).toFixed(4)}. Files in ${outDir}/`);
+let total = s.costUsd + v.costUsd;
+const firstScene = s.output.scenes[0];
+if (env.FAL_KEY && firstScene) {
+  console.log('3/3 scene image ...');
+  const image = createFalImageProvider(getModel('image-standard'), {
+    apiKey: () => requireEnv('FAL_KEY'),
+    store: () => fileStore,
+  });
+  const i = await image.run(
+    { prompt: firstScene.imagePrompt, aspectRatio: '9:16' },
+    { idempotencyKey: 'smoke:image' },
+  );
+  if (i.kind !== 'completed') throw new Error('unexpected async image result');
+  total += i.costUsd;
+  console.log(
+    `   ${i.output.width}x${i.output.height}, $${i.costUsd.toFixed(4)}: ${i.output.imageUrl}`,
+  );
+} else {
+  console.log('3/3 scene image skipped (set FAL_KEY to run it)');
+}
+
+console.log(`\nOK. Total $${total.toFixed(4)}. Files in ${outDir}/`);
 console.log(`Listen: ${v.output.audioUrl}`);

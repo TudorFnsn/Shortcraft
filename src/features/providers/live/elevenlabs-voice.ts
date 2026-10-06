@@ -10,7 +10,7 @@
  * ($0.05 per 1k characters). Voice: ELEVENLABS_VOICE_ID, or a stock voice.
  */
 import type { ModelSpec } from '@/config/models';
-import { estimateSpeechSeconds, hash } from '../mocks';
+import { estimateSpeechSeconds } from '../mocks';
 import type {
   ProviderContext,
   ProviderJob,
@@ -20,7 +20,7 @@ import type {
   WebhookPayload,
   WordTiming,
 } from '../types';
-import type { MediaStore } from './media-store';
+import { mediaPath, type MediaStore } from './media-store';
 
 export const ELEVENLABS_MODEL = 'eleven_flash_v2_5';
 /** ElevenLabs stock voice used until the owner picks one (ELEVENLABS_VOICE_ID). */
@@ -113,7 +113,7 @@ export function createElevenLabsVoiceProvider(
       // Keyed by the step's idempotency key, so a retry overwrites, not duplicates.
       const audioUrl = await deps
         .store()
-        .put(`voiceover/${hash(ctx.idempotencyKey)}.mp3`, bytes, 'audio/mpeg');
+        .put(mediaPath('voiceover', ctx.idempotencyKey, 'mp3'), bytes, 'audio/mpeg');
 
       const output: VoiceOutput = {
         audioUrl,

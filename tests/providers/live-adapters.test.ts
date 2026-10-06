@@ -15,7 +15,18 @@ import {
   wordsFromAlignment,
   type Alignment,
 } from '@/features/providers/live/elevenlabs-voice';
-import { InMemoryMediaStore, SupabaseMediaStore } from '@/features/providers/live/media-store';
+import {
+  billedMegapixels,
+  createFalImageProvider,
+  FAL_IMAGE_MODELS,
+  IMAGE_SIZE,
+} from '@/features/providers/live/fal-image';
+import {
+  InMemoryMediaStore,
+  mediaPath,
+  SupabaseMediaStore,
+} from '@/features/providers/live/media-store';
+import { MODELS } from '@/config/models';
 import { estimateSceneCount, MAX_SCENE_SEC } from '@/features/render/pricing';
 
 const ctx = { idempotencyKey: 'job_1:scripting:' };
@@ -166,7 +177,7 @@ describe('elevenlabs voice adapter', () => {
     expect(res.output.words.map((w) => w.word)).toEqual(['Octopuses', 'have', 'three', 'hearts']);
     expect(res.output.durationMs).toBe(Math.round(text.length * 50));
     expect(res.costUsd).toBeCloseTo(text.length * USD_PER_CHAR);
-    expect(res.output.audioUrl).toMatch(/^memory:\/\/voiceover\/[0-9a-f]{8}\.mp3$/);
+    expect(res.output.audioUrl).toBe('memory://voiceover/job_1_scripting_.mp3');
     expect([...store.objects.values()][0]?.contentType).toBe('audio/mpeg');
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -243,5 +254,138 @@ describe('SupabaseMediaStore', () => {
     await expect(
       new SupabaseMediaStore(failedSign.admin, 'media').put('a', new Uint8Array(), 'x'),
     ).rejects.toThrow('denied');
+  });
+});
+
+/* ── image (fal.ai FLUX) ────────────────────────────────────────────────── */
+
+const imageCtx = { idempotencyKey: 'job_1:images:scene_0' };
+
+function falFetch(
+  response: Record<string, unknown> | Response,
+  download: () => Response = () =>
+    new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/jpeg' } }),
+) {
+  return vi.fn(async (url: string) => {
+    if (url.startsWith('https://fal.run/')) {
+      return response instanceof Response ? response : new Response(JSON.stringify(response));
+    }
+    return download();
+  });
+}
+
+const falImage = {
+  url: 'https://v3.fal.media/files/abc.jpg',
+  width: 720,
+  height: 1280,
+  content_type: 'image/jpeg',
+};
+
+describe('fal image adapter', () => {
+  const model = getModel('image-standard');
+
+  it('every catalog image model has a fal mapping', () => {
+    for (const m of MODELS.filter((x) => x.kind === 'image')) {
+      expect(FAL_IMAGE_MODELS[m.providerId]).toBeDefined();
+    }
+  });
+
+  it('bills per megapixel rounded up', () => {
+    expect(billedMegapixels(IMAGE_SIZE.width, IMAGE_SIZE.height)).toBe(1);
+    expect(billedMegapixels(1080, 1920)).toBe(3);
+  });
+
+  it('generates a 9:16 image, copies it into the media store and reports cost', async () => {
+    const fetchMock = falFetch({ images: [falImage], has_nsfw_concepts: [false] });
+    const store = new InMemoryMediaStore();
+    const provider = createFalImageProvider(model, {
+      apiKey: () => 'fal-test',
+      store: () => store,
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+
+    const res = await provider.run(
+      { prompt: 'an octopus', aspectRatio: '9:16', seed: 7 },
+      imageCtx,
+    );
+    expect(res.kind).toBe('completed');
+    if (res.kind !== 'completed') return;
+    expect(res.output).toEqual({
+      imageUrl: 'memory://images/job_1_images_scene_0.jpg',
+      width: 720,
+      height: 1280,
+    });
+    expect(res.costUsd).toBeCloseTo(model.costUsdPerUnit);
+    expect(provider.costCredits({ prompt: 'x', aspectRatio: '9:16' })).toBe(model.creditsPerUnit);
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://fal.run/fal-ai/flux/schnell');
+    expect((init.headers as Record<string, string>).authorization).toBe('Key fal-test');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      prompt: 'an octopus',
+      image_size: IMAGE_SIZE,
+      num_images: 1,
+      enable_safety_checker: true,
+      seed: 7,
+    });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(falImage.url);
+
+    // Same step retried → same object key (overwrite, not a second file).
+    await provider.run({ prompt: 'an octopus', aspectRatio: '9:16' }, imageCtx);
+    expect(store.objects.size).toBe(1);
+  });
+
+  it('routes the premium tier to FLUX dev', async () => {
+    const fetchMock = falFetch({ images: [falImage] });
+    const provider = createFalImageProvider(getModel('image-premium'), {
+      apiKey: () => 'k',
+      store: () => new InMemoryMediaStore(),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+    await provider.run({ prompt: 'p', aspectRatio: '9:16' }, imageCtx);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://fal.run/fal-ai/flux/dev');
+  });
+
+  it('throws (so the job fails and refunds) on HTTP errors, no image, a flagged image or a failed download', async () => {
+    const store = new InMemoryMediaStore();
+    for (const fetchMock of [
+      falFetch(new Response('unauthorized', { status: 401 })),
+      falFetch({ images: [] }),
+      falFetch({ images: [falImage], has_nsfw_concepts: [true] }),
+      falFetch({ images: [falImage] }, () => new Response('gone', { status: 404 })),
+    ]) {
+      const provider = createFalImageProvider(model, {
+        apiKey: () => 'k',
+        store: () => store,
+        fetch: fetchMock as unknown as typeof fetch,
+      });
+      await expect(provider.run({ prompt: 'p', aspectRatio: '9:16' }, imageCtx)).rejects.toThrow();
+    }
+    expect(store.objects.size).toBe(0);
+  });
+
+  it('refuses a provider id with no fal model', () => {
+    expect(() =>
+      createFalImageProvider(
+        { ...model, providerId: 'fal:unknown' },
+        {
+          apiKey: () => 'k',
+          store: () => new InMemoryMediaStore(),
+        },
+      ),
+    ).toThrow(/No fal model/);
+  });
+});
+
+describe('media paths', () => {
+  it('are unique per step and safe for object storage', () => {
+    expect(mediaPath('images', 'a1b2-c3:images:scene 1', 'jpg')).toBe(
+      'images/a1b2-c3_images_scene_1.jpg',
+    );
+    // Different jobs never share a path (the old 8-hex hash could collide).
+    const paths = new Set(
+      Array.from({ length: 5000 }, (_, i) => mediaPath('voiceover', `job_${i}:voiceover:`, 'mp3')),
+    );
+    expect(paths.size).toBe(5000);
   });
 });

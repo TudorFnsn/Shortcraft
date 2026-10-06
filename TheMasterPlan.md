@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-05
+> Last updated: 2026-10-06
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 137 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 144 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -100,8 +100,8 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
 
-- [~] Live adapters behind the existing interfaces. **Done (2026-10-05, PR `ceo/live-script-voice`):** Anthropic script (`live/anthropic-script.ts`: Claude Sonnet 5.5, structured JSON output, server-side refusal fallbacks) and ElevenLabs voice (`live/elevenlabs-voice.ts`: Flash v2.5 with character timestamps → word timings, MP3 stored via `live/media-store.ts` in a private Supabase Storage bucket, signed URLs). Unit-tested with fakes; **not yet run against the real APIs** — `npx tsx scripts/live-providers-smoke.mts` does that in one command (~$0.02). **Still to do:** fal.ai image + premium video adapters, and the live render adapter (`ffmpeg-plan.ts` + `ffmpeg-render.ts` work locally; it needs asset download + upload via the media store). Live mode (`MOCK_PROVIDERS=false`) needs every step to have a live adapter, so it stays off until fal.ai + render land.
-- [ ] **Owner:** add `ANTHROPIC_API_KEY` + `ELEVENLABS_API_KEY` to `.env.local`, run the live smoke script, listen to `live-smoke/voiceover/*.mp3`; create a **private** Supabase Storage bucket named `media`.
+- [~] Live adapters behind the existing interfaces. **Done (2026-10-05, PR `ceo/live-script-voice`):** Anthropic script (`live/anthropic-script.ts`: Claude Sonnet 5.5, structured JSON output, server-side refusal fallbacks) and ElevenLabs voice (`live/elevenlabs-voice.ts`: Flash v2.5 with character timestamps → word timings, MP3 stored via `live/media-store.ts` in a private Supabase Storage bucket, signed URLs). Unit-tested with fakes; **not yet run against the real APIs** — `npx tsx scripts/live-providers-smoke.mts` does that in one command (~$0.02). **Done (2026-10-06, PR `ceo/fal-image-adapter`):** fal.ai image (`live/fal-image.ts`: FLUX [schnell] for standard, FLUX [dev] for premium, sync `fal.run`, 720×1280 = 1 billed MP, safety checker on and a flagged image fails the step, output copied into our media store). The smoke script now also generates one scene image when `FAL_KEY` is set (~$0.003). With script + voice + image live, **the live render adapter is the only missing piece for a fully live Standard video** (Ken Burns is local). **Still to do:** the live render adapter, then the premium video adapter (`ffmpeg-plan.ts` + `ffmpeg-render.ts` work locally; it needs asset download + upload via the media store). Live mode (`MOCK_PROVIDERS=false`) needs every step to have a live adapter, so it stays off until fal.ai + render land.
+- [ ] **Owner:** add `ANTHROPIC_API_KEY` + `ELEVENLABS_API_KEY` (+ `FAL_KEY` for the image step) to `.env.local`, run the live smoke script, listen to `live-smoke/voiceover/*.mp3` and look at `live-smoke/images/*.jpg`; create a **private** Supabase Storage bucket named `media`.
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
 - [x] **Margin gate passes on every product** _(2026-10-05)_: gate + report _(PR `ceo/margin-gate`)_, researched costs in the catalog _(PR `ceo/real-provider-costs`)_, Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`)_, and premium AI video repriced 220 → **1,420 cr/s** (owner decision). Starter 9.4x, Pro 3.0x, Ultra 3.2x, top-ups 4.0–5.9x; trial burn $0.14. **Pro has zero headroom** — the first measured premium cost above $0.12/s fails it again, so re-run `npx tsx scripts/margin-report.mts` whenever real costs come in. A test now fails if the shipped catalog drops below 3x.
 - [~] Media storage: `MediaStore` port + Supabase Storage implementation (private bucket `media`, 24h signed URLs) landed with the voice adapter. Still to do: move to Cloudflare R2 (no egress fees) behind the same port, and a retention policy.
@@ -209,7 +209,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 9. Ops runbook (state that isn't in code)
 
-- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today. Live provider env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (required for live script/voice), optional `ANTHROPIC_SCRIPT_MODEL` (default `claude-sonnet-5-5`), `ELEVENLABS_VOICE_ID` (default: ElevenLabs stock voice), `SUPABASE_MEDIA_BUCKET` (default `media`).
+- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today. Live provider env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (required for live script/voice), optional `ANTHROPIC_SCRIPT_MODEL` (default `claude-sonnet-5-5`), `ELEVENLABS_VOICE_ID` (default: ElevenLabs stock voice), `FAL_KEY` (required for live images), `SUPABASE_MEDIA_BUCKET` (default `media`).
 - **DB migrations:** `0001_init`, `0002_stripe_events` and `0003_credit_idempotency` applied.
 - **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
 - **Node ≥ 22 required** (`engines`); dev + CI on Node 24.
@@ -222,6 +222,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-06** — Live fal.ai image adapter: FLUX [schnell] for `image-standard` and FLUX [dev] for `image-premium` (catalog `providerId`s now `fal:flux-schnell` / `fal:flux-dev`; registry wires both behind `FAL_KEY`). Synchronous `fal.run` call, 720×1280 (one billed megapixel, matches the catalog cost), safety checker on (a flagged image throws so the job refunds), result copied into the `MediaStore` so we don't depend on fal's CDN retention. Fixed along the way: media object paths were an 8-hex (32-bit) FNV hash of the step key, and `put` overwrites, so two jobs could collide and one user's voiceover silently replace another's (~50% odds by ~77k objects); new `mediaPath()` uses the full `job:step:scene` key. Smoke script gains an image step. +7 tests (144 total). (CEO routine)
 - **2026-10-05** — First live provider adapters: Anthropic script (Claude Sonnet 5.5 via `@anthropic-ai/sdk`, zod structured output, `fallbacks: "default"`, refusal/max_tokens fail the step so the job refunds, cost from real token usage) and ElevenLabs voice (`with-timestamps`, characters → word timings, MP3 into a new `MediaStore`/Supabase Storage). Catalog `providerId`s now `anthropic:script` / `elevenlabs:voice`; registry wires both. New `scripts/live-providers-smoke.mts`. Mock mode unchanged and still the default. +10 tests (137 total). (CEO, interactive)
 - **2026-10-05** — Premium AI video repriced 220 → 1,420 cr/s (owner decision). The margin gate now **passes on every plan and top-up** (Pro 3.00x, Ultra 3.23x, top-ups 4.0–5.9x, Starter unchanged at 9.4x), so it no longer blocks live providers. Standard prices unchanged (option C deferred). New test: the shipped catalog must pass the gate. +1 test (127 total). (CEO, interactive)
 - **2026-10-05** — Migration 0003 applied to the live Supabase project by Tudor; the credit-RPC hole is confirmed closed (`authenticated` can no longer execute `add_credits`), and webhook grants now go through `grant_credits_once`. (CEO routine, on owner confirmation)
@@ -245,6 +246,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Images: FLUX on fal.ai, synchronous, copied into our storage** (2026-10-06) → schnell matches the $0.003/image the margin gate was approved on; the sync endpoint returns in ~1s, so no async plumbing is needed for this step. 720×1280 stays at one billed megapixel; the renderer upscales to 1080×1920 (a 1080×1920 request would bill 3 MP). We copy each image into our own bucket because the render step may run later and fal's CDN has no retention guarantee. Media paths come from the full step key, never a short hash, because uploads overwrite.
 
 - **Script on Claude Sonnet 5.5, voice on ElevenLabs Flash, media on Supabase Storage first** (2026-10-05) → Sonnet 5.5 matches the $0.04/script the margin gate was approved on (~$0.02–0.03 typical; Opus 5.5 would roughly double it with Pro at exactly 3.0x) and is swappable via `ANTHROPIC_SCRIPT_MODEL`. Flash matches the catalog's voice price. Supabase Storage is already provisioned, so the voice adapter ships now; R2 replaces it behind the same `MediaStore` port when egress costs matter. Refusal fallbacks are on so a false-positive safety decline doesn't fail a paid job.
 

@@ -24,6 +24,7 @@ import {
 import { createKenBurnsProvider } from './local/ken-burns';
 import { createAnthropicScriptProvider } from './live/anthropic-script';
 import { createElevenLabsVoiceProvider } from './live/elevenlabs-voice';
+import { createFalImageProvider, FAL_IMAGE_MODELS } from './live/fal-image';
 import { SupabaseMediaStore } from './live/media-store';
 import { env, requireEnv } from '@/lib/env';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
@@ -37,6 +38,8 @@ import type {
 
 /** Factory registry for LIVE adapters, keyed by ModelSpec.providerId. */
 type LiveFactory = (model: ModelSpec) => unknown;
+const mediaStore = () =>
+  new SupabaseMediaStore(createSupabaseAdminClient(), env.SUPABASE_MEDIA_BUCKET);
 const liveAdapters = new Map<string, LiveFactory>([
   ['anthropic:script', (m) => createAnthropicScriptProvider(m)],
   [
@@ -44,10 +47,14 @@ const liveAdapters = new Map<string, LiveFactory>([
     (m) =>
       createElevenLabsVoiceProvider(m, {
         apiKey: () => requireEnv('ELEVENLABS_API_KEY'),
-        store: () => new SupabaseMediaStore(createSupabaseAdminClient(), env.SUPABASE_MEDIA_BUCKET),
+        store: mediaStore,
         voiceId: env.ELEVENLABS_VOICE_ID,
       }),
   ],
+  ...Object.keys(FAL_IMAGE_MODELS).map((id): [string, LiveFactory] => [
+    id,
+    (m) => createFalImageProvider(m, { apiKey: () => requireEnv('FAL_KEY'), store: mediaStore }),
+  ]),
 ]);
 
 /** Adapters that call no vendor, so they're safe (and real) in mock mode too. */
