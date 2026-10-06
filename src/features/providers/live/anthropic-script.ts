@@ -98,6 +98,14 @@ export function toScriptOutput(parsed: ParsedScript): ScriptOutput {
   return { title: parsed.title.trim() || 'Untitled', scenes };
 }
 
+/**
+ * Headers for the Anthropic client. An organization-level API key (one not
+ * scoped to a workspace) must name the workspace to bill on every request.
+ */
+export function anthropicHeaders(workspaceId: string | undefined): Record<string, string> {
+  return workspaceId ? { 'anthropic-workspace-id': workspaceId } : {};
+}
+
 const notAsync = () => {
   throw new Error('the script adapter completes inline; poll/webhook is never used');
 };
@@ -116,7 +124,10 @@ export function createAnthropicScriptProvider(
     costCredits: () => model.creditsPerUnit,
 
     async run(input: ScriptInput, _ctx: ProviderContext) {
-      client ??= new Anthropic({ apiKey: requireEnv('ANTHROPIC_API_KEY') });
+      client ??= new Anthropic({
+        apiKey: requireEnv('ANTHROPIC_API_KEY'),
+        defaultHeaders: anthropicHeaders(env.ANTHROPIC_WORKSPACE_ID),
+      });
       const { system, user } = buildScriptPrompt(input);
       const response = await client.beta.messages.parse({
         model: modelId,

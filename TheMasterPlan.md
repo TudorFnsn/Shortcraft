@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 144 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 145 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -209,7 +209,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 9. Ops runbook (state that isn't in code)
 
-- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today. Live provider env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (required for live script/voice), optional `ANTHROPIC_SCRIPT_MODEL` (default `claude-sonnet-5-5`), `ELEVENLABS_VOICE_ID` (default: ElevenLabs stock voice), `FAL_KEY` (required for live images), `SUPABASE_MEDIA_BUCKET` (default `media`).
+- **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret. `MOCK_PROVIDERS=true` today. Live provider env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (required for live script/voice), optional `ANTHROPIC_SCRIPT_MODEL` (default `claude-sonnet-5-5`), `ANTHROPIC_WORKSPACE_ID` (only for an organization-level key not scoped to a workspace; sent as the `anthropic-workspace-id` header), `ELEVENLABS_VOICE_ID` (default: ElevenLabs stock voice), `FAL_KEY` (required for live images), `SUPABASE_MEDIA_BUCKET` (default `media`).
 - **DB migrations:** `0001_init`, `0002_stripe_events` and `0003_credit_idempotency` applied.
 - **Local Stripe testing:** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
 - **Node ≥ 22 required** (`engines`); dev + CI on Node 24.
@@ -222,6 +222,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-06** — Optional `ANTHROPIC_WORKSPACE_ID`: the script adapter sends it as the `anthropic-workspace-id` header, so an organization-level Anthropic key (not scoped to a workspace) works. Found on the owner's first live smoke run, which failed with a 400 asking for that header. +1 test (145 total). (CEO, interactive)
 - **2026-10-06** — Live fal.ai image adapter: FLUX [schnell] for `image-standard` and FLUX [dev] for `image-premium` (catalog `providerId`s now `fal:flux-schnell` / `fal:flux-dev`; registry wires both behind `FAL_KEY`). Synchronous `fal.run` call, 720×1280 (one billed megapixel, matches the catalog cost), safety checker on (a flagged image throws so the job refunds), result copied into the `MediaStore` so we don't depend on fal's CDN retention. Fixed along the way: media object paths were an 8-hex (32-bit) FNV hash of the step key, and `put` overwrites, so two jobs could collide and one user's voiceover silently replace another's (~50% odds by ~77k objects); new `mediaPath()` uses the full `job:step:scene` key. Smoke script gains an image step. +7 tests (144 total). (CEO routine)
 - **2026-10-05** — First live provider adapters: Anthropic script (Claude Sonnet 5.5 via `@anthropic-ai/sdk`, zod structured output, `fallbacks: "default"`, refusal/max_tokens fail the step so the job refunds, cost from real token usage) and ElevenLabs voice (`with-timestamps`, characters → word timings, MP3 into a new `MediaStore`/Supabase Storage). Catalog `providerId`s now `anthropic:script` / `elevenlabs:voice`; registry wires both. New `scripts/live-providers-smoke.mts`. Mock mode unchanged and still the default. +10 tests (137 total). (CEO, interactive)
 - **2026-10-05** — Premium AI video repriced 220 → 1,420 cr/s (owner decision). The margin gate now **passes on every plan and top-up** (Pro 3.00x, Ultra 3.23x, top-ups 4.0–5.9x, Starter unchanged at 9.4x), so it no longer blocks live providers. Standard prices unchanged (option C deferred). New test: the shipped catalog must pass the gate. +1 test (127 total). (CEO, interactive)
