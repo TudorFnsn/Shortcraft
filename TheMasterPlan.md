@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-06
+> Last updated: 2026-10-08
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 145 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 174 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -74,6 +74,7 @@ src/features/
   render/          state machine, pricing, repository ports + supabase/in-memory impls, orchestrator, store
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
+  moderation/      prompt screen (PromptModerator port + local rule-based screen)
 src/app/           landing, login, create, gallery, pricing, api/{jobs,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
@@ -105,7 +106,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [ ] Wire the **async pipeline**: submit → persist provider job id → resume via provider webhook + a Vercel Cron fallback poller; per-step progress in the UI.
 - [x] **Margin gate passes on every product** _(2026-10-05)_: gate + report _(PR `ceo/margin-gate`)_, researched costs in the catalog _(PR `ceo/real-provider-costs`)_, Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`)_, and premium AI video repriced 220 → **1,420 cr/s** (owner decision). Starter 9.4x, Pro 3.0x, Ultra 3.2x, top-ups 4.0–5.9x; trial burn $0.14. **Pro has zero headroom** — the first measured premium cost above $0.12/s fails it again, so re-run `npx tsx scripts/margin-report.mts` whenever real costs come in. A test now fails if the shipped catalog drops below 3x.
 - [~] Media storage: `MediaStore` port + Supabase Storage implementation (private bucket `media`, 24h signed URLs) landed with the voice adapter. Still to do: move to Cloudflare R2 (no egress fees) behind the same port, and a retention policy.
-- [ ] Moderation: LLM prompt check + provider safety filters + block/refund path.
+- [~] Moderation. **Done (2026-10-08, PR `ceo/prompt-moderation`):** a local, deterministic prompt screen (`features/moderation/prompt-check.ts`) runs in `POST /api/jobs` before plan checks, job creation or credit holds, so a blocked topic costs the user nothing and calls no provider; returns 422 `moderation_blocked` with a plain reason shown on `/create`; logs only the category, never the prompt. It blocks five categories (sexual content with minors, explicit sexual content, self-harm instructions, weapon/drug synthesis how-tos, calls for violence against a group) and lets educational topics through (suicide prevention, atomic-bomb history, bath bombs, naked mole rats; covered by tests). Provider filters (Claude refusals, fal safety checker) already fail the step and refund. **Still to do:** an LLM classifier (Haiku-class, ~$0.0005/check) behind the same `PromptModerator` port for the grey zone (real-person deepfakes, harassment, medical/financial scams) once live providers are on; moderate the generated script's image prompts too; an abuse counter (repeat blocks → review).
 
 ### NEXT — Phase 3: Ship it
 
@@ -222,6 +223,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-08** — Prompt moderation, first line: `PromptModerator` port + rule-based screen (normalizes case/accents/leetspeak, whole-word patterns) wired into `POST /api/jobs` before anything is created or held (422 `moderation_blocked`, category-only logging); `/create` shows the reason. Picked over the live render adapter because that is already in review as PR #17. +29 tests (174 total). (CEO routine)
 - **2026-10-06** — Optional `ANTHROPIC_WORKSPACE_ID`: the script adapter sends it as the `anthropic-workspace-id` header, so an organization-level Anthropic key (not scoped to a workspace) works. Found on the owner's first live smoke run, which failed with a 400 asking for that header. +1 test (145 total). (CEO, interactive)
 - **2026-10-06** — Live fal.ai image adapter: FLUX [schnell] for `image-standard` and FLUX [dev] for `image-premium` (catalog `providerId`s now `fal:flux-schnell` / `fal:flux-dev`; registry wires both behind `FAL_KEY`). Synchronous `fal.run` call, 720×1280 (one billed megapixel, matches the catalog cost), safety checker on (a flagged image throws so the job refunds), result copied into the `MediaStore` so we don't depend on fal's CDN retention. Fixed along the way: media object paths were an 8-hex (32-bit) FNV hash of the step key, and `put` overwrites, so two jobs could collide and one user's voiceover silently replace another's (~50% odds by ~77k objects); new `mediaPath()` uses the full `job:step:scene` key. Smoke script gains an image step. +7 tests (144 total). (CEO routine)
 - **2026-10-05** — First live provider adapters: Anthropic script (Claude Sonnet 5.5 via `@anthropic-ai/sdk`, zod structured output, `fallbacks: "default"`, refusal/max_tokens fail the step so the job refunds, cost from real token usage) and ElevenLabs voice (`with-timestamps`, characters → word timings, MP3 into a new `MediaStore`/Supabase Storage). Catalog `providerId`s now `anthropic:script` / `elevenlabs:voice`; registry wires both. New `scripts/live-providers-smoke.mts`. Mock mode unchanged and still the default. +10 tests (137 total). (CEO, interactive)
@@ -247,6 +249,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Moderate the prompt before any money moves; rules first, LLM later** (2026-10-08) → blocking before the credit hold means no refund path, no provider spend and no unsafe prompt ever reaching a vendor (repeat violations can get our fal/Anthropic/ElevenLabs accounts suspended, and Stripe forbids some of these categories). The local screen is free, works in mock mode and is unit-testable; it only targets unambiguous requests so false positives stay rare, and grey-zone judgement waits for an LLM classifier behind the same port. Accepted trade-offs: sexual terms near a minor term are blocked even in educational framing ("sex ed for teens"), because failing safe on minors is worth a rare false positive; obfuscated spellings ("p.o.r.n") slip through to the provider filters.
 
 - **Images: FLUX on fal.ai, synchronous, copied into our storage** (2026-10-06) → schnell matches the $0.003/image the margin gate was approved on; the sync endpoint returns in ~1s, so no async plumbing is needed for this step. 720×1280 stays at one billed megapixel; the renderer upscales to 1080×1920 (a 1080×1920 request would bill 3 MP). We copy each image into our own bucket because the render step may run later and fal's CDN has no retention guarantee. Media paths come from the full step key, never a short hash, because uploads overwrite.
 
