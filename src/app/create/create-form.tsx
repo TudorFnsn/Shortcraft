@@ -65,7 +65,9 @@ export function CreateForm({
           ? "You're out of credits."
           : data.error === 'plan_limit'
             ? (data.message ?? 'Your plan does not include this option.')
-            : `Could not generate: ${data.error ?? res.status}`,
+            : data.error === 'moderation_blocked'
+              ? (data.message ?? "This topic isn't allowed. Try a different idea.")
+              : `Could not generate: ${data.error ?? res.status}`,
       );
       return;
     }

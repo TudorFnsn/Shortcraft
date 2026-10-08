@@ -11,6 +11,8 @@ import { getStore } from '@/features/render/store';
 import { isThemeId } from '@/config/themes';
 import { PLANS } from '@/config/plans';
 import { checkPlanLimits } from '@/features/billing/entitlements';
+import { getPromptModerator } from '@/features/moderation/prompt-check';
+import { logger } from '@/lib/logger';
 
 const Body = z.object({
   topic: z.string().min(3).max(300),
@@ -26,6 +28,17 @@ export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: 'invalid_input', issues: parsed.error.issues }, { status: 400 });
+  }
+
+  // Moderation before anything is created or held: a blocked topic is free.
+  const moderation = await getPromptModerator().check(parsed.data.topic);
+  if (!moderation.ok) {
+    // Log the category, never the prompt text.
+    logger.warn('prompt blocked', { userId: user.id, category: moderation.error.category });
+    return Response.json(
+      { error: moderation.error.code, message: moderation.error.message },
+      { status: 422 },
+    );
   }
 
   const store = getStore();
