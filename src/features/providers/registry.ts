@@ -2,8 +2,8 @@
  * Provider registry — the one place that resolves a model id to a live adapter.
  *
  * When MOCK_PROVIDERS is true (default), every model resolves to its mock. Live
- * adapters (fal.ai / Anthropic / ElevenLabs / render API) get registered here as
- * they're built; until then, asking for a live adapter fails loudly. Nothing
+ * adapters (fal.ai / Anthropic / ElevenLabs / in-house render) get registered here
+ * as they're built; until then, asking for a live adapter fails loudly. Nothing
  * else in the app constructs a provider directly.
  *
  * Local adapters (no vendor, no network — e.g. Ken Burns stills) resolve the
@@ -25,6 +25,7 @@ import { createKenBurnsProvider } from './local/ken-burns';
 import { createAnthropicScriptProvider } from './live/anthropic-script';
 import { createElevenLabsVoiceProvider } from './live/elevenlabs-voice';
 import { createFalImageProvider, FAL_IMAGE_MODELS } from './live/fal-image';
+import { createInhouseRenderProvider } from './live/inhouse-render';
 import { SupabaseMediaStore } from './live/media-store';
 import { env, requireEnv } from '@/lib/env';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
@@ -55,6 +56,15 @@ const liveAdapters = new Map<string, LiveFactory>([
     id,
     (m) => createFalImageProvider(m, { apiKey: () => requireEnv('FAL_KEY'), store: mediaStore }),
   ]),
+  // No vendor, but it reads/writes the media store, so it is live-only (mock mode uses the mock).
+  [
+    'local:ffmpeg',
+    (m) =>
+      createInhouseRenderProvider(m, {
+        store: mediaStore,
+        ...(env.FFMPEG_PATH ? { ffmpegPath: env.FFMPEG_PATH } : {}),
+      }),
+  ],
 ]);
 
 /** Adapters that call no vendor, so they're safe (and real) in mock mode too. */

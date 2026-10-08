@@ -1,16 +1,20 @@
 /**
  * Live provider smoke test: one real script (Claude), one real voiceover
- * (ElevenLabs) and one real scene image (FLUX schnell on fal.ai), no database,
- * no Supabase Storage. Costs about $0.03.
+ * (ElevenLabs), one real image per scene (FLUX schnell on fal.ai), then the
+ * in-house renderer stitches them into a finished Standard MP4 (Ken Burns
+ * stills + voiceover + captions). No database, no Supabase Storage. Costs
+ * about $0.04.
  *
  * Needs ANTHROPIC_API_KEY and ELEVENLABS_API_KEY in .env.local; FAL_KEY too for
- * the image step (skipped when it's missing).
- * Writes the MP3, image + script JSON to ./live-smoke/ so you can check them.
+ * the image + render steps (skipped when it's missing); ffmpeg on PATH (or
+ * FFMPEG_PATH) for the render.
+ * Writes the MP3, images, script JSON and final.mp4 to ./live-smoke/.
  *
  * Run: npx tsx scripts/live-providers-smoke.mts ["your topic"]
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 // Load .env.local into process.env BEFORE importing app modules (env validates on import).
 if (existsSync('.env.local')) {
@@ -28,6 +32,9 @@ const { createAnthropicScriptProvider } =
 const { createElevenLabsVoiceProvider } =
   await import('@/features/providers/live/elevenlabs-voice');
 const { createFalImageProvider } = await import('@/features/providers/live/fal-image');
+const { createInhouseRenderProvider } = await import('@/features/providers/live/inhouse-render');
+const { createKenBurnsProvider } = await import('@/features/providers/local/ken-burns');
+type RenderClip = import('@/features/providers/types').RenderClip;
 
 const outDir = resolve('live-smoke');
 const fileStore = {
@@ -35,7 +42,7 @@ const fileStore = {
     const file = join(outDir, path);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, bytes);
-    return `file://${file}`;
+    return pathToFileURL(file).href;
   },
 };
 
@@ -47,7 +54,7 @@ const voice = createElevenLabsVoiceProvider(getModel('voice-default'), {
   voiceId: env.ELEVENLABS_VOICE_ID,
 });
 
-console.log(`1/3 script for "${topic}" ...`);
+console.log(`1/4 script for "${topic}" ...`);
 const s = await script.run(
   { topic, themeId: 'fun-facts', targetDurationSec: 15, language: 'en' },
   { idempotencyKey: 'smoke:script' },
@@ -57,7 +64,7 @@ mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, 'script.json'), JSON.stringify(s.output, null, 2));
 console.log(`   "${s.output.title}", ${s.output.scenes.length} scenes, $${s.costUsd.toFixed(4)}`);
 
-console.log('2/3 voiceover ...');
+console.log('2/4 voiceover ...');
 const text = s.output.scenes.map((x) => x.narration).join(' ');
 const v = await voice.run(
   { text, voiceId: 'default', language: 'en' },
@@ -69,25 +76,73 @@ console.log(
 );
 
 let total = s.costUsd + v.costUsd;
-const firstScene = s.output.scenes[0];
-if (env.FAL_KEY && firstScene) {
-  console.log('3/3 scene image ...');
+let finalUrl: string | null = null;
+if (env.FAL_KEY && s.output.scenes.length > 0) {
+  console.log(`3/4 scene images (${s.output.scenes.length}) ...`);
   const image = createFalImageProvider(getModel('image-standard'), {
     apiKey: () => requireEnv('FAL_KEY'),
     store: () => fileStore,
   });
-  const i = await image.run(
-    { prompt: firstScene.imagePrompt, aspectRatio: '9:16' },
-    { idempotencyKey: 'smoke:image' },
+  const kenBurns = createKenBurnsProvider(getModel('video-standard'));
+  const clips: RenderClip[] = [];
+  let startMs = 0;
+  for (const scene of s.output.scenes) {
+    const i = await image.run(
+      { prompt: scene.imagePrompt, aspectRatio: '9:16' },
+      { idempotencyKey: `smoke:image:${scene.index}` },
+    );
+    if (i.kind !== 'completed') throw new Error('unexpected async image result');
+    total += i.costUsd;
+    const still = await kenBurns.run(
+      {
+        imageUrl: i.output.imageUrl,
+        motionPrompt: scene.motionPrompt,
+        durationSec: scene.durationSec,
+      },
+      { idempotencyKey: `smoke:video:${scene.index}` },
+    );
+    if (still.kind !== 'completed' || still.output.kind !== 'still') {
+      throw new Error('unexpected Ken Burns result');
+    }
+    const durationMs = scene.durationSec * 1000;
+    clips.push({
+      kind: 'still',
+      imageUrl: i.output.imageUrl,
+      motion: still.output.motion,
+      startMs,
+      durationMs,
+    });
+    startMs += durationMs;
+  }
+  console.log(`   ${clips.length} images, $${(total - s.costUsd - v.costUsd).toFixed(4)}`);
+
+  console.log('4/4 render (in-house ffmpeg) ...');
+  const render = createInhouseRenderProvider(getModel('render-default'), {
+    store: () => fileStore,
+    allowFileUrls: true,
+    ...(env.FFMPEG_PATH ? { ffmpegPath: env.FFMPEG_PATH } : {}),
+  });
+  const started = Date.now();
+  const r = await render.run(
+    {
+      clips,
+      voiceoverUrl: v.output.audioUrl,
+      words: v.output.words,
+      subtitleStyleId: 'default',
+      aspectRatio: '9:16',
+    },
+    { idempotencyKey: 'smoke:final' },
   );
-  if (i.kind !== 'completed') throw new Error('unexpected async image result');
-  total += i.costUsd;
+  if (r.kind !== 'completed') throw new Error('unexpected async render result');
+  total += r.costUsd;
+  finalUrl = r.output.videoUrl;
   console.log(
-    `   ${i.output.width}x${i.output.height}, $${i.costUsd.toFixed(4)}: ${i.output.imageUrl}`,
+    `   ${r.output.durationSec.toFixed(1)}s video in ${((Date.now() - started) / 1000).toFixed(1)}s`,
   );
 } else {
-  console.log('3/3 scene image skipped (set FAL_KEY to run it)');
+  console.log('3/4 scene images + 4/4 render skipped (set FAL_KEY to run them)');
 }
 
 console.log(`\nOK. Total $${total.toFixed(4)}. Files in ${outDir}/`);
 console.log(`Listen: ${v.output.audioUrl}`);
+if (finalUrl) console.log(`Watch:  ${finalUrl}`);

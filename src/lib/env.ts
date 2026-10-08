@@ -44,6 +44,8 @@ const schema = z.object({
   /** Private Supabase Storage bucket for generated media (voiceovers, renders). */
   SUPABASE_MEDIA_BUCKET: z.string().min(1).default('media'),
   RENDER_API_KEY: z.string().min(1).optional(),
+  /** ffmpeg binary for the in-house renderer; defaults to `ffmpeg` on PATH. */
+  FFMPEG_PATH: z.string().min(1).optional(),
 
   // Stripe (added in the billing step)
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
