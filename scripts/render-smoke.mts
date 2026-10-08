@@ -20,7 +20,7 @@ const dir = mkdtempSync(join(tmpdir(), 'shortcraft-render-'));
 const ff = (...args: string[]) =>
   execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
 
-// Test assets: landscape stills (forces crop), a 2s clip (forces tpad to 3s), 9s of tone.
+// Test assets: landscape stills (forces crop), a 2s clip (slowed to fill 3s), 9s of tone.
 const colors = ['0x1e3a8a', '0x9d174d', '0x065f46'];
 const stills = colors.map((c, i) => {
   const p = join(dir, `still${i}.png`);
@@ -40,11 +40,19 @@ ff('-f', 'lavfi', '-i', 'testsrc=s=720x1280:d=2:r=24', '-pix_fmt', 'yuv420p', cl
 const voice = join(dir, 'voice.mp3');
 ff('-f', 'lavfi', '-i', 'sine=frequency=330:duration=9', voice);
 
+// The AI clip sits mid-video (crossfades on both sides) and is shorter than its
+// slot (2s source in a 3s slot), so it is slowed down to fit.
 const clips: RenderClip[] = [
   { kind: 'still', imageUrl: 'mock://a', motion: 'push-in', startMs: 0, durationMs: 2000 },
-  { kind: 'still', imageUrl: 'mock://b', motion: 'pan-left', startMs: 2000, durationMs: 2000 },
-  { kind: 'still', imageUrl: 'mock://c', motion: 'pull-out', startMs: 4000, durationMs: 2000 },
-  { kind: 'video', videoUrl: 'mock://d', startMs: 6000, durationMs: 3000 },
+  {
+    kind: 'video',
+    videoUrl: 'mock://d',
+    startMs: 2000,
+    durationMs: 3000,
+    sourceDurationMs: 2000,
+  },
+  { kind: 'still', imageUrl: 'mock://b', motion: 'pan-left', startMs: 5000, durationMs: 2000 },
+  { kind: 'still', imageUrl: 'mock://c', motion: 'pull-out', startMs: 7000, durationMs: 2000 },
 ];
 const words = 'This is how a Shortcraft video gets made in house today'
   .split(' ')
@@ -54,7 +62,7 @@ const out = join(dir, 'final.mp4');
 const started = Date.now();
 await renderWithFfmpeg({
   clips,
-  clipPaths: [...stills, clipPath],
+  clipPaths: [stills[0]!, clipPath, stills[1]!, stills[2]!],
   voiceoverPath: voice,
   words,
   brandWatermark: true, // free-trial look, so both overlay lines are exercised

@@ -25,6 +25,7 @@ import { createKenBurnsProvider } from './local/ken-burns';
 import { createAnthropicScriptProvider } from './live/anthropic-script';
 import { createElevenLabsVoiceProvider } from './live/elevenlabs-voice';
 import { createFalImageProvider, FAL_IMAGE_MODELS } from './live/fal-image';
+import { createFalVideoProvider } from './live/fal-video';
 import { createInhouseRenderProvider } from './live/inhouse-render';
 import { SupabaseMediaStore } from './live/media-store';
 import { env, requireEnv } from '@/lib/env';
@@ -56,6 +57,15 @@ const liveAdapters = new Map<string, LiveFactory>([
     id,
     (m) => createFalImageProvider(m, { apiKey: () => requireEnv('FAL_KEY'), store: mediaStore }),
   ]),
+  [
+    'fal:video',
+    (m) =>
+      createFalVideoProvider(m, {
+        apiKey: () => requireEnv('FAL_KEY'),
+        store: mediaStore,
+        ...(env.FAL_VIDEO_MODEL ? { falModel: env.FAL_VIDEO_MODEL } : {}),
+      }),
+  ],
   // No vendor, but it reads/writes the media store, so it is live-only (mock mode uses the mock).
   [
     'local:ffmpeg',

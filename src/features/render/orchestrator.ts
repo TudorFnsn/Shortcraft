@@ -115,23 +115,36 @@ export async function runRenderJob(
     // 3. clips: AI video (premium) or an animated still (standard) ----------
     await repo.updateJob(jobId, { status: advance('images') }); // 'clips'
     const video = getVideoProvider(modelIdFor('video', job.modelTier));
+    // In parallel: an AI clip takes minutes, so a video waits for its slowest
+    // scene instead of the sum of all of them. Results keep scene order.
+    const clipResults = await Promise.all(
+      scenes.map(async (scene) => {
+        if (!scene.imageUrl) throw new Error(`scene ${scene.id} missing image`);
+        const input = {
+          imageUrl: scene.imageUrl,
+          motionPrompt: scene.motionPrompt,
+          durationSec: scene.durationSec,
+        };
+        const res = inline(await video.run(input, ctx('clips', scene.id)));
+        return { scene, res, credits: video.costCredits(input) };
+      }),
+    );
     const clips: RenderClip[] = [];
     let cursorMs = 0;
-    for (const scene of scenes) {
-      if (!scene.imageUrl) throw new Error(`scene ${scene.id} missing image`);
-      const input = {
-        imageUrl: scene.imageUrl,
-        motionPrompt: scene.motionPrompt,
-        durationSec: scene.durationSec,
-      };
-      const res = inline(await video.run(input, ctx('clips', scene.id)));
-      charged += video.costCredits(input);
+    for (const { scene, res, credits } of clipResults) {
+      charged += credits;
       apiCostUsd += res.costUsd;
       const durationMs = scene.durationSec * 1000;
       const out = res.output;
       if (out.kind === 'video') {
         await repo.updateScene(scene.id, { videoUrl: out.videoUrl, status: 'done' });
-        clips.push({ kind: 'video', videoUrl: out.videoUrl, startMs: cursorMs, durationMs });
+        clips.push({
+          kind: 'video',
+          videoUrl: out.videoUrl,
+          startMs: cursorMs,
+          durationMs,
+          sourceDurationMs: out.durationSec * 1000,
+        });
       } else {
         await repo.updateScene(scene.id, { status: 'done' }); // the image IS the scene
         clips.push({

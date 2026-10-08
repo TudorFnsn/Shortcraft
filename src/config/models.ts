@@ -74,9 +74,13 @@ export const MODELS: readonly ModelSpec[] = [
     kind: 'video',
     tier: 'premium',
     label: 'AI video',
-    providerId: 'mock:video',
+    // Image-to-video on fal.ai (features/providers/live/fal-video.ts), model set
+    // by FAL_VIDEO_MODEL (default Kling 2.5 Turbo Pro, ~$0.07 per billed second).
+    providerId: 'fal:video',
     creditsPerUnit: 1420, // per second — smallest value that passes the 3x margin gate on Pro (owner decision 2026-10-05)
-    costUsdPerUnit: 0.12, // 1080p: Veo 3.1 Fast ~$0.12, Kling 3.0 ~$0.11
+    // Conservative per scene-second: Kling bills fixed 5s clips, so a short
+    // scene costs more per second than the list price. Re-measure, then lower.
+    costUsdPerUnit: 0.12,
   },
   {
     id: 'voice-default',

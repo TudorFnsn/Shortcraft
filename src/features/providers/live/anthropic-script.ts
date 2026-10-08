@@ -41,7 +41,13 @@ const SceneSchema = z.object({
   imagePrompt: z
     .string()
     .describe('A vivid, concrete description of one vertical 9:16 image for this scene.'),
-  motionPrompt: z.string().describe('A short camera/motion direction for this scene.'),
+  motionPrompt: z
+    .string()
+    .describe(
+      'One sentence for an image-to-video model: what moves in the scene (subject action, ' +
+        'wind, water, light) plus one camera move (e.g. "slow dolly in", "orbit left"). ' +
+        'Physically plausible, continuous motion; no cuts, no new objects, no text.',
+    ),
   durationSec: z.number().describe(`Scene length in seconds, 2 to ${MAX_SCENE_SEC}.`),
 });
 const ScriptSchema = z.object({
@@ -69,7 +75,9 @@ export function buildScriptPrompt(input: ScriptInput): { system: string; user: s
     'over AI-generated images. The first scene must hook the viewer in under two seconds.',
     'Narration is spoken aloud, so write it the way people talk: short sentences, no stage',
     'directions, no emojis, no hashtags. Image prompts describe one concrete visual each and',
-    'never include text, captions or logos. Keep everything suitable for a general audience',
+    'never include text, captions or logos. Motion prompts bring that image to life: name what',
+    'moves and how the camera moves, so the scene feels alive rather than like a photo.',
+    'Keep everything suitable for a general audience',
     'and do not depict real, identifiable people.',
   ].join(' ');
   const user = [

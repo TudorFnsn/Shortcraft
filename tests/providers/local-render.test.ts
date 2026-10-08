@@ -8,6 +8,7 @@ import {
   buildFfmpegPlan,
   OUTPUT_FPS,
   quoteFilterPath,
+  TRANSITION_MS,
   zoompanExpr,
 } from '@/features/providers/local/ffmpeg-plan';
 import { createKenBurnsProvider, stillMotionFor } from '@/features/providers/local/ken-burns';
@@ -70,12 +71,18 @@ describe('buildFfmpegPlan', () => {
     expect(plan.durationSec).toBe(10.5);
 
     const graph = plan.args[plan.args.indexOf('-filter_complex') + 1] ?? '';
+    // The first scene runs 6s + the 0.4s crossfade overlap.
+    const n = (6000 + TRANSITION_MS) * (OUTPUT_FPS / 1000);
     expect(graph).toContain(`[0:v]scale=2160:3840`);
-    expect(graph).toContain(`zoompan=z='1+0.15*on/${6 * OUTPUT_FPS}'`);
-    expect(graph).toContain(`d=${6 * OUTPUT_FPS}:s=1080x1920`);
+    expect(graph).toContain(`zoompan=z='1+0.25*(3*pow(min(on/${n},1),2)`);
+    expect(graph).toContain(`d=${n}:s=1080x1920`);
     expect(graph).toContain('[1:v]scale=1080:1920');
+    // The last scene has no overlap and no known source length, so it's only held.
     expect(graph).toContain('tpad=stop_mode=clone:stop_duration=4.500');
-    expect(graph).toContain("[v0][v1]concat=n=2:v=1:a=0,ass='/tmp/r/captions.ass'[vout]");
+    expect(graph).not.toContain('setpts=1.');
+    expect(graph).toContain(
+      "[v0][v1]xfade=transition=fade:duration=0.400:offset=6.000,ass='/tmp/r/captions.ass'[vout]",
+    );
 
     expect(plan.args).toEqual(
       expect.arrayContaining(['-map', '[vout]', '-map', '2:a', '-t', '10.500', base.outputPath]),
@@ -103,6 +110,42 @@ describe('buildFfmpegPlan', () => {
     expect(AI_METADATA.comment).toMatch(/AI-generated/);
     // Output options must precede the output path to apply to it.
     expect(plan.args.lastIndexOf('-metadata')).toBeLessThan(plan.args.indexOf(base.outputPath));
+  });
+
+  it('crossfades at every scene boundary so the total stays in sync with the voice', () => {
+    const three: RenderClip[] = [still(0, 2000), still(2000, 3000), still(5000, 4000)];
+    const plan = buildFfmpegPlan({ ...base, clipPaths: ['/a', '/b', '/c'], clips: three });
+    const graph = plan.args[plan.args.indexOf('-filter_complex') + 1] ?? '';
+    expect(graph).toContain('[v0][v1]xfade=transition=fade:duration=0.400:offset=2.000[x1]');
+    expect(graph).toContain('[x1][v2]xfade=transition=fade:duration=0.400:offset=5.000,ass=');
+    expect(plan.durationSec).toBe(9);
+    // Only the last scene is rendered at exactly its slot.
+    expect(graph).toContain(`d=${4 * OUTPUT_FPS}:`);
+  });
+
+  it('renders a single scene with no transition', () => {
+    const plan = buildFfmpegPlan({ ...base, clipPaths: ['/a'], clips: [still(0, 3000)] });
+    const graph = plan.args[plan.args.indexOf('-filter_complex') + 1] ?? '';
+    expect(graph).not.toContain('xfade');
+    expect(graph).toContain("[v0]ass='/tmp/r/captions.ass'[vout]");
+    expect(graph).toContain(`d=${3 * OUTPUT_FPS}:`);
+  });
+
+  it('slows a short AI clip to fill its slot, capped at 1.5x', () => {
+    const graphFor = (sourceDurationMs: number) => {
+      const clip: RenderClip = {
+        kind: 'video',
+        videoUrl: 'v',
+        startMs: 0,
+        durationMs: 6000,
+        sourceDurationMs,
+      };
+      const plan = buildFfmpegPlan({ ...base, clipPaths: ['/v'], clips: [clip] });
+      return plan.args[plan.args.indexOf('-filter_complex') + 1] ?? '';
+    };
+    expect(graphFor(5000)).toContain('[0:v]setpts=1.2000*(PTS-STARTPTS),');
+    expect(graphFor(2000)).toContain('[0:v]setpts=1.5000*(PTS-STARTPTS),'); // then held
+    expect(graphFor(10_000)).not.toContain('setpts=1.'); // longer clips are just cut
   });
 
   it('rejects mismatched or empty inputs', () => {

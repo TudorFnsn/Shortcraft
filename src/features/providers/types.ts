@@ -122,7 +122,15 @@ export interface VoiceOutput {
 export type VoiceProvider = Provider<VoiceInput, VoiceOutput>;
 
 export type RenderClip =
-  | { kind: 'video'; videoUrl: string; startMs: number; durationMs: number }
+  | {
+      kind: 'video';
+      videoUrl: string;
+      startMs: number;
+      /** The scene slot the clip must fill. */
+      durationMs: number;
+      /** The clip's own length, when known; the renderer time-fits it to the slot. */
+      sourceDurationMs?: number;
+    }
   | { kind: 'still'; imageUrl: string; motion: StillMotion; startMs: number; durationMs: number };
 export interface RenderInput {
   clips: RenderClip[];

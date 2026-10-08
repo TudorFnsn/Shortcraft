@@ -38,6 +38,8 @@ const schema = z.object({
   /** Only for an organization-level key that isn't scoped to a workspace. */
   ANTHROPIC_WORKSPACE_ID: z.string().min(1).optional(),
   FAL_KEY: z.string().min(1).optional(),
+  /** fal image-to-video model for Premium clips (default: Kling 2.5 Turbo Pro). */
+  FAL_VIDEO_MODEL: z.string().min(1).optional(),
   ELEVENLABS_API_KEY: z.string().min(1).optional(),
   /** Narrator voice; defaults to an ElevenLabs stock voice. */
   ELEVENLABS_VOICE_ID: z.string().min(1).optional(),
