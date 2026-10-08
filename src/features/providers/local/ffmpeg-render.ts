@@ -16,18 +16,17 @@ export interface LocalRenderInput {
   clipPaths: readonly string[];
   voiceoverPath: string;
   words: readonly WordTiming[];
-  /** Scratch directory for the subtitle file. */
+  /** Scratch directory for the caption/label overlay file. */
   workDir: string;
   outputPath: string;
   ffmpegPath?: string;
 }
 
 export async function renderWithFfmpeg(input: LocalRenderInput): Promise<{ durationSec: number }> {
-  let subtitlesPath: string | null = null;
-  if (input.words.length > 0) {
-    subtitlesPath = join(input.workDir, 'captions.ass');
-    await writeFile(subtitlesPath, buildAssSubtitles(input.words), 'utf8');
-  }
+  // Always written: even a caption-less video carries the AI-generated label.
+  const durationMs = input.clips.reduce((sum, c) => sum + c.durationMs, 0);
+  const subtitlesPath = join(input.workDir, 'captions.ass');
+  await writeFile(subtitlesPath, buildAssSubtitles(input.words, durationMs), 'utf8');
   const plan = buildFfmpegPlan({
     clips: input.clips,
     clipPaths: input.clipPaths,

@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 182 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 184 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -113,7 +113,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [ ] Deploy to Vercel (env, Supabase prod project, Stripe live keys, public webhook endpoint).
 - [ ] ffmpeg in production: Vercel functions ship no ffmpeg binary. Bundle a static build (e.g. `ffmpeg-static`, pointed to by `FFMPEG_PATH`) and set the render route's `maxDuration`; measure render time for a 60s video against the function limit, and fall back to a container job if it doesn't fit.
 - [ ] Sentry + PostHog wired, Resend transactional email. (CI ✅ done in Phase 1.)
-- [ ] Legal: ToS/Privacy, cookie banner (reject-all), EU AI Act AI-generated labelling (visible + metadata).
+- [~] Legal. **Done (2026-10-08, PR `ceo/ai-content-label`):** EU AI Act AI-generated labelling. Every in-house render carries a visible top-right "AI-generated" tag on every frame (drawn from the caption ASS file, so it costs no extra pass) and MP4 `comment`/`description` metadata saying it is AI-generated with Shortcraft. The overlay is now a required render input, so a render can't ship unlabelled; `scripts/render-smoke.mts` fails if the metadata is missing. **Still to do:** C2PA Content Credentials (signed provenance manifest; the standard TikTok/YouTube/Meta read to auto-apply their AI labels), ToS/Privacy, cookie banner (reject-all), and a ToS clause telling users to keep the platform's AI-content toggle on when they post.
 
 ### LATER — Phase 4: Retention & ARPU
 
@@ -224,6 +224,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-08** — AI-generated labelling on every render: visible corner tag (ASS `Label` style, full duration, present even without narration) + MP4 `comment`/`description` metadata; `buildFfmpegPlan` now requires the overlay file and `renderWithFfmpeg` always writes it. Verified on a real 1080×1920 render (ffprobe shows the tags; the frame shows the tag clear of the captions); the render smoke script now checks the metadata. +3 tests, −1 obsolete (184 total). (CEO, interactive)
 - **2026-10-08** — Prompt moderation, first line: `PromptModerator` port + rule-based screen (normalizes case/accents/leetspeak, whole-word patterns) wired into `POST /api/jobs` before anything is created or held (422 `moderation_blocked`, category-only logging); `/create` shows the reason. Picked over the live render adapter because that is already in review as PR #17. +29 tests (182 total after merging #17). (CEO routine)
 - **2026-10-07** — Live render adapter: `live/inhouse-render.ts` wires the in-house ffmpeg renderer to real media (download assets → render → upload MP4 under the step's idempotency key; temp dir always removed; 100 MB per-asset cap; `file://` opt-in for local runs only). Registered as `local:ffmpeg` (live-only, because it uses the media store); optional `FFMPEG_PATH`. With it, every Standard step has a live adapter. `live-providers-smoke.mts` now produces a finished MP4. `.env.example`: unused `RENDER_API_KEY` line replaced by `FFMPEG_PATH`. Renderer temp paths + the ffmpeg spawn carry `/*turbopackIgnore: true*/`: without them, reaching the renderer from `/api/jobs` made Turbopack trace the whole repo into the server bundle. +8 tests incl. one real ffmpeg render (153 total). (CEO routine)
 - **2026-10-06** — Optional `ANTHROPIC_WORKSPACE_ID`: the script adapter sends it as the `anthropic-workspace-id` header, so an organization-level Anthropic key (not scoped to a workspace) works. Found on the owner's first live smoke run, which failed with a 400 asking for that header. +1 test (145 total). (CEO, interactive)
@@ -251,6 +252,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Label every video as AI-generated, visibly and in metadata, with no opt-out** (2026-10-08) → EU AI Act Art. 50 transparency duties apply from 2 Aug 2026: providers of generative systems must mark synthetic output in a machine-readable way, and the people who publish realistic synthetic video must disclose it. TikTok, YouTube and Meta also require AI labels and can strike accounts that skip them, so our customers' accounts are protected too. The visible tag is small and translucent so it doesn't hurt the product. It says "AI-generated", not our brand: a "Made with Shortcraft" watermark is a separate pricing/distribution decision (e.g. free tier only) for the owner. Plain MP4 tags are the first step because they are free and survive download; platforms re-encode uploads and strip them, so C2PA signing is the next step for durable provenance.
 
 - **Moderate the prompt before any money moves; rules first, LLM later** (2026-10-08) → blocking before the credit hold means no refund path, no provider spend and no unsafe prompt ever reaching a vendor (repeat violations can get our fal/Anthropic/ElevenLabs accounts suspended, and Stripe forbids some of these categories). The local screen is free, works in mock mode and is unit-testable; it only targets unambiguous requests so false positives stay rare, and grey-zone judgement waits for an LLM classifier behind the same port. Accepted trade-offs: sexual terms near a minor term are blocked even in educational framing ("sex ed for teens"), because failing safe on minors is worth a rare false positive; obfuscated spellings ("p.o.r.n") slip through to the provider filters.
 - **Render is live-only, inline, and reads from our own storage** (2026-10-07) → it calls no vendor but writes to the media store, so in mock mode the mock render keeps tests and dev offline. It completes inline (a 15–60s ffmpeg pass) instead of going async, because the async pipeline isn't wired yet and a Standard render should fit one function call; if the measured 60s render doesn't fit, it moves to a container job behind the same `RenderProvider` port. Assets are only fetched over http(s) with a size cap; `file://` is an explicit opt-in used by the smoke script, so a bad URL in a job row can't make the production renderer read server files.
