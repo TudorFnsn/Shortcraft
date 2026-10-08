@@ -37,7 +37,8 @@ export async function renderWithFfmpeg(input: LocalRenderInput): Promise<{ durat
   });
 
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn(input.ffmpegPath ?? 'ffmpeg', plan.args, {
+    // A runtime binary path, not a project file: keep Turbopack from tracing the repo.
+    const proc = spawn(/*turbopackIgnore: true*/ input.ffmpegPath ?? 'ffmpeg', plan.args, {
       stdio: ['ignore', 'ignore', 'pipe'],
     });
     let stderr = '';
