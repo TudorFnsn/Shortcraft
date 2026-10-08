@@ -1,0 +1,191 @@
+/**
+ * Live video adapter: image-to-video on fal.ai (one AI clip per scene, Premium).
+ *
+ * Video models take ~30s–3min per clip, so this uses fal's queue API: submit,
+ * poll the request's status URL until it completes, then fetch the result. The
+ * step still completes inline (the orchestrator has no async branch yet) and the
+ * orchestrator generates every scene's clip in parallel, so a whole video waits
+ * about as long as its slowest clip. When the async pipeline lands, `run`
+ * returns the request as a ProviderJob and `poll` resolves it.
+ *
+ * The model is configurable (`FAL_VIDEO_MODEL`): models differ in how they take
+ * a clip length, so each family has its own input builder. The clip comes back
+ * at a fixed length (Kling: 5 or 10s); the renderer time-fits it to the scene
+ * slot, so a 5s clip fills a 6s scene in gentle slow motion instead of freezing.
+ *
+ * No audio is requested (our voiceover is the soundtrack), which is also the
+ * cheaper price tier. The output is copied into our media store, because fal's
+ * CDN has no retention guarantee and the render step reads it later.
+ */
+import type { ModelSpec } from '@/config/models';
+import type {
+  ProviderContext,
+  ProviderJob,
+  VideoInput,
+  VideoOutput,
+  VideoProvider,
+  WebhookPayload,
+} from '../types';
+import { mediaPath, type MediaStore } from './media-store';
+
+export const DEFAULT_FAL_VIDEO_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video';
+
+/**
+ * fal list price per billed clip second, audio off (search snippets, 2026-10;
+ * fal's pages are unreachable from CI, so confirm on your fal invoice). Models
+ * not listed are reported at the catalog's conservative per-second cost.
+ */
+export const FAL_VIDEO_USD_PER_SEC: Readonly<Record<string, number>> = {
+  'fal-ai/kling-video/v2.5-turbo/pro/image-to-video': 0.07,
+};
+
+const QUEUE = 'https://queue.fal.run';
+const POLL_INTERVAL_MS = 3_000;
+/** Generous: a busy queue plus a slow model. Past this the step fails and refunds. */
+const TIMEOUT_MS = 8 * 60_000;
+
+/** Keeps the camera grounded; these are the artefacts that read as "AI slop". */
+const NEGATIVE_PROMPT = 'blur, distortion, warped faces, extra limbs, text, watermark, low quality';
+
+interface FalVideoRequest {
+  body: Record<string, unknown>;
+  /** Seconds fal bills for (the clip's real length). */
+  billedSec: number;
+}
+
+/** Kling: 5s or 10s clips; aspect ratio follows the input image (9:16 here). */
+function klingRequest(input: VideoInput): FalVideoRequest {
+  const sec = input.durationSec > 7 ? 10 : 5;
+  return {
+    billedSec: sec,
+    body: {
+      prompt: input.motionPrompt,
+      image_url: input.imageUrl,
+      duration: String(sec),
+      negative_prompt: NEGATIVE_PROMPT,
+      generate_audio: false,
+    },
+  };
+}
+
+/** Other families (Veo, LTX, Wan, Seedance…): per-second length, explicit 9:16. */
+function genericRequest(input: VideoInput): FalVideoRequest {
+  const sec = Math.max(1, Math.ceil(input.durationSec));
+  return {
+    billedSec: sec,
+    body: {
+      prompt: input.motionPrompt,
+      image_url: input.imageUrl,
+      duration: sec,
+      aspect_ratio: '9:16',
+      negative_prompt: NEGATIVE_PROMPT,
+      generate_audio: false,
+    },
+  };
+}
+
+export function buildFalVideoRequest(falModel: string, input: VideoInput): FalVideoRequest {
+  return falModel.includes('kling') ? klingRequest(input) : genericRequest(input);
+}
+
+interface QueueSubmit {
+  request_id?: string;
+  status_url?: string;
+  response_url?: string;
+}
+interface QueueStatus {
+  status?: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | string;
+}
+interface FalVideoResponse {
+  video?: { url?: string; content_type?: string };
+}
+
+const notAsync = () => {
+  throw new Error('the video adapter completes inline until the async pipeline lands');
+};
+
+export function createFalVideoProvider(
+  model: ModelSpec,
+  deps: {
+    apiKey: () => string;
+    store: () => MediaStore;
+    /** fal model path; defaults to Kling 2.5 Turbo Pro. */
+    falModel?: string;
+    fetch?: typeof fetch;
+    sleep?: (ms: number) => Promise<void>;
+    now?: () => number;
+    pollIntervalMs?: number;
+    timeoutMs?: number;
+  },
+): VideoProvider {
+  const falModel = deps.falModel ?? DEFAULT_FAL_VIDEO_MODEL;
+  const doFetch = deps.fetch ?? fetch;
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const now = deps.now ?? Date.now;
+  const pollIntervalMs = deps.pollIntervalMs ?? POLL_INTERVAL_MS;
+  const timeoutMs = deps.timeoutMs ?? TIMEOUT_MS;
+  const usdPerSec = FAL_VIDEO_USD_PER_SEC[falModel] ?? model.costUsdPerUnit;
+
+  const call = async (url: string, init?: RequestInit): Promise<unknown> => {
+    const res = await doFetch(url, {
+      ...init,
+      headers: {
+        authorization: `Key ${deps.apiKey()}`,
+        'content-type': 'application/json',
+        ...init?.headers,
+      },
+    });
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => '')).slice(0, 300);
+      throw new Error(`fal video failed: ${res.status} ${detail}`);
+    }
+    return res.json();
+  };
+
+  return {
+    id: model.providerId,
+    kind: 'video',
+    costCredits: (input: VideoInput) => Math.ceil(input.durationSec) * model.creditsPerUnit,
+
+    async run(input: VideoInput, ctx: ProviderContext) {
+      const { body, billedSec } = buildFalVideoRequest(falModel, input);
+      const submit = (await call(`${QUEUE}/${falModel}`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })) as QueueSubmit;
+      if (!submit.request_id) throw new Error('fal video: queue returned no request id');
+      // fal returns the canonical URLs; build them only as a fallback.
+      const base = `${QUEUE}/${falModel}/requests/${submit.request_id}`;
+      const statusUrl = submit.status_url ?? `${base}/status`;
+      const responseUrl = submit.response_url ?? base;
+
+      const deadline = now() + timeoutMs;
+      for (;;) {
+        const status = (await call(statusUrl)) as QueueStatus;
+        if (status.status === 'COMPLETED') break;
+        if (now() >= deadline) {
+          throw new Error(`fal video timed out after ${Math.round(timeoutMs / 1000)}s`);
+        }
+        await sleep(pollIntervalMs);
+      }
+
+      // A failed generation surfaces here as a non-2xx (with fal's reason).
+      const result = (await call(responseUrl)) as FalVideoResponse;
+      const url = result.video?.url;
+      if (!url) throw new Error('fal video returned no video');
+
+      const download = await doFetch(url);
+      if (!download.ok) throw new Error(`fal video download failed: ${download.status}`);
+      const bytes = new Uint8Array(await download.arrayBuffer());
+      const videoUrl = await deps
+        .store()
+        .put(mediaPath('clips', ctx.idempotencyKey, 'mp4'), bytes, 'video/mp4');
+
+      const output: VideoOutput = { kind: 'video', videoUrl, durationSec: billedSec };
+      return { kind: 'completed', output, costUsd: billedSec * usdPerSec };
+    },
+
+    poll: async (_job: ProviderJob) => notAsync(),
+    parseWebhook: async (_payload: WebhookPayload) => notAsync(),
+  };
+}

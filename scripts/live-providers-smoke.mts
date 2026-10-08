@@ -10,9 +10,12 @@
  * FFMPEG_PATH) for the render.
  * Writes the MP3, images, script JSON and final.mp4 to ./live-smoke/.
  *
- * Run: npx tsx scripts/live-providers-smoke.mts ["your topic"]
+ * Run: npx tsx scripts/live-providers-smoke.mts ["your topic"] [--premium | --premium-all]
+ *   --premium      AI video (fal image-to-video) on the first scene, stills for the rest (~$0.35 more)
+ *   --premium-all  AI video on every scene (~$0.35 per scene)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -32,6 +35,7 @@ const { createAnthropicScriptProvider } =
 const { createElevenLabsVoiceProvider } =
   await import('@/features/providers/live/elevenlabs-voice');
 const { createFalImageProvider } = await import('@/features/providers/live/fal-image');
+const { createFalVideoProvider } = await import('@/features/providers/live/fal-video');
 const { createInhouseRenderProvider } = await import('@/features/providers/live/inhouse-render');
 const { createKenBurnsProvider } = await import('@/features/providers/local/ken-burns');
 type RenderClip = import('@/features/providers/types').RenderClip;
@@ -46,7 +50,9 @@ const fileStore = {
   },
 };
 
-const topic = process.argv[2] ?? 'Why octopuses have three hearts';
+const args = process.argv.slice(2);
+const topic = args.find((a) => !a.startsWith('--')) ?? 'Why octopuses have three hearts';
+const premium = args.includes('--premium-all') ? 'all' : args.includes('--premium') ? 'hero' : null;
 const script = createAnthropicScriptProvider(getModel('script-default'));
 const voice = createElevenLabsVoiceProvider(getModel('voice-default'), {
   apiKey: () => requireEnv('ELEVENLABS_API_KEY'),
@@ -78,12 +84,25 @@ console.log(
 let total = s.costUsd + v.costUsd;
 let finalUrl: string | null = null;
 if (env.FAL_KEY && s.output.scenes.length > 0) {
-  console.log(`3/4 scene images (${s.output.scenes.length}) ...`);
+  console.log(`3/4 scene images (${s.output.scenes.length})${premium ? ' + AI video' : ''} ...`);
   const image = createFalImageProvider(getModel('image-standard'), {
     apiKey: () => requireEnv('FAL_KEY'),
     store: () => fileStore,
   });
   const kenBurns = createKenBurnsProvider(getModel('video-standard'));
+  const aiVideo = createFalVideoProvider(getModel('video-premium'), {
+    apiKey: () => requireEnv('FAL_KEY'),
+    store: () => fileStore,
+    ...(env.FAL_VIDEO_MODEL ? { falModel: env.FAL_VIDEO_MODEL } : {}),
+  });
+  // fal can't fetch our local file:// images; send them inline (the app uses signed https URLs).
+  const dataUri = (fileUrl: string) =>
+    `data:image/jpeg;base64,${readFileSync(fileURLToPath(fileUrl)).toString('base64')}`;
+  const aiScenes = new Set(
+    premium === 'all' ? s.output.scenes.map((x) => x.index) : premium === 'hero' ? [0] : [],
+  );
+  if (aiScenes.size > 0) console.log(`   AI video on ${aiScenes.size} scene(s), in parallel`);
+  const pendingClips: Promise<void>[] = [];
   const clips: RenderClip[] = [];
   let startMs = 0;
   for (const scene of s.output.scenes) {
@@ -105,6 +124,7 @@ if (env.FAL_KEY && s.output.scenes.length > 0) {
       throw new Error('unexpected Ken Burns result');
     }
     const durationMs = scene.durationSec * 1000;
+    const slot = clips.length;
     clips.push({
       kind: 'still',
       imageUrl: i.output.imageUrl,
@@ -112,9 +132,43 @@ if (env.FAL_KEY && s.output.scenes.length > 0) {
       startMs,
       durationMs,
     });
+    if (aiScenes.has(scene.index)) {
+      const clipStartMs = startMs;
+      const imageUrl = i.output.imageUrl;
+      pendingClips.push(
+        (async () => {
+          const started = Date.now();
+          const c = await aiVideo.run(
+            {
+              imageUrl: dataUri(imageUrl),
+              motionPrompt: scene.motionPrompt,
+              durationSec: scene.durationSec,
+            },
+            { idempotencyKey: `smoke:clip:${scene.index}` },
+          );
+          if (c.kind !== 'completed' || c.output.kind !== 'video') {
+            throw new Error('unexpected AI video result');
+          }
+          total += c.costUsd;
+          clips[slot] = {
+            kind: 'video',
+            videoUrl: c.output.videoUrl,
+            startMs: clipStartMs,
+            durationMs,
+            sourceDurationMs: c.output.durationSec * 1000,
+          };
+          console.log(
+            `   AI clip ${scene.index}: ${c.output.durationSec}s in ${((Date.now() - started) / 1000).toFixed(0)}s, $${c.costUsd.toFixed(2)} — "${scene.motionPrompt}"`,
+          );
+        })(),
+      );
+    }
     startMs += durationMs;
   }
-  console.log(`   ${clips.length} images, $${(total - s.costUsd - v.costUsd).toFixed(4)}`);
+  await Promise.all(pendingClips);
+  console.log(
+    `   ${clips.length} scenes, images + clips $${(total - s.costUsd - v.costUsd).toFixed(4)}`,
+  );
 
   console.log('4/4 render (in-house ffmpeg) ...');
   const render = createInhouseRenderProvider(getModel('render-default'), {

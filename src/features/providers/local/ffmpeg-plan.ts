@@ -20,8 +20,15 @@ import type { RenderClip, StillMotion, WordTiming } from '../types';
 export const OUTPUT_WIDTH = 1080;
 export const OUTPUT_HEIGHT = 1920;
 export const OUTPUT_FPS = 30;
-/** How far a still zooms over its scene. Subtle reads as "cinematic", not "seasick". */
-const ZOOM = 0.15;
+/**
+ * How far a still zooms over its scene. 0.15 read as a static slideshow on a
+ * phone; 0.25 with easing feels like a camera move without turning seasick.
+ */
+const ZOOM = 0.25;
+/** Crossfade between scenes. Short enough to keep short-form pacing. */
+export const TRANSITION_MS = 400;
+/** Most an AI clip is slowed to fill its slot before the last frame is held instead. */
+const MAX_SLOWDOWN = 1.5;
 
 /** Visible on-frame disclosure. Short so it stays legible at phone size. */
 export const AI_LABEL_TEXT = 'AI-generated';
@@ -55,7 +62,10 @@ const frames = (ms: number): number => Math.max(1, Math.round((ms / 1000) * OUTP
 
 /** zoompan expressions for a camera move over `n` output frames. */
 export function zoompanExpr(motion: StillMotion, n: number): { z: string; x: string; y: string } {
-  const t = `on/${n}`; // 0 → 1 across the scene
+  // 0 → 1 across the scene, eased (smoothstep): the camera accelerates in and
+  // settles out instead of moving at a constant, mechanical speed.
+  const p = `min(on/${n},1)`;
+  const t = `(3*pow(${p},2)-2*pow(${p},3))`;
   const centerX = 'iw/2-(iw/zoom/2)';
   const centerY = 'ih/2-(ih/zoom/2)';
   switch (motion) {
@@ -70,13 +80,17 @@ export function zoompanExpr(motion: StillMotion, n: number): { z: string; x: str
   }
 }
 
-function clipFilter(clip: RenderClip, input: number): string {
+/**
+ * One scene → a labelled video stream of `renderMs` (its slot, plus the
+ * crossfade overlap for every scene but the last).
+ */
+function clipFilter(clip: RenderClip, input: number, renderMs: number): string {
   const W = OUTPUT_WIDTH;
   const H = OUTPUT_HEIGHT;
   const fit = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`;
   const tail = `setsar=1,format=yuv420p[v${input}]`;
   if (clip.kind === 'still') {
-    const n = frames(clip.durationMs);
+    const n = frames(renderMs);
     const { z, x, y } = zoompanExpr(clip.motion, n);
     // Upscale 2x before zoompan: it works in whole pixels, so this removes jitter.
     return (
@@ -85,12 +99,42 @@ function clipFilter(clip: RenderClip, input: number): string {
       tail
     );
   }
-  // AI clip: fit the frame, hold the last frame if it's short, cut to the slot.
-  const sec = (clip.durationMs / 1000).toFixed(3);
+  // AI clip: fit the frame; if it's shorter than the slot, slow it down (up to
+  // MAX_SLOWDOWN) rather than freezing on the last frame; then cut to the slot.
+  const sec = (renderMs / 1000).toFixed(3);
+  const slow = clip.sourceDurationMs
+    ? Math.min(MAX_SLOWDOWN, Math.max(1, renderMs / clip.sourceDurationMs))
+    : 1;
+  const stretch = slow > 1 ? `setpts=${slow.toFixed(4)}*(PTS-STARTPTS),` : '';
   return (
-    `[${input}:v]${fit},fps=${OUTPUT_FPS},tpad=stop_mode=clone:stop_duration=${sec},` +
+    `[${input}:v]${stretch}${fit},fps=${OUTPUT_FPS},tpad=stop_mode=clone:stop_duration=${sec},` +
     `trim=duration=${sec},setpts=PTS-STARTPTS,${tail}`
   );
+}
+
+/**
+ * Join the scene streams with crossfades. Each scene but the last is rendered
+ * TRANSITION_MS longer, and each fade starts at its scene boundary, so the
+ * total stays the sum of the slots and the cuts stay in sync with the voice.
+ */
+function joinFilter(clips: readonly RenderClip[], tail: string): string[] {
+  if (clips.length === 1) return [`[v0]${tail}`];
+  const fade = (TRANSITION_MS / 1000).toFixed(3);
+  const steps: string[] = [];
+  let prev = '[v0]';
+  let boundaryMs = 0;
+  clips.slice(1).forEach((_, k) => {
+    boundaryMs += clips[k]?.durationMs ?? 0;
+    const isLast = k === clips.length - 2;
+    const label = `[x${k + 1}]`;
+    const offset = (boundaryMs / 1000).toFixed(3);
+    steps.push(
+      `${prev}[v${k + 1}]xfade=transition=fade:duration=${fade}:offset=${offset}` +
+        (isLast ? `,${tail}` : label),
+    );
+    prev = label;
+  });
+  return steps;
 }
 
 /**
@@ -117,11 +161,11 @@ export function buildFfmpegPlan(input: RenderPlanInput): RenderPlan {
   const inputs = clipPaths.flatMap((p) => ['-i', p]);
   const audioIndex = clips.length;
 
-  const filters = clips.map((c, i) => clipFilter(c, i));
-  const labels = clips.map((_, i) => `[v${i}]`).join('');
-  filters.push(
-    `${labels}concat=n=${clips.length}:v=1:a=0,ass=${quoteFilterPath(input.subtitlesPath)}[vout]`,
+  const last = clips.length - 1;
+  const filters = clips.map((c, i) =>
+    clipFilter(c, i, c.durationMs + (i < last ? TRANSITION_MS : 0)),
   );
+  filters.push(...joinFilter(clips, `ass=${quoteFilterPath(input.subtitlesPath)}[vout]`));
 
   const durationSec = durationMs / 1000;
   return {
@@ -142,10 +186,11 @@ export function buildFfmpegPlan(input: RenderPlanInput): RenderPlan {
       durationSec.toFixed(3),
       '-c:v',
       'libx264',
+      // Crisper than the old veryfast/23: platforms re-encode, so start clean.
       '-preset',
-      'veryfast',
+      'faster',
       '-crf',
-      '23',
+      '20',
       '-pix_fmt',
       'yuv420p',
       '-c:a',
