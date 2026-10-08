@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { getModel } from '@/config/models';
 import {
+  AI_LABEL_TEXT,
+  AI_METADATA,
+  BRAND_WATERMARK_TEXT,
   buildAssSubtitles,
   buildFfmpegPlan,
   OUTPUT_FPS,
@@ -90,11 +93,16 @@ describe('buildFfmpegPlan', () => {
     ]);
   });
 
-  it('omits the caption filter when there are no subtitles', () => {
-    const plan = buildFfmpegPlan({ ...base, clips, subtitlesPath: null });
-    const graph = plan.args[plan.args.indexOf('-filter_complex') + 1] ?? '';
-    expect(graph).toContain('concat=n=2:v=1:a=0[vout]');
-    expect(graph).not.toContain('ass=');
+  it('marks every render as AI-generated in the MP4 metadata', () => {
+    const plan = buildFfmpegPlan({ ...base, clips });
+    const metadata = plan.args.flatMap((arg, i) => (plan.args[i - 1] === '-metadata' ? [arg] : []));
+    expect(metadata).toEqual([
+      `comment=${AI_METADATA.comment}`,
+      `description=${AI_METADATA.description}`,
+    ]);
+    expect(AI_METADATA.comment).toMatch(/AI-generated/);
+    // Output options must precede the output path to apply to it.
+    expect(plan.args.lastIndexOf('-metadata')).toBeLessThan(plan.args.indexOf(base.outputPath));
   });
 
   it('rejects mismatched or empty inputs', () => {
@@ -124,18 +132,58 @@ describe('buildAssSubtitles', () => {
   }));
 
   it('groups words into short uppercase captions with ASS timestamps', () => {
-    const ass = buildAssSubtitles(words);
+    const ass = buildAssSubtitles(words, 2500, { brandWatermark: false });
     expect(ass).toContain('PlayResX: 1080');
     expect(ass).toContain('Dialogue: 0,0:00:00.00,0:00:01.50,Default,,0,0,0,,ONE TWO THREE');
     expect(ass).toContain('Dialogue: 0,0:00:01.50,0:00:02.50,Default,,0,0,0,,FOUR B0FIVE');
   });
 
   it('strips ASS override markup from narration', () => {
-    expect(buildAssSubtitles(words)).not.toMatch(/Dialogue:.*[{}\\]/);
+    expect(buildAssSubtitles(words, 2500, { brandWatermark: false })).not.toMatch(
+      /Dialogue:.*[{}\\]/,
+    );
   });
 
   it('formats hours and minutes', () => {
-    const ass = buildAssSubtitles([{ word: 'late', startMs: 3_723_450, endMs: 3_724_000 }]);
+    const ass = buildAssSubtitles([{ word: 'late', startMs: 3_723_450, endMs: 3_724_000 }], 0, {
+      brandWatermark: false,
+    });
     expect(ass).toContain('Dialogue: 0,1:02:03.45,1:02:04.00');
+  });
+});
+
+describe('AI-generated label', () => {
+  it('shows the label from the first frame to the end of the video', () => {
+    const ass = buildAssSubtitles([{ word: 'hi', startMs: 0, endMs: 400 }], 12_345, {
+      brandWatermark: false,
+    });
+    expect(ass).toContain(`Dialogue: 1,0:00:00.00,0:00:12.35,Label,,0,0,0,,${AI_LABEL_TEXT}`);
+    expect(ass).toMatch(/^Style: Label,/m);
+  });
+
+  it('is still present on a video with no narration', () => {
+    const ass = buildAssSubtitles([], 6000, { brandWatermark: false });
+    const dialogues = ass.split('\n').filter((l) => l.startsWith('Dialogue:'));
+    expect(dialogues).toEqual([`Dialogue: 1,0:00:00.00,0:00:06.00,Label,,0,0,0,,${AI_LABEL_TEXT}`]);
+  });
+});
+
+describe('free-trial watermark', () => {
+  const dialogues = (ass: string) => ass.split('\n').filter((l) => l.startsWith('Dialogue:'));
+
+  it('adds "Made with Shortcraft" under the AI label for the whole video', () => {
+    const ass = buildAssSubtitles([], 9000, { brandWatermark: true });
+    expect(BRAND_WATERMARK_TEXT).toBe('Made with Shortcraft');
+    expect(dialogues(ass)).toEqual([
+      `Dialogue: 1,0:00:00.00,0:00:09.00,Label,,0,0,0,,${AI_LABEL_TEXT}`,
+      `Dialogue: 1,0:00:00.00,0:00:09.00,Brand,,0,0,0,,${BRAND_WATERMARK_TEXT}`,
+    ]);
+    expect(ass).toMatch(/^Style: Brand,/m);
+  });
+
+  it('is absent on paid videos, which keep only the AI label', () => {
+    const ass = buildAssSubtitles([], 9000, { brandWatermark: false });
+    expect(ass).not.toContain(BRAND_WATERMARK_TEXT);
+    expect(dialogues(ass)).toHaveLength(1);
   });
 });

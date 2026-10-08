@@ -9,7 +9,11 @@ export default async function CreatePage() {
   if (!user) redirect('/login');
 
   const store = getStore();
-  const [balance, planId] = await Promise.all([store.balance(user.id), store.planOf(user.id)]);
+  const [balance, planId, hasPaid] = await Promise.all([
+    store.balance(user.id),
+    store.planOf(user.id),
+    store.hasPaid(user.id),
+  ]);
   const { limits } = PLANS[planId];
 
   return (
@@ -22,6 +26,7 @@ export default async function CreatePage() {
         balance={balance}
         maxDurationSec={limits.maxVideoDurationSec}
         allowedTiers={[...limits.modelTiers]}
+        freeTrial={!hasPaid}
       />
     </main>
   );

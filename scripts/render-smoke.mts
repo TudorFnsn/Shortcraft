@@ -12,7 +12,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const { renderWithFfmpeg } = await import('@/features/providers/local/ffmpeg-render');
-const { OUTPUT_HEIGHT, OUTPUT_WIDTH } = await import('@/features/providers/local/ffmpeg-plan');
+const { AI_METADATA, OUTPUT_HEIGHT, OUTPUT_WIDTH } =
+  await import('@/features/providers/local/ffmpeg-plan');
 type RenderClip = import('@/features/providers/types').RenderClip;
 
 const dir = mkdtempSync(join(tmpdir(), 'shortcraft-render-'));
@@ -56,6 +57,7 @@ await renderWithFfmpeg({
   clipPaths: [...stills, clipPath],
   voiceoverPath: voice,
   words,
+  brandWatermark: true, // free-trial look, so both overlay lines are exercised
   workDir: dir,
   outputPath: out,
 });
@@ -73,7 +75,7 @@ const probe = JSON.parse(
   ]).toString(),
 ) as {
   streams: { codec_type: string; width?: number; height?: number }[];
-  format: { duration: string };
+  format: { duration: string; tags?: Record<string, string> };
 };
 const video = probe.streams.find((s) => s.codec_type === 'video');
 const audio = probe.streams.find((s) => s.codec_type === 'audio');
@@ -85,6 +87,8 @@ if (video?.width !== OUTPUT_WIDTH || video?.height !== OUTPUT_HEIGHT) {
 }
 if (!audio) problems.push('no audio stream');
 if (Math.abs(duration - 9) > 0.25) problems.push(`duration ${duration}s (expected 9s)`);
+if (probe.format.tags?.comment !== AI_METADATA.comment)
+  problems.push('missing AI-generated metadata');
 
 console.log(
   `rendered ${out} in ${ms} ms: ${video?.width}x${video?.height}, ${duration.toFixed(2)}s`,

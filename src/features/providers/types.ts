@@ -130,6 +130,8 @@ export interface RenderInput {
   words: WordTiming[];
   subtitleStyleId: string;
   aspectRatio: '9:16';
+  /** Free-trial videos carry a "Made with Shortcraft" watermark; paid ones don't. */
+  brandWatermark: boolean;
 }
 export interface RenderOutput {
   videoUrl: string;

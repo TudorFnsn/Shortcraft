@@ -128,6 +128,7 @@ if (env.FAL_KEY && s.output.scenes.length > 0) {
       clips,
       voiceoverUrl: v.output.audioUrl,
       words: v.output.words,
+      brandWatermark: true, // render as a free-trial video, so the watermark is visible
       subtitleStyleId: 'default',
       aspectRatio: '9:16',
     },

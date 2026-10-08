@@ -25,10 +25,13 @@ export function CreateForm({
   balance,
   maxDurationSec,
   allowedTiers,
+  freeTrial,
 }: {
   balance: number;
   maxDurationSec: number;
   allowedTiers: ModelTier[];
+  /** Never paid: videos carry the "Made with Shortcraft" watermark. */
+  freeTrial: boolean;
 }) {
   const router = useRouter();
   const [topic, setTopic] = useState('');
@@ -172,6 +175,16 @@ export function CreateForm({
       {(maxDurationSec < Math.max(...DURATIONS) || allowedTiers.length < TIERS.length) && (
         <p className="text-sm text-neutral-500">
           Longer videos and premium quality unlock on higher plans —{' '}
+          <Link href="/pricing" className="underline">
+            see plans
+          </Link>
+          .
+        </p>
+      )}
+      {freeTrial && (
+        <p className="text-sm text-neutral-500">
+          Free-trial videos include a small &ldquo;Made with Shortcraft&rdquo; watermark. Any plan
+          or top-up removes it —{' '}
           <Link href="/pricing" className="underline">
             see plans
           </Link>

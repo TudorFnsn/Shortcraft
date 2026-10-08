@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     modelTier: parsed.data.modelTier,
   });
 
-  const result = await runRenderJob({ repo: store, credits: store }, job.id);
+  const result = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
   if (!result.ok) {
     return Response.json({ error: result.error.code, jobId: job.id }, { status: 400 });
   }

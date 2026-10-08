@@ -90,6 +90,7 @@ describe('mock render pipeline', () => {
           voiceoverUrl: vo.audioUrl,
           words: vo.words,
           subtitleStyleId: 'default',
+          brandWatermark: false,
           aspectRatio: '9:16',
         },
         ctx,

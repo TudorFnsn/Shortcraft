@@ -33,6 +33,7 @@ const input: RenderInput = {
   words: [{ word: 'hi', startMs: 0, endMs: 400 }],
   subtitleStyleId: 'bold-center',
   aspectRatio: '9:16',
+  brandWatermark: true,
 };
 
 const okFetch = () =>
@@ -80,6 +81,7 @@ describe('in-house render adapter', () => {
     const r = seen[0]!;
     expect(r.clips).toBe(input.clips);
     expect(r.words).toBe(input.words);
+    expect(r.brandWatermark).toBe(true);
     expect(r.clipPaths.map((p) => p.split('/').pop())).toEqual(['clip0.jpg', 'clip1.mp4']);
     expect(r.voiceoverPath.endsWith('voiceover.mp3')).toBe(true);
     // Temp files are always cleaned up.
