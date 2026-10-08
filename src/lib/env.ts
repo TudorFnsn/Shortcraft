@@ -52,6 +52,9 @@ const schema = z.object({
   // Stripe (added in the billing step)
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+
+  /** Vercel Cron sends it as a Bearer token; required for /api/cron/* outside development. */
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

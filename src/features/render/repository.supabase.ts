@@ -40,6 +40,7 @@ interface JobRow {
   words: WordTiming[] | null;
   output_asset_url: string | null;
   estimated_credits: number;
+  charged_credits?: number; // 0004
   actual_credits: number;
   api_cost_usd: number;
   error: string | null;
@@ -57,6 +58,8 @@ interface SceneRow {
   duration_sec: number;
   image_url: string | null;
   video_url: string | null;
+  video_job?: string | null; // 0004
+  clip_duration_ms?: number | null; // 0004
   status: string;
 }
 
@@ -74,6 +77,7 @@ const toJob = (r: JobRow): RenderJobRecord => ({
   words: r.words,
   outputAssetUrl: r.output_asset_url,
   estimatedCredits: Number(r.estimated_credits),
+  chargedCredits: Number(r.charged_credits ?? 0),
   actualCredits: Number(r.actual_credits),
   apiCostUsd: Number(r.api_cost_usd),
   error: r.error,
@@ -91,6 +95,8 @@ const toScene = (r: SceneRow): SceneRecord => ({
   durationSec: r.duration_sec,
   imageUrl: r.image_url,
   videoUrl: r.video_url,
+  videoJob: r.video_job ?? null,
+  clipDurationMs: r.clip_duration_ms ?? null,
   status: r.status as SceneRecord['status'],
 });
 
@@ -103,6 +109,7 @@ function jobPatchToRow(patch: Partial<RenderJobRecord>): Record<string, unknown>
   if (patch.words !== undefined) row.words = patch.words;
   if (patch.outputAssetUrl !== undefined) row.output_asset_url = patch.outputAssetUrl;
   if (patch.estimatedCredits !== undefined) row.estimated_credits = patch.estimatedCredits;
+  if (patch.chargedCredits !== undefined) row.charged_credits = patch.chargedCredits;
   if (patch.actualCredits !== undefined) row.actual_credits = patch.actualCredits;
   if (patch.apiCostUsd !== undefined) row.api_cost_usd = patch.apiCostUsd;
   if (patch.error !== undefined) row.error = patch.error;
@@ -185,9 +192,42 @@ export class SupabaseStore implements RenderRepository, CreditRepository, PlanRe
     const row: Record<string, unknown> = {};
     if (patch.imageUrl !== undefined) row.image_url = patch.imageUrl;
     if (patch.videoUrl !== undefined) row.video_url = patch.videoUrl;
+    if (patch.videoJob !== undefined) row.video_job = patch.videoJob;
+    if (patch.clipDurationMs !== undefined) row.clip_duration_ms = patch.clipDurationMs;
     if (patch.status !== undefined) row.status = patch.status;
     const { error } = await this.db.from('scenes').update(row).eq('id', id);
     if (error) throw new Error(`updateScene: ${error.message}`);
+  }
+
+  async claimJob(id: string, owner: string, ttlMs: number): Promise<boolean> {
+    const { data, error } = await this.db.rpc('claim_render_job', {
+      p_job: id,
+      p_owner: owner,
+      p_ttl_seconds: Math.ceil(ttlMs / 1000),
+    });
+    if (error) throw new Error(`claimJob: ${error.message} (is migration 0004 applied?)`);
+    return data === true;
+  }
+
+  async releaseJob(id: string, owner: string): Promise<void> {
+    const { error } = await this.db.rpc('release_render_job', { p_job: id, p_owner: owner });
+    if (error) throw new Error(`releaseJob: ${error.message}`);
+  }
+
+  async listStalledJobs(idleMs: number, limit: number): Promise<RenderJobRecord[]> {
+    const now = new Date();
+    const idleBefore = new Date(now.getTime() - idleMs).toISOString();
+    const { data, error } = await this.db
+      .from('render_jobs')
+      .select()
+      .not('status', 'in', '(done,failed)')
+      .lt('updated_at', idleBefore)
+      // Quoted: the timestamp contains '.' and ':', which PostgREST reserves in or().
+      .or(`locked_until.is.null,locked_until.lt."${now.toISOString()}"`)
+      .order('updated_at', { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(`listStalledJobs: ${error.message}`);
+    return (data as JobRow[]).map(toJob);
   }
 
   async saveAsset(input: {

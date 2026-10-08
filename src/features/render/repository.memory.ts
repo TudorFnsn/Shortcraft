@@ -41,6 +41,7 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
   private assets: { id: string; userId: string; jobId: string; kind: AssetKind; url: string }[] =
     [];
   private credits: CreditTx[] = [];
+  private leases = new Map<string, { owner: string; until: number }>();
   private subscriptions = new Map<string, SubscriptionSnapshot>();
 
   /** Test helper: seed a user with a starting balance. */
@@ -80,6 +81,7 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
       words: null,
       outputAssetUrl: null,
       estimatedCredits: 0,
+      chargedCredits: 0,
       actualCredits: 0,
       apiCostUsd: 0,
       error: null,
@@ -120,6 +122,8 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
         durationSec: s.durationSec,
         imageUrl: null,
         videoUrl: null,
+        videoJob: null,
+        clipDurationMs: null,
         status: 'pending',
       };
       this.scenes.set(record.id, record);
@@ -139,6 +143,28 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
     const scene = this.scenes.get(sceneId);
     if (!scene) throw new Error(`scene ${sceneId} not found`);
     this.scenes.set(sceneId, { ...scene, ...patch });
+  }
+
+  async claimJob(jobId: string, owner: string, ttlMs: number): Promise<boolean> {
+    const lease = this.leases.get(jobId);
+    if (lease && lease.until > Date.now() && lease.owner !== owner) return false;
+    this.leases.set(jobId, { owner, until: Date.now() + ttlMs });
+    return true;
+  }
+
+  async releaseJob(jobId: string, owner: string): Promise<void> {
+    if (this.leases.get(jobId)?.owner === owner) this.leases.delete(jobId);
+  }
+
+  async listStalledJobs(idleMs: number, limit: number): Promise<RenderJobRecord[]> {
+    const now = Date.now();
+    return [...this.jobs.values()]
+      .filter((j) => j.status !== 'done' && j.status !== 'failed')
+      .filter((j) => (this.leases.get(j.id)?.until ?? 0) <= now)
+      .filter((j) => Date.parse(j.updatedAt) <= now - idleMs)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .slice(0, limit)
+      .map((j) => ({ ...j }));
   }
 
   async saveAsset(input: {
