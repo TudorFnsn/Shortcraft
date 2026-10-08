@@ -24,11 +24,13 @@ import type { ProviderContext, ProviderOutcome, RenderClip } from '@/features/pr
 import { refundJob, reserveForJob, settleJob } from '@/features/credits/service';
 import { advance } from './machine';
 import { billableCredits, estimateJobCredits, fitScenesToBudget } from './pricing';
+import type { PlanRepository } from '@/features/billing/entitlements';
 import type { CreditRepository, RenderJobRecord, RenderRepository } from './repository';
 
 export interface OrchestratorDeps {
   repo: RenderRepository;
   credits: CreditRepository;
+  plans: PlanRepository;
 }
 
 /** Mocks always complete inline; unwrap or fail loudly until async is wired. */
@@ -45,7 +47,7 @@ export async function runRenderJob(
   deps: OrchestratorDeps,
   jobId: string,
 ): Promise<Result<RenderJobRecord, AppError>> {
-  const { repo, credits } = deps;
+  const { repo, credits, plans } = deps;
   const log = logger.with({ jobId });
 
   const job = await repo.getJob(jobId);
@@ -168,6 +170,8 @@ export async function runRenderJob(
       words: voiceRes.output.words,
       subtitleStyleId: 'default',
       aspectRatio: '9:16' as const,
+      // Decided at render time, so a user who upgrades mid-job gets a clean video.
+      brandWatermark: !(await plans.hasPaid(job.userId)),
     };
     const renderRes = inline(await render.run(renderInput, ctx('stitching')));
     charged += render.costCredits(renderInput);

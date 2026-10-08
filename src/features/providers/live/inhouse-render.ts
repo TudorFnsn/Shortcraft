@@ -111,6 +111,7 @@ export function createInhouseRenderProvider(
           clipPaths,
           voiceoverPath,
           words: input.words,
+          brandWatermark: input.brandWatermark,
           workDir,
           outputPath,
           ...(deps.ffmpegPath ? { ffmpegPath: deps.ffmpegPath } : {}),

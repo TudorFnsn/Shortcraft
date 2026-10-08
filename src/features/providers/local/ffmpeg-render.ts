@@ -16,6 +16,8 @@ export interface LocalRenderInput {
   clipPaths: readonly string[];
   voiceoverPath: string;
   words: readonly WordTiming[];
+  /** Free-trial "Made with Shortcraft" watermark. */
+  brandWatermark: boolean;
   /** Scratch directory for the caption/label overlay file. */
   workDir: string;
   outputPath: string;
@@ -26,7 +28,13 @@ export async function renderWithFfmpeg(input: LocalRenderInput): Promise<{ durat
   // Always written: even a caption-less video carries the AI-generated label.
   const durationMs = input.clips.reduce((sum, c) => sum + c.durationMs, 0);
   const subtitlesPath = join(input.workDir, 'captions.ass');
-  await writeFile(subtitlesPath, buildAssSubtitles(input.words, durationMs), 'utf8');
+  await writeFile(
+    subtitlesPath,
+    buildAssSubtitles(input.words, durationMs, {
+      brandWatermark: input.brandWatermark,
+    }),
+    'utf8',
+  );
   const plan = buildFfmpegPlan({
     clips: input.clips,
     clipPaths: input.clipPaths,

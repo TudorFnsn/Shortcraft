@@ -57,6 +57,7 @@ await renderWithFfmpeg({
   clipPaths: [...stills, clipPath],
   voiceoverPath: voice,
   words,
+  brandWatermark: true, // free-trial look, so both overlay lines are exercised
   workDir: dir,
   outputPath: out,
 });

@@ -10,7 +10,11 @@ import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
 import type { WordTiming } from '@/features/providers/types';
 import type { PlanId } from '@/config/plans';
-import { effectivePlanId, type PlanRepository } from '@/features/billing/entitlements';
+import {
+  effectivePlanId,
+  PAID_GRANT_REASONS,
+  type PlanRepository,
+} from '@/features/billing/entitlements';
 import type { RenderStatus } from './machine';
 import type {
   AssetKind,
@@ -211,6 +215,16 @@ export class SupabaseStore implements RenderRepository, CreditRepository, PlanRe
     if (error) throw new Error(`planOf: ${error.message}`);
     const row = data as { plan_id: string; status: string } | null;
     return effectivePlanId(row ? { planId: row.plan_id, status: row.status } : null);
+  }
+
+  async hasPaid(userId: string): Promise<boolean> {
+    const { count, error } = await this.db
+      .from('credit_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .in('reason', [...PAID_GRANT_REASONS]);
+    if (error) throw new Error(`hasPaid: ${error.message}`);
+    return (count ?? 0) > 0;
   }
 
   // ── CreditRepository ──────────────────────────────────────────────────────

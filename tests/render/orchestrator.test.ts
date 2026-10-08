@@ -28,7 +28,7 @@ describe('runRenderJob — happy path', () => {
     const store = storeWithCredits(100_000);
     const job = await draftJob(store);
 
-    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
 
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -44,7 +44,7 @@ describe('runRenderJob — happy path', () => {
     const store = storeWithCredits(start);
     const job = await draftJob(store);
 
-    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
 
@@ -57,7 +57,7 @@ describe('runRenderJob — happy path', () => {
     const job = await draftJob(store);
     const estimate = estimateJobCredits({ targetDurationSec: 12, modelTier: 'standard' });
 
-    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
 
@@ -68,7 +68,7 @@ describe('runRenderJob — happy path', () => {
   it('animates standard scenes from their image, with no video model', async () => {
     const store = storeWithCredits(100_000);
     const job = await draftJob(store);
-    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
 
     const scenes = await store.listScenes(job.id);
     expect(scenes.length).toBeGreaterThanOrEqual(2);
@@ -84,7 +84,7 @@ describe('runRenderJob — happy path', () => {
   it('persists per-scene AI video urls for premium jobs', async () => {
     const store = storeWithCredits(100_000);
     const job = await draftJob(store, 'premium');
-    await runRenderJob({ repo: store, credits: store }, job.id);
+    await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
 
     const scenes = await store.listScenes(job.id);
     expect(scenes.length).toBeGreaterThanOrEqual(2);
@@ -101,7 +101,7 @@ describe('runRenderJob — insufficient credits', () => {
     const store = storeWithCredits(100); // far too little
     const job = await draftJob(store);
 
-    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
 
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -126,7 +126,7 @@ describe('runRenderJob — mid-pipeline failure', () => {
     store.seedCredits(USER, start);
     const job = await draftJob(store);
 
-    const res = await runRenderJob({ repo: store, credits: store }, job.id);
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
 
     expect(res.ok).toBe(false);
     if (res.ok) return;

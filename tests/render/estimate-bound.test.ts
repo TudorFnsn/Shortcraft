@@ -24,7 +24,7 @@ async function runExactlyFunded(targetDurationSec: number, modelTier: ModelTier)
     language: 'en',
     modelTier,
   });
-  const res = await runRenderJob({ repo: store, credits: store }, job.id);
+  const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
   return { res, estimate, balance: await store.balance(USER), store, jobId: job.id };
 }
 
@@ -89,7 +89,7 @@ describe('an over-delivering script model cannot exceed the hold', () => {
       modelTier: 'standard',
     });
 
-    const res = await run({ repo: store, credits: store }, job.id);
+    const res = await run({ repo: store, credits: store, plans: store }, job.id);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     const scenes = await store.listScenes(job.id);

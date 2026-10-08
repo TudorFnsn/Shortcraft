@@ -10,6 +10,7 @@ import type { WordTiming } from '@/features/providers/types';
 import type { PlanId } from '@/config/plans';
 import {
   effectivePlanId,
+  PAID_GRANT_REASONS,
   type PlanRepository,
   type SubscriptionSnapshot,
 } from '@/features/billing/entitlements';
@@ -55,6 +56,11 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
   // ── PlanRepository ────────────────────────────────────────────────────────
   async planOf(userId: string): Promise<PlanId> {
     return effectivePlanId(this.subscriptions.get(userId) ?? null);
+  }
+
+  async hasPaid(userId: string): Promise<boolean> {
+    const paid: readonly string[] = PAID_GRANT_REASONS;
+    return this.credits.some((t) => t.userId === userId && paid.includes(t.reason));
   }
 
   // ── RenderRepository ──────────────────────────────────────────────────────

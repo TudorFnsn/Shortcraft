@@ -59,7 +59,16 @@ export function checkPlanLimits(plan: Plan, req: JobRequest): Result<void, AppEr
   );
 }
 
+/** Ledger reasons that mean the user paid us: a subscription grant or a top-up. */
+export const PAID_GRANT_REASONS = ['monthly_grant', 'topup'] as const;
+
 /** Port: resolve a user's current plan (Supabase in prod, in-memory in tests). */
 export interface PlanRepository {
   planOf(userId: string): Promise<PlanId>;
+  /**
+   * True once the user has ever paid (any subscription grant or top-up), even
+   * if the subscription has since lapsed. False = still on the free trial,
+   * whose videos carry the "Made with Shortcraft" watermark.
+   */
+  hasPaid(userId: string): Promise<boolean>;
 }

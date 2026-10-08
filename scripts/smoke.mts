@@ -49,7 +49,7 @@ const job = await store.createJob({
 });
 console.log('job created:', job.id, '/', job.status);
 
-const res = await runRenderJob({ repo: store, credits: store }, job.id);
+const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
 const after = await store.balance(userId);
 const scenes = await store.listScenes(job.id);
 

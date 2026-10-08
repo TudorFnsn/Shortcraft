@@ -52,6 +52,7 @@ export default function PricingPage() {
               </p>
               <ul className="mt-1 flex-1 space-y-1 text-sm text-neutral-300">
                 <li>Up to {plan.limits.maxVideoDurationSec}s videos</li>
+                <li>No watermark</li>
                 <li>
                   {plan.limits.modelTiers.includes('premium')
                     ? 'Animated stills + AI video scenes'

@@ -14,6 +14,7 @@
  * frame, drawn from the same ASS file as the captions) and in the MP4 metadata
  * (EU AI Act Art. 50 transparency; TikTok/YouTube/Meta AI-content policies).
  */
+import { siteConfig } from '@/config/site';
 import type { RenderClip, StillMotion, WordTiming } from '../types';
 
 export const OUTPUT_WIDTH = 1080;
@@ -24,6 +25,8 @@ const ZOOM = 0.15;
 
 /** Visible on-frame disclosure. Short so it stays legible at phone size. */
 export const AI_LABEL_TEXT = 'AI-generated';
+/** Free-trial watermark, under the AI label. Paid videos never carry it. */
+export const BRAND_WATERMARK_TEXT = `Made with ${siteConfig.name}`;
 /** Machine-readable disclosure written to the MP4's metadata (iTunes-style tags). */
 export const AI_METADATA = {
   comment: 'AI-generated video made with Shortcraft',
@@ -178,11 +181,21 @@ const assText = (text: string): string =>
     .replace(/\r?\n/g, ' ')
     .trim();
 
+export interface OverlayOptions {
+  /** Add the "Made with Shortcraft" watermark (free-trial videos only). */
+  brandWatermark: boolean;
+}
+
 /**
- * The video's overlay: word-group captions plus the AI-generated label, shown
- * from the first frame to `durationMs`. With no words it is just the label.
+ * The video's overlay: word-group captions plus the AI-generated label (and,
+ * on free-trial videos, the brand watermark under it), shown from the first
+ * frame to `durationMs`. With no words it is just the label(s).
  */
-export function buildAssSubtitles(words: readonly WordTiming[], durationMs: number): string {
+export function buildAssSubtitles(
+  words: readonly WordTiming[],
+  durationMs: number,
+  options: OverlayOptions,
+): string {
   const header = [
     '[Script Info]',
     'ScriptType: v4.00+',
@@ -195,6 +208,8 @@ export function buildAssSubtitles(words: readonly WordTiming[], durationMs: numb
     'Style: Default,DejaVu Sans,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,6,2,2,80,80,520,1',
     // Top-right, small, slightly translucent; clear of the platforms' top tabs.
     'Style: Label,DejaVu Sans,40,&H33FFFFFF,&H33FFFFFF,&H66000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,9,48,48,140,1',
+    // Just under the label, a touch larger: legible enough to send viewers our way.
+    'Style: Brand,DejaVu Sans,48,&H1AFFFFFF,&H1AFFFFFF,&H66000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,0,9,48,48,196,1',
     '',
     '[Events]',
     'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
@@ -202,6 +217,11 @@ export function buildAssSubtitles(words: readonly WordTiming[], durationMs: numb
   const events = [
     `Dialogue: 1,${assTime(0)},${assTime(durationMs)},Label,,0,0,0,,${AI_LABEL_TEXT}`,
   ];
+  if (options.brandWatermark) {
+    events.push(
+      `Dialogue: 1,${assTime(0)},${assTime(durationMs)},Brand,,0,0,0,,${BRAND_WATERMARK_TEXT}`,
+    );
+  }
   for (let i = 0; i < words.length; i += WORDS_PER_CAPTION) {
     const group = words.slice(i, i + WORDS_PER_CAPTION);
     const first = group[0];
