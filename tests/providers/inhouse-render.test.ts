@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -11,7 +11,7 @@ import {
   MAX_ASSET_BYTES,
   readAsset,
 } from '@/features/providers/live/inhouse-render';
-import type { LocalRenderInput } from '@/features/providers/local/ffmpeg-render';
+import { renderWithFfmpeg, type LocalRenderInput } from '@/features/providers/local/ffmpeg-render';
 import { InMemoryMediaStore, mediaPath } from '@/features/providers/live/media-store';
 import type { RenderInput } from '@/features/providers/types';
 
@@ -203,4 +203,33 @@ describe.skipIf(!hasFfmpeg)('in-house render adapter with real ffmpeg', () => {
     // ISO BMFF: bytes 4..8 are "ftyp".
     expect(new TextDecoder().decode(mp4?.bytes.slice(4, 8))).toBe('ftyp');
   }, 60_000);
+
+  // Windows temp dirs start with a drive letter ("C:\..."), and ffmpeg's filter
+  // option parser splits on ':'. A ':' in a POSIX dir name hits the same parser.
+  it.skipIf(process.platform === 'win32')(
+    'renders when the work dir contains a colon (Windows drive letters)',
+    async () => {
+      const dir = join(mkdtempSync(join(tmpdir(), 'render-colon-')), 'C:work');
+      mkdirSync(dir);
+      const ff = (...args: string[]) =>
+        execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
+      const image = join(dir, 'a.png');
+      ff('-f', 'lavfi', '-i', 'color=c=red:s=360x640:d=1', '-frames:v', '1', image);
+      const voice = join(dir, 'v.mp3');
+      ff('-f', 'lavfi', '-i', 'sine=frequency=330:duration=1', voice);
+      const outputPath = join(dir, 'out.mp4');
+
+      await renderWithFfmpeg({
+        clips: [{ kind: 'still', imageUrl: 'x', motion: 'push-in', startMs: 0, durationMs: 1000 }],
+        clipPaths: [image],
+        voiceoverPath: voice,
+        words: [{ word: 'hi', startMs: 0, endMs: 500 }],
+        brandWatermark: false,
+        workDir: dir,
+        outputPath,
+      });
+      expect(new TextDecoder().decode(readFileSync(outputPath).subarray(4, 8))).toBe('ftyp');
+    },
+    60_000,
+  );
 });

@@ -110,10 +110,15 @@ describe('buildFfmpegPlan', () => {
     expect(() => buildFfmpegPlan({ ...base, clips: [still(0, 1000)] })).toThrow(/clip paths/);
   });
 
-  it('refuses paths that could break out of the filtergraph quoting', () => {
-    expect(quoteFilterPath('/tmp/a b:c,d.ass')).toBe("'/tmp/a b:c,d.ass'");
+  it('quotes filter paths, escaping the option separator', () => {
+    expect(quoteFilterPath('/tmp/a b:c,d.ass')).toBe("'/tmp/a b\\:c,d.ass'");
     expect(() => quoteFilterPath("/tmp/x';drawtext=.ass")).toThrow(/unsafe/);
-    expect(() => quoteFilterPath('C:\\tmp\\x.ass')).toThrow(/unsafe/);
+  });
+
+  it('accepts Windows temp paths (drive letter + backslashes)', () => {
+    expect(quoteFilterPath('C:\\Users\\tudor\\AppData\\Local\\Temp\\r-1\\captions.ass')).toBe(
+      "'C\\:/Users/tudor/AppData/Local/Temp/r-1/captions.ass'",
+    );
   });
 
   it('has a distinct camera move per motion', () => {

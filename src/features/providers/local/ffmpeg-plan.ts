@@ -94,13 +94,16 @@ function clipFilter(clip: RenderClip, input: number): string {
 }
 
 /**
- * Quote a path for a filtergraph option. Inside '…' the separators (: , ;) are
- * literal; a quote or backslash can't be expressed safely, so refuse those —
- * the renderer controls its temp paths, so this never fires in practice.
+ * Quote a path for a filtergraph option. ffmpeg unescapes twice: the graph
+ * parser strips the '…' (so , ; [ ] are literal inside), then the filter's
+ * option parser still splits on ':' — so ':' is escaped as '\:' (needed for
+ * Windows drive letters, `C\:/…`). Windows '\' separators become '/', which
+ * ffmpeg accepts there. A quote can't be expressed safely, so refuse it — the
+ * renderer controls its temp paths, so this never fires in practice.
  */
 export function quoteFilterPath(path: string): string {
-  if (/['\\]/.test(path)) throw new Error(`unsafe path for ffmpeg filter: ${path}`);
-  return `'${path}'`;
+  if (path.includes("'")) throw new Error(`unsafe path for ffmpeg filter: ${path}`);
+  return `'${path.replaceAll('\\', '/').replaceAll(':', '\\:')}'`;
 }
 
 export function buildFfmpegPlan(input: RenderPlanInput): RenderPlan {
