@@ -2,3 +2,5 @@
 node_modules
 package-lock.json
 *.log
+# Vendored agent skills (npx skills add); keep byte-identical to skills-lock.json
+.claude/skills
