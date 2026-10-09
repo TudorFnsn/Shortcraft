@@ -25,6 +25,8 @@ export interface RenderJobRecord {
   words: WordTiming[] | null;
   outputAssetUrl: string | null;
   estimatedCredits: number;
+  /** Credits metered so far; settled against the hold when the job finishes. */
+  chargedCredits: number;
   actualCredits: number;
   apiCostUsd: number;
   error: string | null;
@@ -42,6 +44,10 @@ export interface SceneRecord {
   durationSec: number;
   imageUrl: string | null;
   videoUrl: string | null;
+  /** In-flight provider job for this scene's clip (opaque handle), if any. */
+  videoJob: string | null;
+  /** The finished AI clip's own length; the renderer time-fits it to the scene. */
+  clipDurationMs: number | null;
   status: 'pending' | 'done' | 'failed';
 }
 
@@ -72,6 +78,14 @@ export interface RenderRepository {
   addScenes(jobId: string, scenes: NewScene[]): Promise<SceneRecord[]>;
   listScenes(jobId: string): Promise<SceneRecord[]>;
   updateScene(id: string, patch: Partial<SceneRecord>): Promise<void>;
+  /**
+   * Take or renew the job's lease for `ttlMs`. True when `owner` holds it; only
+   * the holder advances the job, so two workers never run the same step.
+   */
+  claimJob(id: string, owner: string, ttlMs: number): Promise<boolean>;
+  releaseJob(id: string, owner: string): Promise<void>;
+  /** Unfinished jobs with no live lease and no update for `idleMs` (cron sweep). */
+  listStalledJobs(idleMs: number, limit: number): Promise<RenderJobRecord[]>;
   saveAsset(input: {
     userId: string;
     jobId: string;

@@ -93,6 +93,7 @@ if (env.FAL_KEY && s.output.scenes.length > 0) {
   const aiVideo = createFalVideoProvider(getModel('video-premium'), {
     apiKey: () => requireEnv('FAL_KEY'),
     store: () => fileStore,
+    wait: true, // no orchestrator here: wait for each clip inside run()
     ...(env.FAL_VIDEO_MODEL ? { falModel: env.FAL_VIDEO_MODEL } : {}),
   });
   // fal can't fetch our local file:// images; send them inline (the app uses signed https URLs).

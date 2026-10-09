@@ -5,6 +5,7 @@ import {
   createFalVideoProvider,
   DEFAULT_FAL_VIDEO_MODEL,
   FAL_VIDEO_USD_PER_SEC,
+  falQueueUrls,
 } from '@/features/providers/live/fal-video';
 import { InMemoryMediaStore, mediaPath } from '@/features/providers/live/media-store';
 
@@ -59,9 +60,9 @@ describe('fal video adapter', () => {
     expect(model.providerId).toBe('fal:video');
   });
 
-  it('submits to the queue, polls until done, and stores the clip', async () => {
+  it('with wait: submits to the queue, polls until done, and stores the clip', async () => {
     const fetchMock = fakeFal({ pendingPolls: 2 });
-    const { provider, store } = make(fetchMock);
+    const { provider, store } = make(fetchMock, { wait: true });
     const out = await provider.run(input, ctx);
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -91,7 +92,9 @@ describe('fal video adapter', () => {
   });
 
   it('fails the step (so the job refunds) when fal reports a failed generation', async () => {
-    const { provider } = make(fakeFal({ result: json({ detail: 'content policy' }, 422) }));
+    const { provider } = make(fakeFal({ result: json({ detail: 'content policy' }, 422) }), {
+      wait: true,
+    });
     await expect(provider.run(input, ctx)).rejects.toThrow(/fal video failed: 422.*content policy/);
   });
 
@@ -100,8 +103,50 @@ describe('fal video adapter', () => {
     const { provider } = make(fakeFal({ pendingPolls: 1_000 }), {
       now: () => (t += 60_000),
       timeoutMs: 5 * 60_000,
+      wait: true,
     });
     await expect(provider.run(input, ctx)).rejects.toThrow(/timed out/);
+  });
+
+  it('by default returns right after submitting; poll resolves the clip later', async () => {
+    const fetchMock = fakeFal({ pendingPolls: 1 });
+    const { provider, store } = make(fetchMock);
+    const out = await provider.run(input, ctx);
+    if (out.kind !== 'async') throw new Error('expected an async job');
+    expect(out.job.providerId).toBe('fal:video');
+    // Submitted once, nothing polled yet: the orchestrator persists the handle.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    expect(await provider.poll(out.job)).toEqual({ status: 'pending' });
+    const done = await provider.poll(out.job);
+    const path = mediaPath('clips', ctx.idempotencyKey, 'mp4');
+    expect(done).toEqual({
+      status: 'succeeded',
+      output: { kind: 'video', videoUrl: `memory://${path}`, durationSec: 5 },
+      costUsd: 5 * (FAL_VIDEO_USD_PER_SEC[DEFAULT_FAL_VIDEO_MODEL] ?? 0),
+    });
+    expect(store.objects.has(path)).toBe(true);
+  });
+
+  it('poll reports a clip that never finishes as failed, after the timeout', async () => {
+    let t = 0;
+    const { provider } = make(fakeFal({ pendingPolls: 1_000 }), {
+      now: () => t,
+      timeoutMs: 5 * 60_000,
+    });
+    const out = await provider.run(input, ctx);
+    if (out.kind !== 'async') throw new Error('expected an async job');
+    t = 4 * 60_000;
+    expect(await provider.poll(out.job)).toEqual({ status: 'pending' });
+    t = 6 * 60_000;
+    expect(await provider.poll(out.job)).toMatchObject({ status: 'failed', reason: /timed out/ });
+  });
+
+  it("builds fallback queue urls from fal's app id, not the full model path", () => {
+    expect(falQueueUrls(DEFAULT_FAL_VIDEO_MODEL, 'r1')).toEqual({
+      responseUrl: 'https://queue.fal.run/fal-ai/kling-video/requests/r1',
+      statusUrl: 'https://queue.fal.run/fal-ai/kling-video/requests/r1/status',
+    });
   });
 
   it('builds per-family requests: Kling clips are 5s or 10s, others per second in 9:16', () => {

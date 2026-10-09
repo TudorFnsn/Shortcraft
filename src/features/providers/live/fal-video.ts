@@ -1,12 +1,12 @@
 /**
  * Live video adapter: image-to-video on fal.ai (one AI clip per scene, Premium).
  *
- * Video models take ~30s–3min per clip, so this uses fal's queue API: submit,
- * poll the request's status URL until it completes, then fetch the result. The
- * step still completes inline (the orchestrator has no async branch yet) and the
- * orchestrator generates every scene's clip in parallel, so a whole video waits
- * about as long as its slowest clip. When the async pipeline lands, `run`
- * returns the request as a ProviderJob and `poll` resolves it.
+ * Video models take ~30s–3min per clip, so this uses fal's queue API. `run`
+ * submits and returns an async ProviderJob straight away; the orchestrator
+ * persists it and calls `poll` on later steps (background run or cron sweep)
+ * until the clip is ready, then it's fetched and stored. Every scene is
+ * submitted at once, so a video waits about as long as its slowest clip.
+ * `wait: true` polls inside `run` instead (local scripts).
  *
  * The model is configurable (`FAL_VIDEO_MODEL`): models differ in how they take
  * a clip length, so each family has its own input builder. The clip comes back
@@ -21,6 +21,7 @@ import type { ModelSpec } from '@/config/models';
 import type {
   ProviderContext,
   ProviderJob,
+  ProviderPollResult,
   VideoInput,
   VideoOutput,
   VideoProvider,
@@ -100,8 +101,24 @@ interface FalVideoResponse {
   video?: { url?: string; content_type?: string };
 }
 
-const notAsync = () => {
-  throw new Error('the video adapter completes inline until the async pipeline lands');
+/** What `run` hands back for an in-flight clip; `poll` needs nothing else. */
+interface PendingClip {
+  responseUrl: string;
+  statusUrl: string;
+  billedSec: number;
+  key: string;
+  submittedAt: number;
+}
+
+/** fal's queue URLs use the app id (first two path segments), not the full model path. */
+export function falQueueUrls(falModel: string, requestId: string) {
+  const app = falModel.split('/').slice(0, 2).join('/');
+  const responseUrl = `${QUEUE}/${app}/requests/${requestId}`;
+  return { responseUrl, statusUrl: `${responseUrl}/status` };
+}
+
+const noWebhook = () => {
+  throw new Error('fal video results are polled (cron + background run), not webhooked');
 };
 
 export function createFalVideoProvider(
@@ -111,6 +128,11 @@ export function createFalVideoProvider(
     store: () => MediaStore;
     /** fal model path; defaults to Kling 2.5 Turbo Pro. */
     falModel?: string;
+    /**
+     * Wait for the clip inside `run` (local scripts). Default: return an async
+     * job right after submitting; the orchestrator polls it across requests.
+     */
+    wait?: boolean;
     fetch?: typeof fetch;
     sleep?: (ms: number) => Promise<void>;
     now?: () => number;
@@ -142,6 +164,34 @@ export function createFalVideoProvider(
     return res.json();
   };
 
+  /** One status check; on completion, fetch + store the clip. */
+  const check = async (p: PendingClip): Promise<ProviderPollResult<VideoOutput>> => {
+    const status = (await call(p.statusUrl)) as QueueStatus;
+    if (status.status !== 'COMPLETED') {
+      if (now() - p.submittedAt >= timeoutMs) {
+        return {
+          status: 'failed',
+          reason: `fal video timed out after ${Math.round(timeoutMs / 1000)}s`,
+        };
+      }
+      return { status: 'pending' };
+    }
+    // A failed generation surfaces here as a non-2xx (with fal's reason).
+    const result = (await call(p.responseUrl)) as FalVideoResponse;
+    const url = result.video?.url;
+    if (!url) return { status: 'failed', reason: 'fal video returned no video' };
+
+    const download = await doFetch(url);
+    if (!download.ok) throw new Error(`fal video download failed: ${download.status}`);
+    const bytes = new Uint8Array(await download.arrayBuffer());
+    const videoUrl = await deps.store().put(mediaPath('clips', p.key, 'mp4'), bytes, 'video/mp4');
+    return {
+      status: 'succeeded',
+      output: { kind: 'video', videoUrl, durationSec: p.billedSec },
+      costUsd: p.billedSec * usdPerSec,
+    };
+  };
+
   return {
     id: model.providerId,
     kind: 'video',
@@ -155,37 +205,35 @@ export function createFalVideoProvider(
       })) as QueueSubmit;
       if (!submit.request_id) throw new Error('fal video: queue returned no request id');
       // fal returns the canonical URLs; build them only as a fallback.
-      const base = `${QUEUE}/${falModel}/requests/${submit.request_id}`;
-      const statusUrl = submit.status_url ?? `${base}/status`;
-      const responseUrl = submit.response_url ?? base;
+      const fallback = falQueueUrls(falModel, submit.request_id);
+      const pending: PendingClip = {
+        responseUrl: submit.response_url ?? fallback.responseUrl,
+        statusUrl: submit.status_url ?? fallback.statusUrl,
+        billedSec,
+        key: ctx.idempotencyKey,
+        submittedAt: now(),
+      };
 
-      const deadline = now() + timeoutMs;
+      if (!deps.wait) {
+        const job: ProviderJob = {
+          providerId: model.providerId,
+          providerJobId: JSON.stringify(pending),
+        };
+        return { kind: 'async', job };
+      }
       for (;;) {
-        const status = (await call(statusUrl)) as QueueStatus;
-        if (status.status === 'COMPLETED') break;
-        if (now() >= deadline) {
-          throw new Error(`fal video timed out after ${Math.round(timeoutMs / 1000)}s`);
+        const res = await check(pending);
+        if (res.status === 'succeeded') {
+          return { kind: 'completed', output: res.output, costUsd: res.costUsd };
         }
+        if (res.status === 'failed') throw new Error(res.reason);
         await sleep(pollIntervalMs);
       }
-
-      // A failed generation surfaces here as a non-2xx (with fal's reason).
-      const result = (await call(responseUrl)) as FalVideoResponse;
-      const url = result.video?.url;
-      if (!url) throw new Error('fal video returned no video');
-
-      const download = await doFetch(url);
-      if (!download.ok) throw new Error(`fal video download failed: ${download.status}`);
-      const bytes = new Uint8Array(await download.arrayBuffer());
-      const videoUrl = await deps
-        .store()
-        .put(mediaPath('clips', ctx.idempotencyKey, 'mp4'), bytes, 'video/mp4');
-
-      const output: VideoOutput = { kind: 'video', videoUrl, durationSec: billedSec };
-      return { kind: 'completed', output, costUsd: billedSec * usdPerSec };
     },
 
-    poll: async (_job: ProviderJob) => notAsync(),
-    parseWebhook: async (_payload: WebhookPayload) => notAsync(),
+    async poll(job: ProviderJob) {
+      return check(JSON.parse(job.providerJobId) as PendingClip);
+    },
+    parseWebhook: async (_payload: WebhookPayload) => noWebhook(),
   };
 }
