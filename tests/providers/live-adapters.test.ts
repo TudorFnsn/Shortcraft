@@ -263,6 +263,17 @@ describe('SupabaseMediaStore', () => {
       new SupabaseMediaStore(failedSign.admin, 'media').put('a', new Uint8Array(), 'x'),
     ).rejects.toThrow('denied');
   });
+
+  it('asks Supabase for an attachment only when a download name is given', async () => {
+    const { bucket, admin } = fakeAdmin(null, { data: { signedUrl: 'https://s' }, error: null });
+    const store = new SupabaseMediaStore(admin, 'media');
+    await store.signedUrl('r.mp4', 60);
+    await store.signedUrl('r.mp4', 60, { downloadAs: 'cats.mp4' });
+    expect(bucket.createSignedUrl).toHaveBeenNthCalledWith(1, 'r.mp4', 60, undefined);
+    expect(bucket.createSignedUrl).toHaveBeenNthCalledWith(2, 'r.mp4', 60, {
+      download: 'cats.mp4',
+    });
+  });
 });
 
 /* ── image (fal.ai FLUX) ────────────────────────────────────────────────── */
