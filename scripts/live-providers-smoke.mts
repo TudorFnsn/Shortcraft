@@ -48,6 +48,9 @@ const fileStore = {
     writeFileSync(file, bytes);
     return pathToFileURL(file).href;
   },
+  async signedUrl(path: string) {
+    return pathToFileURL(join(outDir, path)).href;
+  },
 };
 
 const args = process.argv.slice(2);

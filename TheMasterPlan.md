@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-08
+> Last updated: 2026-10-09
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 191 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 228 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -45,7 +45,7 @@ gross margin/video, paid churn.
 - **Credit ledger:** append-only (`credit_transactions`), balance = SUM(delta); atomic `reserve_credits` / `add_credits` Postgres functions (advisory-locked, no overspend).
 - **Render pipeline:** state machine `draft→scripting→images→clips→voiceover→subtitles→stitching→done` (`→failed` auto-refunds); DB-backed orchestrator; reserve→settle credit flow. The reserve is a guaranteed **upper bound**: scenes priced at `MAX_SCENE_SEC`, the script's plan is clamped to the budget, and the bill is capped at the hold (overruns log a `warn` = margin leak to watch).
 - **Supabase:** auth (email/password), Postgres schema + RLS, storage-ready. Connection + schema verified live.
-- **App:** landing, `/login`, `/create` (topic + theme + length + quality, live cost estimate + affordability gate + plan gate with "(Pro)" upgrade hints), `/gallery` (jobs + balance), header with auth state.
+- **App:** landing, `/login`, `/create` (topic + theme + length + quality, live cost estimate + affordability gate + plan gate with "(Pro)" upgrade hints), `/gallery` (jobs + balance + a Watch link that re-signs the MP4 on every click), header with auth state.
 - **Billing (Stripe, sandbox-verified end-to-end):** products/prices (plans + top-ups, lookup_keys + credit metadata), `/pricing`, `POST /api/checkout`, `POST /api/webhooks/stripe` (grants credits, syncs subscription), `POST /api/billing/portal`. Subscription lifecycle (`customer.subscription.updated`/`.deleted`) syncs plan + status, which drive plan limits. A live sandbox purchase with a test card granted 20,000 credits.
 
 **Proven loop:** sign up → 3,000 trial credits → generate → paywall → pay → credits granted → generate more. All persisted in real Supabase; payment via real Stripe (test mode).
@@ -75,7 +75,7 @@ src/features/
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
-src/app/           landing, login, create, gallery, pricing, api/{jobs,checkout,webhooks/stripe,billing/portal,health}
+src/app/           landing, login, create, gallery, pricing, api/{jobs,jobs/[id]/video,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline
@@ -108,6 +108,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] **Async pipeline** _(2026-10-08, interactive)_: resumable orchestrator (`advanceJob`/`driveJob`; lease via `claim_render_job`, progress in `charged_credits`/`api_cost_usd`/`scenes.video_job`), AI clips submitted once and polled across requests, `POST /api/jobs` → 202 after the credit hold + background run, cron sweep `/api/cron/advance-jobs` (`vercel.json`, `CRON_SECRET`), gallery step labels ("Animating scenes"…) with auto-refresh. **Owner: apply migration `0004_async_pipeline` before running this code against Supabase** (job creation fails until then). Not done: per-scene progress ("2/3 clips"), fal webhooks (polling is enough at our volume).
 - [ ] **Owner:** apply migration `0004_async_pipeline.sql` (SQL Editor), then make one Standard and one Premium video and confirm the gallery updates on its own.
 - [x] **Margin gate passes on every product** _(2026-10-05)_: gate + report _(PR `ceo/margin-gate`)_, researched costs in the catalog _(PR `ceo/real-provider-costs`)_, Standard = animated stills + in-house render _(PR `ceo/stills-and-inhouse-render`)_, and premium AI video repriced 220 → **1,420 cr/s** (owner decision). Starter 9.4x, Pro 3.0x, Ultra 3.2x, top-ups 4.0–5.9x; trial burn $0.14. **Pro has zero headroom** — the first measured premium cost above $0.12/s fails it again, so re-run `npx tsx scripts/margin-report.mts` whenever real costs come in. A test now fails if the shipped catalog drops below 3x.
+- [x] **Watch link survives the 24h URL expiry** _(PR `ceo/rewatch-link`, 2026-10-09)_: `/gallery`'s Watch goes through `GET /api/jobs/:id/video`, which checks ownership, recovers the object path from the stored signed URL and redirects to a fresh 1h URL. Still to do: an inline player + a Download button on `/gallery`.
 - [~] Media storage: `MediaStore` port + Supabase Storage implementation (private bucket `media`, 24h signed URLs) landed with the voice adapter. Still to do: move to Cloudflare R2 (no egress fees) behind the same port, and a retention policy.
 - [~] Moderation. **Done (2026-10-08, PR `ceo/prompt-moderation`):** a local, deterministic prompt screen (`features/moderation/prompt-check.ts`) runs in `POST /api/jobs` before plan checks, job creation or credit holds, so a blocked topic costs the user nothing and calls no provider; returns 422 `moderation_blocked` with a plain reason shown on `/create`; logs only the category, never the prompt. It blocks five categories (sexual content with minors, explicit sexual content, self-harm instructions, weapon/drug synthesis how-tos, calls for violence against a group) and lets educational topics through (suicide prevention, atomic-bomb history, bath bombs, naked mole rats; covered by tests). Provider filters (Claude refusals, fal safety checker) already fail the step and refund. **Still to do:** an LLM classifier (Haiku-class, ~$0.0005/check) behind the same `PromptModerator` port for the grey zone (real-person deepfakes, harassment, medical/financial scams) once live providers are on; moderate the generated script's image prompts too; an abuse counter (repeat blocks → review).
 
@@ -231,6 +232,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-09** — Watch link no longer dies after 24h: the job row stores the render's signed URL (24h TTL), so any creator coming back the next day to post or re-download got a dead link. New `GET /api/jobs/:id/video` (owner-only; someone else's job is a 404) parses the object path out of the stored Supabase signed URL (same origin + bucket, no `..`), signs it again for 1h via the new `MediaStore.signedUrl`, and 302-redirects; `/gallery` links there. No migration. Picked over other items because the async pipeline was in review as PR #22 and this touched only one line of its files. +16 tests (228 total after merging #22). (CEO routine)
 - **2026-10-08** — Async pipeline: the orchestrator is now a resumable step engine (`advanceJob` does one step under a DB lease; `driveJob` loops with a time budget; `runRenderJob` drives to the end for tests/scripts). Migration `0004_async_pipeline` (charged credits, lease columns + `claim_render_job`/`release_render_job` (service-role only), `scenes.video_job` + `clip_duration_ms`, active-jobs index), verified on PGlite (re-runnable; lease semantics; anon/authenticated can't execute). fal video `run` now returns an async job and `poll` resolves it (`wait: true` for the smoke script); fallback queue URLs fixed to use fal's app id. `POST /api/jobs` responds 202 after the credit hold and continues with `after()` (verified in a real `next dev`: response at "scripting", job done in the background); `/api/cron/advance-jobs` + `vercel.json`; gallery shows step names, "up to N credits (held)" while running, and refreshes itself. +13 tests incl. a settle-failure refund check (212 total). (interactive session)
 - **2026-10-08** — Videos move: (1) **Premium = real AI video** on fal (`fal-video.ts`, Kling 2.5 Turbo Pro default, `FAL_VIDEO_MODEL` to swap), clips generated in parallel, short clips time-fitted to their slot; (2) **Standard feels less like a slideshow**, still $0: 0.4s crossfades between scenes (offsets keep the voice in sync), eased camera moves, zoom 0.15 → 0.25; (3) crisper encode (CRF 23 → 20, preset faster; render of the 9s smoke 3.6s → 7.4s); (4) script motion prompts now ask for subject motion + one camera move. `live-providers-smoke.mts --premium / --premium-all`. Owner feedback that drove it: "really stiff… just slideshows". +9 tests (202 total). (interactive session)
 - **2026-10-08** — `/gallery` gets a **Watch** link on finished live renders (it never exposed the MP4 before). It opens the stored signed URL, which expires after 24h; follow-up: re-sign on view (and an inline player). (interactive session)
@@ -265,6 +267,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Re-sign videos on view, from the stored URL, with a 1h TTL** (2026-10-09) → a creator's video must still play when they come back to post it; that return visit is the retention loop. Deriving the path from the stored signed URL needs no migration and doesn't conflict with the async-pipeline PR; a dedicated `output_path` column is cleaner and can replace the parser when R2 lands. 1h (not 24h) because the link is minted per click: long enough to watch or download, short enough that a pasted link stops working.
 
 - **Watermark = "has never paid", not "on the Starter plan"** (2026-10-08, owner-approved watermark) → every free-trial video posted becomes an ad for us, and removing it is an upgrade reason. A trial user and a paying Starter subscriber resolve to the same plan, so the rule reads the ledger instead: one subscription grant or top-up removes the watermark for good. Lapsed subscribers and top-up-only buyers paid us and never get branded. It is decided at render time, so upgrading mid-job yields a clean video. No schema change: the ledger already records why credits arrived.
 
