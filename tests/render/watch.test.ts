@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RenderJobRecord } from '@/features/render/repository';
-import { storagePathFromSignedUrl, watchUrlFor, WATCH_URL_TTL_SEC } from '@/features/render/watch';
+import {
+  downloadFilename,
+  storagePathFromSignedUrl,
+  watchUrlFor,
+  WATCH_URL_TTL_SEC,
+} from '@/features/render/watch';
 import { InMemoryMediaStore } from '@/features/providers/live/media-store';
 
 const ORIGIN = 'https://abc.supabase.co';
@@ -65,13 +70,41 @@ describe('watchUrlFor', () => {
   const storage = {
     bucket: 'media',
     origin: ORIGIN,
-    sign: vi.fn((path: string, ttl: number) => store.signedUrl(path, ttl)),
+    sign: vi.fn((path: string, ttl: number, opts?: { downloadAs?: string }) =>
+      store.signedUrl(path, ttl, opts),
+    ),
   };
 
   it('re-signs the owner’s finished video with a short TTL', async () => {
     const result = await watchUrlFor(job(), 'user-1', storage);
     expect(result).toEqual({ ok: true, url: 'memory://renders/job-1_render.mp4' });
     expect(storage.sign).toHaveBeenCalledWith('renders/job-1_render.mp4', WATCH_URL_TTL_SEC);
+  });
+
+  it('plain watch asks for no download filename', async () => {
+    storage.sign.mockClear();
+    await watchUrlFor(job(), 'user-1', storage, { download: false });
+    expect(storage.sign.mock.calls[0]).toEqual(['renders/job-1_render.mp4', WATCH_URL_TTL_SEC]);
+  });
+
+  it('download signs the video with a filename from the title', async () => {
+    storage.sign.mockClear();
+    const result = await watchUrlFor(job({ title: 'Why Cats Purr' }), 'user-1', storage, {
+      download: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(storage.sign).toHaveBeenCalledWith('renders/job-1_render.mp4', WATCH_URL_TTL_SEC, {
+      downloadAs: 'why-cats-purr.mp4',
+    });
+  });
+
+  it('never signs a download for someone else’s job', async () => {
+    storage.sign.mockClear();
+    expect(await watchUrlFor(job(), 'user-2', storage, { download: true })).toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+    expect(storage.sign).not.toHaveBeenCalled();
   });
 
   it('treats a missing job and someone else’s job the same', async () => {
@@ -98,6 +131,27 @@ describe('watchUrlFor', () => {
       ok: false,
       reason: 'not_playable',
     });
+  });
+});
+
+describe('downloadFilename', () => {
+  it.each([
+    [{ title: 'Why Octopuses Have 3 Hearts!', topic: 'x' }, 'why-octopuses-have-3-hearts.mp4'],
+    [{ title: null, topic: 'office drama' }, 'office-drama.mp4'],
+    [{ title: 'Café crème — à la française', topic: 'x' }, 'cafe-creme-a-la-francaise.mp4'],
+    [{ title: '  --Hello, World--  ', topic: 'x' }, 'hello-world.mp4'],
+    [{ title: '東京の夜 🌃', topic: 'x' }, 'shortcraft-video.mp4'],
+    [{ title: '', topic: '' }, 'shortcraft-video.mp4'],
+    [{ title: 'a/../b"; rm -rf', topic: 'x' }, 'a-b-rm-rf.mp4'],
+  ])('%o -> %s', (input, expected) => {
+    expect(downloadFilename(input)).toBe(expected);
+  });
+
+  it('caps long titles at 60 characters without a trailing dash', () => {
+    const name = downloadFilename({ title: 'word '.repeat(40), topic: 'x' });
+    const slug = name.replace(/\.mp4$/, '');
+    expect(slug.length).toBeLessThanOrEqual(60);
+    expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
 });
 
