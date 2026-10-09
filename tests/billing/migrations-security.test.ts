@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
  * Every SECURITY DEFINER function bypasses RLS, and Supabase grants EXECUTE on
  * new functions to anon + authenticated, which exposes them as public RPCs. So a
  * definer function must be revoked from those roles in some migration, or any
- * signed-in user could call it (e.g. mint credits via add_credits).
+ * signed-in user could call it (e.g. mint credits via add_credits). Trigger
+ * functions too: they can't run over RPC, but the advisor flags them.
  */
 const dir = join(process.cwd(), 'supabase', 'migrations');
 const sql = readdirSync(dir)
@@ -15,13 +16,11 @@ const sql = readdirSync(dir)
   .map((f) => readFileSync(join(dir, f), 'utf8'))
   .join('\n');
 
-// Trigger functions can't be called over RPC.
 const definerFunctions = [
   ...sql.matchAll(
     /create\s+or\s+replace\s+function\s+public\.(\w+)\s*\([^)]*\)\s*returns\s+(\w+)[\s\S]*?\$\$/gi,
   ),
 ]
-  .filter((m) => m[2]!.toLowerCase() !== 'trigger')
   .filter((m) => /security\s+definer/i.test(m[0]))
   .map((m) => m[1]!);
 
@@ -41,5 +40,17 @@ describe('migrations', () => {
     expect(roles).toMatch(/\banon\b/);
     expect(roles).toMatch(/\bauthenticated\b/);
     expect(roles).toMatch(/\bpublic\b/);
+  });
+
+  // The latest definition of each policy wins (later migrations drop + recreate).
+  const policies = new Map<string, string>();
+  for (const m of sql.matchAll(/create\s+policy\s+"([^"]+)"\s+on\s+([\w.]+)([\s\S]*?);/gi)) {
+    policies.set(`${m[2]} ${m[1]}`, m[3]!);
+  }
+
+  it.each([...policies.keys()])('policy %s calls auth.uid() once per query', (key) => {
+    const body = policies.get(key)!;
+    // Bare auth.uid() is re-evaluated per row; (select auth.uid()) is not.
+    expect(body.replace(/\(\s*select\s+auth\.uid\(\)\s*\)/gi, '')).not.toMatch(/auth\.uid\(\)/i);
   });
 });
