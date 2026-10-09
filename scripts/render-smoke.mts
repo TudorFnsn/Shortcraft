@@ -1,8 +1,9 @@
 /**
  * Render smoke test: builds a real MP4 with the in-house ffmpeg renderer from
  * generated test assets (3 Ken Burns stills + 1 short "AI" clip, voiceover,
- * captions), then checks the output with ffprobe. Needs ffmpeg + ffprobe on
- * PATH. No network, no secrets.
+ * captions), then checks the output with ffprobe. Uses the same ffmpeg the app
+ * resolves (FFMPEG_PATH, else the bundled ffmpeg-static build, else PATH);
+ * needs ffprobe on PATH. No network, no secrets.
  *
  * Run: npx tsx scripts/render-smoke.mts   (exits 1 on failure; output path printed)
  */
@@ -12,13 +13,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const { renderWithFfmpeg } = await import('@/features/providers/local/ffmpeg-render');
+const { resolveFfmpegPath } = await import('@/features/providers/local/ffmpeg-binary');
 const { AI_METADATA, OUTPUT_HEIGHT, OUTPUT_WIDTH } =
   await import('@/features/providers/local/ffmpeg-plan');
 type RenderClip = import('@/features/providers/types').RenderClip;
 
 const dir = mkdtempSync(join(tmpdir(), 'shortcraft-render-'));
+const ffmpegPath = resolveFfmpegPath({ envPath: process.env.FFMPEG_PATH });
+console.log(`ffmpeg: ${ffmpegPath}`);
 const ff = (...args: string[]) =>
-  execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
+  execFileSync(ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
 
 // Test assets: landscape stills (forces crop), a 2s clip (slowed to fill 3s), 9s of tone.
 const colors = ['0x1e3a8a', '0x9d174d', '0x065f46'];
@@ -68,6 +72,7 @@ await renderWithFfmpeg({
   brandWatermark: true, // free-trial look, so both overlay lines are exercised
   workDir: dir,
   outputPath: out,
+  ffmpegPath,
 });
 const ms = Date.now() - started;
 

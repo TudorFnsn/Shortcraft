@@ -108,7 +108,9 @@ function clipFilter(clip: RenderClip, input: number, renderMs: number): string {
   const stretch = slow > 1 ? `setpts=${slow.toFixed(4)}*(PTS-STARTPTS),` : '';
   return (
     `[${input}:v]${stretch}${fit},fps=${OUTPUT_FPS},tpad=stop_mode=clone:stop_duration=${sec},` +
-    `trim=duration=${sec},setpts=PTS-STARTPTS,${tail}`
+    // ffmpeg ≥ 7: setpts marks the frame rate unknown and xfade then refuses the
+    // stream ("frame rate (1/0)"), so restate it after the last setpts.
+    `trim=duration=${sec},setpts=PTS-STARTPTS,fps=${OUTPUT_FPS},${tail}`
   );
 }
 

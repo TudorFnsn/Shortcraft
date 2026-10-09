@@ -38,6 +38,7 @@ const { createFalImageProvider } = await import('@/features/providers/live/fal-i
 const { createFalVideoProvider } = await import('@/features/providers/live/fal-video');
 const { createInhouseRenderProvider } = await import('@/features/providers/live/inhouse-render');
 const { createKenBurnsProvider } = await import('@/features/providers/local/ken-burns');
+const { resolveFfmpegPath } = await import('@/features/providers/local/ffmpeg-binary');
 type RenderClip = import('@/features/providers/types').RenderClip;
 
 const outDir = resolve('live-smoke');
@@ -178,7 +179,7 @@ if (env.FAL_KEY && s.output.scenes.length > 0) {
   const render = createInhouseRenderProvider(getModel('render-default'), {
     store: () => fileStore,
     allowFileUrls: true,
-    ...(env.FFMPEG_PATH ? { ffmpegPath: env.FFMPEG_PATH } : {}),
+    ffmpegPath: resolveFfmpegPath({ envPath: env.FFMPEG_PATH }),
   });
   const started = Date.now();
   const r = await render.run(

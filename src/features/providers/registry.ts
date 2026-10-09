@@ -21,6 +21,7 @@ import {
   createMockVideoProvider,
   createMockVoiceProvider,
 } from './mocks';
+import { resolveFfmpegPath } from './local/ffmpeg-binary';
 import { createKenBurnsProvider } from './local/ken-burns';
 import { createAnthropicScriptProvider } from './live/anthropic-script';
 import { createElevenLabsVoiceProvider } from './live/elevenlabs-voice';
@@ -72,7 +73,7 @@ const liveAdapters = new Map<string, LiveFactory>([
     (m) =>
       createInhouseRenderProvider(m, {
         store: mediaStore,
-        ...(env.FFMPEG_PATH ? { ffmpegPath: env.FFMPEG_PATH } : {}),
+        ffmpegPath: resolveFfmpegPath({ envPath: env.FFMPEG_PATH }),
       }),
   ],
 ]);
