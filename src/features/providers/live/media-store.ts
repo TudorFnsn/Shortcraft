@@ -12,8 +12,15 @@ import type { createSupabaseAdminClient } from '@/utils/supabase/admin';
 export interface MediaStore {
   /** Writes (or overwrites, so retries are safe) and returns a readable URL. */
   put(path: string, bytes: Uint8Array, contentType: string): Promise<string>;
-  /** A fresh readable URL for an object already stored at `path`. */
-  signedUrl(path: string, ttlSec: number): Promise<string>;
+  /**
+   * A fresh readable URL for an object already stored at `path`. `downloadAs`
+   * asks the browser to save it under that filename instead of playing it.
+   */
+  signedUrl(path: string, ttlSec: number, opts?: SignedUrlOptions): Promise<string>;
+}
+
+export interface SignedUrlOptions {
+  downloadAs?: string;
 }
 
 /**
@@ -46,8 +53,11 @@ export class SupabaseMediaStore implements MediaStore {
     return this.signedUrl(path, SIGNED_URL_TTL_SEC);
   }
 
-  async signedUrl(path: string, ttlSec: number): Promise<string> {
-    const signed = await this.admin.storage.from(this.bucket).createSignedUrl(path, ttlSec);
+  async signedUrl(path: string, ttlSec: number, opts?: SignedUrlOptions): Promise<string> {
+    // Supabase turns `download` into a Content-Disposition: attachment header.
+    const signed = await this.admin.storage
+      .from(this.bucket)
+      .createSignedUrl(path, ttlSec, opts?.downloadAs ? { download: opts.downloadAs } : undefined);
     if (signed.error || !signed.data) {
       throw new Error(`media signed URL failed (${path}): ${signed.error?.message ?? 'no data'}`);
     }
@@ -63,7 +73,7 @@ export class InMemoryMediaStore implements MediaStore {
     return `memory://${path}`;
   }
 
-  async signedUrl(path: string, _ttlSec: number): Promise<string> {
+  async signedUrl(path: string, _ttlSec: number, _opts?: SignedUrlOptions): Promise<string> {
     if (!this.objects.has(path)) throw new Error(`media not found (${path})`);
     return `memory://${path}`;
   }

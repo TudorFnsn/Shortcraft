@@ -49,41 +49,62 @@ export default async function GalleryPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {jobs.map((job) => (
-            <li
-              key={job.id}
-              className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{job.title ?? job.topic}</p>
-                <p className="text-xs text-neutral-500">
-                  {job.themeId} · {job.targetDurationSec}s ·{' '}
-                  {isTerminal(job.status)
-                    ? `${job.actualCredits.toLocaleString()} credits`
-                    : `up to ${job.estimatedCredits.toLocaleString()} credits (held)`}
-                </p>
-              </div>
-              <div className="ml-4 text-right">
-                <span className={`text-sm ${statusColor[job.status] ?? 'text-neutral-300'}`}>
-                  {statusLabel[job.status] ?? job.status}
-                </span>
-                <p className="text-xs text-neutral-600">
-                  {Math.round(progress(job.status as RenderStatus) * 100)}%
-                </p>
-                {/* Live renders only (mock URLs aren't playable). Re-signed on each click. */}
-                {job.outputAssetUrl?.startsWith('https://') && (
-                  <a
-                    href={`/api/jobs/${job.id}/video`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-white underline"
-                  >
-                    Watch
-                  </a>
+          {jobs.map((job) => {
+            // Live renders only (mock URLs aren't playable). Re-signed on each request.
+            const playable = job.outputAssetUrl?.startsWith('https://');
+            const videoUrl = `/api/jobs/${job.id}/video`;
+            return (
+              <li
+                key={job.id}
+                className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{job.title ?? job.topic}</p>
+                    <p className="text-xs text-neutral-500">
+                      {job.themeId} · {job.targetDurationSec}s ·{' '}
+                      {isTerminal(job.status)
+                        ? `${job.actualCredits.toLocaleString()} credits`
+                        : `up to ${job.estimatedCredits.toLocaleString()} credits (held)`}
+                    </p>
+                  </div>
+                  <div className="ml-4 text-right">
+                    <span className={`text-sm ${statusColor[job.status] ?? 'text-neutral-300'}`}>
+                      {statusLabel[job.status] ?? job.status}
+                    </span>
+                    <p className="text-xs text-neutral-600">
+                      {Math.round(progress(job.status as RenderStatus) * 100)}%
+                    </p>
+                  </div>
+                </div>
+                {playable && (
+                  <div className="flex flex-col items-center gap-2">
+                    {/* Renders use +faststart, so metadata alone is a cheap first fetch. */}
+                    <video
+                      controls
+                      playsInline
+                      preload="metadata"
+                      src={videoUrl}
+                      className="aspect-[9/16] w-full max-w-[240px] rounded-md bg-black"
+                    />
+                    <div className="flex gap-4 text-xs">
+                      <a
+                        href={videoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-white underline"
+                      >
+                        Open
+                      </a>
+                      <a href={`${videoUrl}?download=1`} className="text-white underline">
+                        Download
+                      </a>
+                    </div>
+                  </div>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
