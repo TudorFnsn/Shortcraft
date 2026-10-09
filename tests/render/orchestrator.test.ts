@@ -139,3 +139,30 @@ describe('runRenderJob — mid-pipeline failure', () => {
     expect(after?.error).toContain('provider exploded');
   });
 });
+
+describe('runRenderJob — settle failure', () => {
+  it('refunds the hold exactly once and never leaves a "done" job unpaid-for', async () => {
+    // The settle is the final write; if it fails, the user keeps their credits.
+    class FailAtSettle extends InMemoryStore {
+      override async add(
+        userId: string,
+        delta: number,
+        reason: Parameters<InMemoryStore['add']>[2],
+        jobId?: string,
+      ): Promise<number> {
+        if (reason === 'settle_adjust') throw new Error('ledger unavailable');
+        return super.add(userId, delta, reason, jobId);
+      }
+    }
+    const start = 100_000;
+    const store = new FailAtSettle();
+    store.seedCredits(USER, start);
+    const job = await draftJob(store);
+
+    const res = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
+
+    expect(res.ok).toBe(false);
+    expect(await store.balance(USER)).toBe(start); // reserve, then one refund
+    expect((await store.getJob(job.id))?.status).toBe('failed');
+  });
+});

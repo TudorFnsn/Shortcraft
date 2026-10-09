@@ -21,6 +21,7 @@ function job(patch: Partial<RenderJobRecord> = {}): RenderJobRecord {
     words: null,
     outputAssetUrl: SIGNED,
     estimatedCredits: 0,
+    chargedCredits: 0,
     actualCredits: 0,
     apiCostUsd: 0,
     error: null,

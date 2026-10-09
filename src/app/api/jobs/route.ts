@@ -1,12 +1,16 @@
 /**
- * POST /api/jobs — create a render job for the signed-in user and run it.
- * With mock providers the whole pipeline completes inline, so the response
- * carries the finished job. (When live async providers land, this returns early
- * with a running job and the pipeline resumes via webhooks.)
+ * POST /api/jobs — create a render job for the signed-in user and start it.
+ *
+ * The credit hold runs before responding (so "out of credits" is an immediate
+ * error); everything after it runs in the background (`after`), one resumable
+ * step at a time. Responds 202 with the job; /gallery shows progress. If this
+ * function hits its time limit first (Premium clips take minutes), the cron
+ * sweep (/api/cron/advance-jobs) resumes the job from where it stopped.
  */
+import { after } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/features/auth/session';
-import { runRenderJob } from '@/features/render/orchestrator';
+import { advanceJob, driveJob } from '@/features/render/orchestrator';
 import { getStore } from '@/features/render/store';
 import { isThemeId } from '@/config/themes';
 import { PLANS } from '@/config/plans';
@@ -62,9 +66,20 @@ export async function POST(request: Request) {
     modelTier: parsed.data.modelTier,
   });
 
-  const result = await runRenderJob({ repo: store, credits: store, plans: store }, job.id);
-  if (!result.ok) {
-    return Response.json({ error: result.error.code, jobId: job.id }, { status: 400 });
+  const deps = { repo: store, credits: store, plans: store };
+  const held = await advanceJob(deps, job.id); // draft → scripting: reserves the credits
+  if (!held.ok) {
+    return Response.json({ error: held.error.code, jobId: job.id }, { status: 400 });
   }
-  return Response.json({ job: result.value });
+  // Leave headroom to release the lease cleanly before the platform kills us.
+  after(() =>
+    driveJob(deps, job.id, { budgetMs: (maxDuration - 30) * 1000 }).catch((cause: unknown) =>
+      // Infra errors only (provider errors fail + refund inside the step); cron retries.
+      logger.error('background render run crashed', { jobId: job.id, cause: String(cause) }),
+    ),
+  );
+  return Response.json({ job: held.value.job }, { status: 202 });
 }
+
+/** Seconds the background run may use (platform-capped); the cron sweep does the rest. */
+export const maxDuration = 300;
