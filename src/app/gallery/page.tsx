@@ -52,10 +52,10 @@ export default async function GalleryPage() {
                 <p className="text-xs text-neutral-600">
                   {Math.round(progress(job.status as RenderStatus) * 100)}%
                 </p>
-                {/* Live renders only (mock URLs aren't playable). Signed URL, valid 24h. */}
+                {/* Live renders only (mock URLs aren't playable). Re-signed on each click. */}
                 {job.outputAssetUrl?.startsWith('https://') && (
                   <a
-                    href={job.outputAssetUrl}
+                    href={`/api/jobs/${job.id}/video`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-white underline"

@@ -12,6 +12,8 @@ import type { createSupabaseAdminClient } from '@/utils/supabase/admin';
 export interface MediaStore {
   /** Writes (or overwrites, so retries are safe) and returns a readable URL. */
   put(path: string, bytes: Uint8Array, contentType: string): Promise<string>;
+  /** A fresh readable URL for an object already stored at `path`. */
+  signedUrl(path: string, ttlSec: number): Promise<string>;
 }
 
 /**
@@ -41,7 +43,11 @@ export class SupabaseMediaStore implements MediaStore {
     const bucket = this.admin.storage.from(this.bucket);
     const upload = await bucket.upload(path, bytes, { contentType, upsert: true });
     if (upload.error) throw new Error(`media upload failed (${path}): ${upload.error.message}`);
-    const signed = await bucket.createSignedUrl(path, SIGNED_URL_TTL_SEC);
+    return this.signedUrl(path, SIGNED_URL_TTL_SEC);
+  }
+
+  async signedUrl(path: string, ttlSec: number): Promise<string> {
+    const signed = await this.admin.storage.from(this.bucket).createSignedUrl(path, ttlSec);
     if (signed.error || !signed.data) {
       throw new Error(`media signed URL failed (${path}): ${signed.error?.message ?? 'no data'}`);
     }
@@ -54,6 +60,11 @@ export class InMemoryMediaStore implements MediaStore {
 
   async put(path: string, bytes: Uint8Array, contentType: string): Promise<string> {
     this.objects.set(path, { bytes, contentType });
+    return `memory://${path}`;
+  }
+
+  async signedUrl(path: string, _ttlSec: number): Promise<string> {
+    if (!this.objects.has(path)) throw new Error(`media not found (${path})`);
     return `memory://${path}`;
   }
 }
