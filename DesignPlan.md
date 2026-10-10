@@ -91,12 +91,17 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D1: Create (desktop first)
 
-- [~] **Canvas** (https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce, published 2026-10-10, **waiting on Tudor**): Create at 1440 and 1024, light + dark, plus every state (empty, not enough credits, plan-locked option picked, topic blocked, submitting, error + retry) in both themes. All boards are interactive (Play). Open decisions are on the canvas sticky and in §8.
-- [ ] **Code:** rebuild `create-form.tsx` on the primitives. Same API contract (`POST /api/jobs`), same entitlement and moderation logic. Theme sample images go in `public/themes/*` (generated once and committed, so no runtime cost).
+- [✓] **Canvas** (https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce): Create at 1440 and 1024, light + dark, plus every state (empty, not enough credits, plan-locked option picked, topic blocked, submitting, error + retry) in both themes. **Approved by Tudor 2026-10-10** with all three open decisions accepted (§8).
+- [~] **Code** (PR `ceo-design/d1-create-canvas`, follow-up to #35): `create-form.tsx` rebuilt to the canvas. Same API contract (`POST /api/jobs`), entitlement and moderation logic. The pure state lives in `src/app/create/composer.ts` (unit-tested). It remembers the last theme, length and quality from the newest job (server-side, so it works across devices), supports ⌘/Ctrl+Enter, and gives every radio group arrow-key navigation. Theme frames are drawn (`src/components/theme-frame.tsx`). Real sample stills in `public/themes/*` are a follow-up, because they need one paid image-generation run.
+
+### Activation & retention (owner-approved 2026-10-10)
+
+- [~] **One tap to a first video** (D1 code PR): a brand-new account lands on Create with a ready Fun Facts idea, 15s Standard (~2,024 of the 3,000 trial credits), and a note saying "Your first video is one tap away".
+- [~] **Today's ideas** (D1 code PR): three one-tap ideas in the Library that rotate daily (UTC). Two come from the creator's latest theme and one from another theme. Each opens Create prefilled (`/create?theme=…&idea=…`). On an empty Library it doubles as the starter row ("Start with one of these"). The D2 canvas carries it into the new Library design.
 
 ### D2: Library (desktop first)
 
-- [ ] **Canvas:** grid, in-progress, failed, empty and the player sheet, light + dark.
+- [ ] **Canvas:** grid, in-progress, failed, empty (with the Today's ideas row) and the player sheet, light + dark.
 - [ ] **Code:** card grid + filters + player sheet + polling. **Data dependencies** (small, read-only, allowed): expose a thumbnail URL (first scene image) and re-sign the output URL on view. Both are already on the master plan's follow-up list. Nothing touches credits, billing or the pipeline.
 
 ### D3: Mobile pass
@@ -110,7 +115,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### Later (out of the current charter, needs owner sign-off)
 
-Home dashboard · onboarding / first-run flow · landing + pricing redesign · auth screens.
+Home dashboard · fuller onboarding (beyond the one-tap first video) · landing + pricing redesign · auth screens.
 
 ---
 
@@ -136,6 +141,7 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 
 ## 7. Changelog
 
+- **2026-10-10** — Tudor approved the D1 Create canvas and its three decisions, plus the two activation/retention ideas. PR #35 merged with the canvas docs only, so the Create rebuild, the one-tap first video and the Library's Today's ideas row follow in their own PR (same branch, restarted from main). (Design CEO, interactive)
 - **2026-10-10** — D0 marked shipped (PR #34 merged). D1 Create canvas published: two-pane composer + sticky preview/cost panel at 1440 and 1024, six states, light + dark, interactive. Waiting on Tudor's approval and three decisions (§8). (Design CEO, routine)
 - **2026-10-11** — D0 foundations in review as PR #34: tokens (light + warm dark), System / Light / Dark picker with no flash, new header (mark, Create / Library nav, credits pill, account menu), Button + Badge primitives, all pages moved onto tokens. (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the Paper & Ember design system. D0 code starts on `ceo-design/foundations`.
@@ -146,11 +152,11 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 
 ## 8. Decision log
 
-**Open — waiting on Tudor (D1 Create canvas):**
-
-1. **Theme cards crop the sample frame to 4:5** so all eight themes fit in a 4×2 grid above Length/Quality; the full 9:16 shows in the sticky phone preview. Alternative: true 9:16 cards in a horizontal scroller.
-2. **Locked options are pickable.** Picking 60s/90s/120s or Premium keeps the choice, shows the plan that unlocks it (price + credits) and swaps Generate for "See the Pro plan", with a one-tap "Use Standard / 30s instead". Alternative: locked options stay visible but can't be selected.
-3. **Three idea chips per theme** under the composer (one tap fills the prompt). Keep, or drop to keep the screen quieter?
+- **D1 Create canvas approved** (2026-10-10, owner: "i approve the canvas … 1. yes 2. yes 3. yes"):
+  1. Theme cards crop the sample frame to **4:5** so all eight fit in a 4×2 grid. The full 9:16 shows in the sticky phone preview.
+  2. **Locked options are pickable.** Picking one shows the plan that unlocks it (price + credits), swaps Generate for "See the <plan> plan" and offers a one-tap way back.
+  3. **Three idea chips per theme** under the composer.
+- **Activation + retention ideas approved** (2026-10-10, owner: "also implement the ideas for activation and retention") → one-tap first video (Create) and a daily "Today's ideas" row (Library). Both are in the D1 code PR. The Library row ships on the current page now, and the D2 canvas restyles it.
 
 - **Direction A, Paper & Ember** (2026-10-10, owner: "I like option A") → the warmest of the three and the closest to "home", while the ember accent keeps creator energy. B (dark-first, CapCut) and C (sage, serif) are set aside; the Library's CapCut-style grid layout carries over regardless.
 
