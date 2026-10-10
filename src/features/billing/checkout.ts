@@ -5,6 +5,7 @@
  */
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
 import { getStripe } from '@/utils/stripe';
+import type { CheckoutConsentMetadata } from './consent';
 import { getOrCreateCustomer } from './customer';
 
 export interface CheckoutParams {
@@ -12,6 +13,8 @@ export interface CheckoutParams {
   email: string | undefined;
   lookupKey: string;
   origin: string;
+  /** Terms version + withdrawal-waiver timestamp, recorded on the session. */
+  consent: CheckoutConsentMetadata;
 }
 
 export async function createCheckoutSession(
@@ -30,15 +33,16 @@ export async function createCheckoutSession(
   const mode = price.recurring ? 'subscription' : 'payment';
   const customer = await getOrCreateCustomer(params.userId, params.email);
 
+  const metadata = { userId: params.userId, ...params.consent };
   const session = await stripe.checkout.sessions.create({
     mode,
     customer,
     line_items: [{ price: price.id, quantity: 1 }],
     client_reference_id: params.userId,
-    metadata: { userId: params.userId },
+    metadata,
     ...(mode === 'subscription'
-      ? { subscription_data: { metadata: { userId: params.userId } } }
-      : { payment_intent_data: { metadata: { userId: params.userId } } }),
+      ? { subscription_data: { metadata } }
+      : { payment_intent_data: { metadata } }),
     allow_promotion_codes: true,
     success_url: `${params.origin}/gallery?checkout=success`,
     cancel_url: `${params.origin}/pricing?checkout=cancel`,

@@ -4,6 +4,8 @@ import './globals.css';
 import { siteConfig } from '@/config/site';
 import { Header } from '@/components/header';
 import { themeInitScript } from '@/components/theme/theme';
+import { Footer } from '@/components/footer';
+import { InlineScript } from '@/components/inline-script';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -36,11 +38,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <InlineScript html={themeInitScript} />
       </head>
       <body className="bg-paper text-ink flex min-h-full flex-col">
         <Header />
         <div className="flex-1">{children}</div>
+        <Footer />
       </body>
     </html>
   );

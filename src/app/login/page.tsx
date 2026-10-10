@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/utils/supabase/client';
 
@@ -72,6 +73,20 @@ export default function LoginPage() {
           {loading ? 'Please wait…' : mode === 'signin' ? 'Log in' : 'Sign up'}
         </button>
       </form>
+
+      {mode === 'signup' && (
+        <p className="text-ink-muted text-xs">
+          By signing up you agree to the{' '}
+          <Link href="/terms" className="hover:text-ink underline">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="hover:text-ink underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      )}
 
       {error && <p className="text-danger text-sm">{error}</p>}
       {notice && <p className="text-success text-sm">{notice}</p>}
