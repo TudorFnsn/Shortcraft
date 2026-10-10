@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { WITHDRAWAL_WAIVER_TEXT } from '@/config/legal';
 import { PLANS, TOPUP_PACKS } from '@/config/plans';
 
 const eur = (cents: number) => `€${(cents / 100).toFixed(2)}`;
@@ -10,14 +12,19 @@ export default function PricingPage() {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState(false);
 
   async function purchase(key: string) {
+    if (!accepted) {
+      setError('Please tick the box above the plans to continue.');
+      return;
+    }
     setBusy(key);
     setError(null);
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
+      body: JSON.stringify({ key, acceptTerms: true }),
     });
     if (res.status === 401) {
       router.push('/login');
@@ -34,6 +41,32 @@ export default function PricingPage() {
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-12">
+      <label className="flex items-start gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-sm text-neutral-300">
+        <input
+          type="checkbox"
+          checked={accepted}
+          onChange={(e) => {
+            setAccepted(e.target.checked);
+            setError(null);
+          }}
+          className="mt-0.5 h-4 w-4 shrink-0"
+        />
+        <span>
+          {WITHDRAWAL_WAIVER_TEXT}{' '}
+          <Link href="/terms" className="underline hover:text-white">
+            Terms
+          </Link>{' '}
+          ·{' '}
+          <Link href="/terms#refunds" className="underline hover:text-white">
+            Refunds
+          </Link>{' '}
+          ·{' '}
+          <Link href="/privacy" className="underline hover:text-white">
+            Privacy
+          </Link>
+        </span>
+      </label>
+
       <section>
         <h1 className="mb-6 text-2xl font-semibold">Plans</h1>
         <div className="grid gap-4 sm:grid-cols-3">
