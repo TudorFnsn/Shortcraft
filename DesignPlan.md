@@ -87,7 +87,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 - [✓] **Direction canvas:** three directions published; **Tudor picked A, Paper & Ember** (2026-10-10).
 - [✓] **Design system** (Claude Design "Design System" artifact, **approved by Tudor 2026-10-10**): tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
-- [ ] **Code:** tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), primitives in `src/components/ui/*`, new shell/header with credits pill. No change to pages yet beyond the header.
+- [~] **Code** (PR #34, `ceo-design/foundations`): tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), primitives in `src/components/ui/*`, new shell/header with credits pill. No change to pages yet beyond the header.
 
 ### D1: Create (desktop first)
 
@@ -135,6 +135,7 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 
 ## 7. Changelog
 
+- **2026-10-11** — D0 foundations in review as PR #34: tokens (light + warm dark), System / Light / Dark picker with no flash, new header (mark, Create / Library nav, credits pill, account menu), Button + Badge primitives, all pages moved onto tokens. (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the Paper & Ember design system. D0 code starts on `ceo-design/foundations`.
 - **2026-10-10** — Paper & Ember design system published in Claude Design (tokens, brand book, mark, six core-loop components). Next: Tudor reviews it, then D0 code (tokens in `globals.css`, theme toggle, shell, `src/components/ui/*`).
 - **2026-10-10** — Tudor picked **Direction A, Paper & Ember**. Identity in §3 updated with its exact tokens. The design-system canvas comes next.
