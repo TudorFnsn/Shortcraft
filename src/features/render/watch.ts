@@ -5,7 +5,7 @@
  * and mint a fresh short-lived URL on every click, after checking ownership.
  */
 import type { SignedUrlOptions } from '@/features/providers/live/media-store';
-import type { RenderJobRecord } from './repository';
+import type { RenderJobRecord, SceneRecord } from './repository';
 
 /** Long enough to watch or download, short enough that a shared link dies. */
 export const WATCH_URL_TTL_SEC = 60 * 60;
@@ -92,4 +92,40 @@ export async function watchUrlFor(
     ? await storage.sign(path, WATCH_URL_TTL_SEC, { downloadAs: downloadFilename(job) })
     : await storage.sign(path, WATCH_URL_TTL_SEC);
   return { ok: true, url };
+}
+
+/**
+ * How long a browser may reuse the thumbnail redirect. Shorter than the signed
+ * URL's TTL, so a cached redirect never points at an expired URL.
+ */
+export const THUMBNAIL_CACHE_SEC = 30 * 60;
+
+/**
+ * Fresh URL for `job`'s thumbnail: the first scene's image, re-signed like the
+ * video. It exists as soon as that image is generated, so the Library can show a
+ * card while the rest of the video is still rendering. Scenes are only loaded
+ * after the ownership check.
+ */
+export async function thumbnailUrlFor(
+  job: RenderJobRecord | null,
+  userId: string,
+  loadScenes: (jobId: string) => Promise<SceneRecord[]>,
+  storage: {
+    bucket: string;
+    origin: string;
+    sign: (path: string, ttlSec: number) => Promise<string>;
+  },
+): Promise<WatchResult> {
+  if (!job || job.userId !== userId) return { ok: false, reason: 'not_found' };
+
+  const scenes = await loadScenes(job.id);
+  const first = scenes.reduce<SceneRecord | null>(
+    (min, s) => (min === null || s.idx < min.idx ? s : min),
+    null,
+  );
+  if (!first?.imageUrl) return { ok: false, reason: 'not_ready' };
+
+  const path = storagePathFromSignedUrl(first.imageUrl, storage.bucket, storage.origin);
+  if (!path) return { ok: false, reason: 'not_playable' };
+  return { ok: true, url: await storage.sign(path, WATCH_URL_TTL_SEC) };
 }

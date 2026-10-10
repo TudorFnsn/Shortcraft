@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { RenderJobRecord } from '@/features/render/repository';
+import type { RenderJobRecord, SceneRecord } from '@/features/render/repository';
 import {
   downloadFilename,
   storagePathFromSignedUrl,
+  thumbnailUrlFor,
   watchUrlFor,
   WATCH_URL_TTL_SEC,
 } from '@/features/render/watch';
@@ -161,5 +162,88 @@ describe('InMemoryMediaStore.signedUrl', () => {
     await expect(store.signedUrl('nope.mp4', 60)).rejects.toThrow(/not found/);
     await store.put('a.mp4', new Uint8Array(), 'video/mp4');
     await expect(store.signedUrl('a.mp4', 60)).resolves.toBe('memory://a.mp4');
+  });
+});
+
+describe('thumbnailUrlFor', () => {
+  const IMG = (idx: number) =>
+    `${ORIGIN}/storage/v1/object/sign/media/images/job-1_s${idx}.jpg?token=old`;
+  function scene(idx: number, imageUrl: string | null): SceneRecord {
+    return {
+      id: `scene-${idx}`,
+      jobId: 'job-1',
+      idx,
+      narration: '',
+      imagePrompt: '',
+      motionPrompt: '',
+      durationSec: 5,
+      imageUrl,
+      videoUrl: null,
+      videoJob: null,
+      clipDurationMs: null,
+      status: 'done',
+    };
+  }
+  const storage = {
+    bucket: 'media',
+    origin: ORIGIN,
+    sign: vi.fn(async (path: string, _ttl: number) => `fresh://${path}`),
+  };
+
+  it('re-signs the first scene image, whatever order scenes load in', async () => {
+    storage.sign.mockClear();
+    const load = vi.fn(async () => [scene(2, IMG(2)), scene(0, IMG(0)), scene(1, IMG(1))]);
+    const result = await thumbnailUrlFor(job(), 'user-1', load, storage);
+    expect(result).toEqual({ ok: true, url: 'fresh://images/job-1_s0.jpg' });
+    expect(storage.sign).toHaveBeenCalledWith('images/job-1_s0.jpg', WATCH_URL_TTL_SEC);
+  });
+
+  it('works while the video is still rendering', async () => {
+    const load = async () => [scene(0, IMG(0)), scene(1, null)];
+    const result = await thumbnailUrlFor(
+      job({ status: 'clips', outputAssetUrl: null }),
+      'user-1',
+      load,
+      storage,
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('never loads scenes or signs for someone else’s job, or a missing one', async () => {
+    storage.sign.mockClear();
+    const load = vi.fn(async () => [scene(0, IMG(0))]);
+    expect(await thumbnailUrlFor(job(), 'user-2', load, storage)).toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+    expect(await thumbnailUrlFor(null, 'user-1', load, storage)).toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+    expect(load).not.toHaveBeenCalled();
+    expect(storage.sign).not.toHaveBeenCalled();
+  });
+
+  it('is not ready before the script or the first image exists', async () => {
+    expect(
+      await thumbnailUrlFor(job({ status: 'scripting' }), 'user-1', async () => [], storage),
+    ).toEqual({
+      ok: false,
+      reason: 'not_ready',
+    });
+    // Scene 1's image alone doesn't count: the thumbnail is always scene 0.
+    const load = async () => [scene(0, null), scene(1, IMG(1))];
+    expect(await thumbnailUrlFor(job(), 'user-1', load, storage)).toEqual({
+      ok: false,
+      reason: 'not_ready',
+    });
+  });
+
+  it('refuses images outside our bucket (mock mode)', async () => {
+    const load = async () => [scene(0, 'mock://image/job-1/0.png')];
+    expect(await thumbnailUrlFor(job(), 'user-1', load, storage)).toEqual({
+      ok: false,
+      reason: 'not_playable',
+    });
   });
 });
