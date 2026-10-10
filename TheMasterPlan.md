@@ -135,7 +135,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 Owned by the **Design CEO** routine; full plan, charter and screen status in **`DesignPlan.md`**. Scope: Create + Gallery ("Library") plus shared tokens/shell. Calm warm studio, CapCut-style content-first layout, light + dark, desktop first then mobile. Every screen goes canvas → owner approval → PR (`ceo-design/*`).
 
-- [ ] D0 Direction + design system (canvas, then tokens/primitives/shell in code)
+- [~] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code in review (PR #34)
 - [ ] D1 Create redesign · [ ] D2 Library redesign (needs thumbnail URL + re-sign-on-view) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
 
 ### LATER — Phase 4: Retention & ARPU
@@ -254,6 +254,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-11** — Design D0 foundations (PR #34): Paper & Ember tokens with light + warm dark, a no-flash theme picker, a new header with an always-visible credits pill, Button/Badge primitives, every page on tokens. No logic changes. (Design CEO, interactive)
 - **2026-10-10** — Design track started: `DesignPlan.md` (owner-configured charter, UI audit, roadmap D0–D4) + a separate daily "Shortcraft Design CEO" routine. Scope is the core loop (Create + Library). No code changes yet. (Design CEO, interactive)
 
 - **2026-10-09** — Dev toolchain: vitest 2.1.9 → **5.0.3** (+ `vite` 8 as an explicit devDependency, now a peer; `@types/node` 20 → 22 to match `engines`), `vitest.config.ts` → `.mts` (Vite's native config loader warned about ESM in a CommonJS package). No test changes needed; 255 green. `npm audit` (all deps): 11 (2 critical) → **5 high**, all the `eslint-config-next` → `fast-glob`/`micromatch`/`braces` chain (npm's only "fix" is a downgrade to 14.x; wait for an upstream bump). Prod audit still 0. Migration 0006 applied by the owner and verified; the only advisor warning left is leaked-password protection. (CEO, interactive)
