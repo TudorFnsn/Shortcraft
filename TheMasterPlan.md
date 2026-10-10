@@ -131,6 +131,13 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [~] Legal. **Done (2026-10-08, PR `ceo/ai-content-label`):** EU AI Act AI-generated labelling. Every in-house render carries a visible top-right "AI-generated" tag on every frame (drawn from the caption ASS file, so it costs no extra pass) and MP4 `comment`/`description` metadata saying it is AI-generated with Shortcraft. The overlay is now a required render input, so a render can't ship unlabelled; `scripts/render-smoke.mts` fails if the metadata is missing. **Still to do:** C2PA Content Credentials (signed provenance manifest; the standard TikTok/YouTube/Meta read to auto-apply their AI labels), ToS/Privacy, cookie banner (reject-all), and a ToS clause telling users to keep the platform's AI-content toggle on when they post.
 - [x] **Free-trial watermark** (owner decision, 2026-10-08, same PR): videos from users who have never paid show "Made with Shortcraft" under the AI label; any subscription grant or top-up removes it for good (`PlanRepository.hasPaid`, read from the credit ledger, no migration). `/create` tells trial users and `/pricing` lists "No watermark" on every plan.
 
+### NOW (parallel track) — Design: make the core loop feel like home
+
+Owned by the **Design CEO** routine; full plan, charter and screen status in **`DesignPlan.md`**. Scope: Create + Gallery ("Library") plus shared tokens/shell. Calm warm studio, CapCut-style content-first layout, light + dark, desktop first then mobile. Every screen goes canvas → owner approval → PR (`ceo-design/*`).
+
+- [ ] D0 Direction + design system (canvas, then tokens/primitives/shell in code)
+- [ ] D1 Create redesign · [ ] D2 Library redesign (needs thumbnail URL + re-sign-on-view) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
+
 ### LATER — Phase 4: Retention & ARPU
 
 - [ ] Characters (consistent reference across scenes).
@@ -241,10 +248,13 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Repo:** github.com/TudorFnsn/Shortcraft (branch-per-feature → fast-forward `main`).
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
+- **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-10** — Design track started: `DesignPlan.md` (owner-configured charter, UI audit, roadmap D0–D4) + a separate daily "Shortcraft Design CEO" routine. Scope is the core loop (Create + Library). No code changes yet. (Design CEO, interactive)
 
 - **2026-10-09** — Dev toolchain: vitest 2.1.9 → **5.0.3** (+ `vite` 8 as an explicit devDependency, now a peer; `@types/node` 20 → 22 to match `engines`), `vitest.config.ts` → `.mts` (Vite's native config loader warned about ESM in a CommonJS package). No test changes needed; 255 green. `npm audit` (all deps): 11 (2 critical) → **5 high**, all the `eslint-config-next` → `fast-glob`/`micromatch`/`braces` chain (npm's only "fix" is a downgrade to 14.x; wait for an upstream bump). Prod audit still 0. Migration 0006 applied by the owner and verified; the only advisor warning left is leaked-password protection. (CEO, interactive)
 - **2026-10-09** — Migration 0005 applied by the owner and verified live (policies, grants, index, signup trigger; advisors clean apart from the two below). Identified `rls_auto_enable()` as the dashboard's automatic-RLS event trigger (kept); migration `0006` revokes only its RPC exposure. Remaining advisor warning after 0006: leaked-password protection (dashboard toggle). (CEO, interactive)
@@ -288,6 +298,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Design runs as its own routine and plan file** (2026-10-10, owner) → the main CEO has one slot a day and Phase 2/3 (real videos, deploy) still matter most for revenue; a separate design routine moves the UI in parallel without competing for that slot. The two routines don't collide because design owns the UI files and runs 3h later. `DesignPlan.md` keeps this file lean; product, money and priority calls stay here.
 
 - **Connectors are read-only by default** (2026-10-09) → the Supabase and Stripe connectors can change production state directly (apply DDL, create prices, move money in live mode), bypassing PR review. Agents use them freely for read-only verification (schema, advisors, catalog, webhook config), and every write needs the owner's explicit OK in the conversation. Migrations still land as files in a PR first, so the repo stays the source of truth even when the connector applies them.
 - **Production dependencies stay at 0 high/critical audit findings; dev-only findings are batched** (2026-10-09) → what ships to Vercel is what an attacker can reach (Next image-optimization SSRF, cache poisoning), so those are patched as soon as a non-breaking fix exists, and the smallest fixing version is used (16.3.8, not 16.4.0). Dev-tool findings (vitest, eslint deps) never run in production and need major upgrades, so they go in their own PR where a break is easy to see. Check with `npm audit --omit=dev` before every deploy.
