@@ -86,7 +86,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### D0: Direction & foundations
 
 - [✓] **Direction canvas:** three directions published; **Tudor picked A, Paper & Ember** (2026-10-10).
-- [~] **Design system canvas:** tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
+- [~] **Design system** (Claude Design "Design System" artifact, waiting on Tudor's review): tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
 - [ ] **Code:** tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), primitives in `src/components/ui/*`, new shell/header with credits pill. No change to pages yet beyond the header.
 
 ### D1: Create (desktop first)
@@ -128,12 +128,14 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 ## 6. Links
 
 - Design canvas (D0 Direction): https://claude.ai/artifact/3gMxoCVVP4AKatSL7bJZYJ — three directions (A Paper & Ember, B Night Studio, C Sage Room), Create + Library each, light + dark. Private to Tudor; share it from its Share menu if a routine or teammate must read it.
+- Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-10** — Paper & Ember design system published in Claude Design (tokens, brand book, mark, six core-loop components). Next: Tudor reviews it, then D0 code (tokens in `globals.css`, theme toggle, shell, `src/components/ui/*`).
 - **2026-10-10** — Tudor picked **Direction A, Paper & Ember**. Identity in §3 updated with its exact tokens. The design-system canvas comes next.
 - **2026-10-10** — D0 direction canvas published (3 directions × Create + Library, interactive, light + dark). Waiting on Tudor to pick one.
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
