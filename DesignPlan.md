@@ -92,17 +92,17 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### D1: Create (desktop first)
 
 - [✓] **Canvas** (https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce): Create at 1440 and 1024, light + dark, plus every state (empty, not enough credits, plan-locked option picked, topic blocked, submitting, error + retry) in both themes. **Approved by Tudor 2026-10-10** with all three open decisions accepted (§8).
-- [~] **Code** (PR `ceo-design/d1-create-canvas`, follow-up to #35): `create-form.tsx` rebuilt to the canvas. Same API contract (`POST /api/jobs`), entitlement and moderation logic. The pure state lives in `src/app/create/composer.ts` (unit-tested). It remembers the last theme, length and quality from the newest job (server-side, so it works across devices), supports ⌘/Ctrl+Enter, and gives every radio group arrow-key navigation. Theme frames are drawn (`src/components/theme-frame.tsx`). Real sample stills in `public/themes/*` are a follow-up, because they need one paid image-generation run.
+- [x] **Code** (PR #37, merged 2026-10-10): `create-form.tsx` rebuilt to the canvas on the same API contract, entitlement and moderation logic. The pure state is in `src/app/create/composer.ts` (unit-tested). It remembers the last settings from the newest job, supports ⌘/Ctrl+Enter and arrow-key radio groups, and draws the theme frames (`src/components/theme-frame.tsx`). Real sample stills in `public/themes/*` wait on Tudor's OK for one paid image run.
 
 ### Activation & retention (owner-approved 2026-10-10)
 
-- [~] **One tap to a first video** (D1 code PR): a brand-new account lands on Create with a ready Fun Facts idea, 15s Standard (~2,024 of the 3,000 trial credits), and a note saying "Your first video is one tap away".
-- [~] **Today's ideas** (D1 code PR): three one-tap ideas in the Library that rotate daily (UTC). Two come from the creator's latest theme and one from another theme. Each opens Create prefilled (`/create?theme=…&idea=…`). On an empty Library it doubles as the starter row ("Start with one of these"). The D2 canvas carries it into the new Library design.
+- [x] **One tap to a first video** (PR #37): a brand-new account lands on Create with a ready Fun Facts idea, 15s Standard (~2,024 of the 3,000 trial credits), and a note saying "Your first video is one tap away".
+- [x] **Today's ideas** (PR #37): three one-tap ideas in the Library that rotate daily (UTC). Two come from the creator's latest theme and one from another theme. Each opens Create prefilled (`/create?theme=…&idea=…`). On an empty Library it doubles as the starter row ("Start with one of these"). The D2 canvas carries it into the new Library design.
 
 ### D2: Library (desktop first)
 
-- [ ] **Canvas:** grid, in-progress, failed, empty (with the Today's ideas row) and the player sheet, light + dark.
-- [ ] **Code:** card grid + filters + player sheet + polling. **Data dependencies** (small, read-only, allowed): expose a thumbnail URL (first scene image) and re-sign the output URL on view. Both are already on the master plan's follow-up list. Nothing touches credits, billing or the pipeline.
+- [~] **Canvas** (https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT, published 2026-10-10, **waiting on Tudor**): the Library at 1440 and 1024, light + dark, with Today's ideas, filter chips (All · In progress · Ready · Failed), a 9:16 card grid, in-progress cards (named step, step X of 6, progress bar), a failed card (credits refunded + Try again), the player sheet and the empty Library. All boards are interactive. Open decisions are in §8.
+- [ ] **Code:** card grid + filters + player sheet + polling. Data dependencies are done (#36): `/api/jobs/:id/thumbnail` (re-signed first scene image) and `/api/jobs/:id/video` (re-signed on view). Nothing touches credits, billing or the pipeline.
 
 ### D3: Mobile pass
 
@@ -134,6 +134,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 
 - Design canvas (D0 Direction): https://claude.ai/artifact/3gMxoCVVP4AKatSL7bJZYJ — three directions (A Paper & Ember, B Night Studio, C Sage Room), Create + Library each, light + dark. Private to Tudor; share it from its Share menu if a routine or teammate must read it.
 - D1 Create canvas: https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce: 16 artboards (4 layouts + 6 states × 2 themes), built on the Paper & Ember tokens, credit numbers from the real estimator. Private to Tudor.
+- D2 Library canvas: https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT: 8 artboards (grid at 1440/1024, player sheet, empty Library × light/dark). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
@@ -141,6 +142,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 
 ## 7. Changelog
 
+- **2026-10-10** — D1 shipped (PR #37: Create rebuild, one-tap first video, Today's ideas). D2 Library canvas published, waiting on Tudor's approval and three decisions (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D1 Create canvas and its three decisions, plus the two activation/retention ideas. PR #35 merged with the canvas docs only, so the Create rebuild, the one-tap first video and the Library's Today's ideas row follow in their own PR (same branch, restarted from main). (Design CEO, interactive)
 - **2026-10-10** — D0 marked shipped (PR #34 merged). D1 Create canvas published: two-pane composer + sticky preview/cost panel at 1440 and 1024, six states, light + dark, interactive. Waiting on Tudor's approval and three decisions (§8). (Design CEO, routine)
 - **2026-10-11** — D0 foundations in review as PR #34: tokens (light + warm dark), System / Light / Dark picker with no flash, new header (mark, Create / Library nav, credits pill, account menu), Button + Badge primitives, all pages moved onto tokens. (Design CEO, interactive)
@@ -151,6 +153,12 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+**Open — waiting on Tudor (D2 Library canvas):**
+
+1. **Grid density:** 5 columns at 1440 and 4 at 1024 (cards ~230px wide). The alternative is 4 and 3 for bigger previews.
+2. **Failed card "Try again"** starts the same video straight away and shows its cost on the button ("Try again · ~2,024"), because the failed run was refunded. The alternative is opening Create prefilled, so the creator presses Generate themselves.
+3. **Player sheet "Make another like this"** opens Create with the same theme, length and quality and a fresh idea from that theme. Primary action: Download MP4. Secondary: Copy title.
 
 - **D1 Create canvas approved** (2026-10-10, owner: "i approve the canvas … 1. yes 2. yes 3. yes"):
   1. Theme cards crop the sample frame to **4:5** so all eight fit in a 4×2 grid. The full 9:16 shows in the sticky phone preview.
