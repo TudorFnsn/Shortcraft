@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-09
+> Last updated: 2026-10-10
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 255 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 270 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -67,7 +67,7 @@ gross margin/video, paid churn.
 ## 4. Repository map
 
 ```
-src/config/        brand, plans/top-ups, model catalog + pricing, themes
+src/config/        brand, plans/top-ups, model catalog + pricing, themes, legal (Terms/Privacy as data)
 src/features/
   providers/       adapter contract, mocks, registry
   credits/         ledger math + job credit ops
@@ -75,7 +75,7 @@ src/features/
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
-src/app/           landing, login, create, gallery, pricing, api/{jobs,jobs/[id]/video,checkout,webhooks/stripe,billing/portal,health}
+src/app/           landing, login, create, gallery, pricing, terms, privacy, api/{jobs,jobs/[id]/video,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc
@@ -128,7 +128,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [ ] Later, with the Stripe connector: MRR/churn/cohort reporting via Stripe Sigma analytics for the weekly digest once there are paying users.
 - [~] **ffmpeg in production** _(PR `ceo/ffmpeg-static`, 2026-10-09)_: `ffmpeg-static` (ffmpeg 7.0.2, downloaded for the install platform at `npm install`) is a dependency; `resolveFfmpegPath` picks `FFMPEG_PATH` → the bundled build → PATH; `next.config.ts` traces the binary into `/api/jobs` and `/api/cron/advance-jobs` (~83 MB per function, limit 250 MB; a test fails if a new route drives the pipeline without it). Both routes already have `maxDuration = 300`. Found on the way: the AI-clip crossfade failed on ffmpeg ≥ 7 (fixed, regression test on the bundled binary). **Still to do:** measure a 60s Standard render's wall time on a Vercel function after deploy; if it doesn't fit, move render to a container job behind `RenderProvider`.
 - [ ] Sentry + PostHog wired, Resend transactional email. (CI ✅ done in Phase 1.)
-- [~] Legal. **Done (2026-10-08, PR `ceo/ai-content-label`):** EU AI Act AI-generated labelling. Every in-house render carries a visible top-right "AI-generated" tag on every frame (drawn from the caption ASS file, so it costs no extra pass) and MP4 `comment`/`description` metadata saying it is AI-generated with Shortcraft. The overlay is now a required render input, so a render can't ship unlabelled; `scripts/render-smoke.mts` fails if the metadata is missing. **Still to do:** C2PA Content Credentials (signed provenance manifest; the standard TikTok/YouTube/Meta read to auto-apply their AI labels), ToS/Privacy, cookie banner (reject-all), and a ToS clause telling users to keep the platform's AI-content toggle on when they post.
+- [~] Legal. **Done (2026-10-10, PR `ceo/legal-pages`): draft Terms of Service + Privacy Policy** at `/terms` and `/privacy` (content in `src/config/legal.ts`, tested against the config: trial credits, plan prices, every vendor that processes data, every moderation category), a refund/cancellation section at `/terms#refunds`, a site footer (Terms · Privacy · Refunds · support email), a sign-up notice, and a **required checkout consent** on `/pricing`: accept the Terms + request immediate delivery and waive the EU 14-day withdrawal right (CRD Art. 16(m)); `POST /api/checkout` returns 400 `terms_not_accepted` without it and stores `terms_version` + `withdrawal_waiver_at` on the Checkout Session, subscription and payment intent (no migration). Pages show a "Draft" banner while `LEGAL_DRAFT = true`. **Owner, before live payments:** fill `operator` in `src/config/legal.ts` (legal name, address, country, company/VAT no.), review the text (ideally with a lawyer), approve the money commitments flagged in §11, set `LEGAL_DRAFT = false`, and enter the `/terms` + `/privacy` URLs in Stripe (Settings → Public details) — Stripe's live-account review expects them. Cookie banner not needed while we set only auth cookies; required the day PostHog lands. **Done (2026-10-08, PR `ceo/ai-content-label`):** EU AI Act AI-generated labelling. Every in-house render carries a visible top-right "AI-generated" tag on every frame (drawn from the caption ASS file, so it costs no extra pass) and MP4 `comment`/`description` metadata saying it is AI-generated with Shortcraft. The overlay is now a required render input, so a render can't ship unlabelled; `scripts/render-smoke.mts` fails if the metadata is missing. **Still to do:** C2PA Content Credentials (signed provenance manifest; the standard TikTok/YouTube/Meta read to auto-apply their AI labels); account self-deletion (today: by email, as the Privacy Policy says); cookie banner (reject-all) together with analytics.
 - [x] **Free-trial watermark** (owner decision, 2026-10-08, same PR): videos from users who have never paid show "Made with Shortcraft" under the AI label; any subscription grant or top-up removes it for good (`PlanRepository.hasPaid`, read from the credit ledger, no migration). `/create` tells trial users and `/pricing` lists "No watermark" on every plan.
 
 ### NOW (parallel track) — Design: make the core loop feel like home
@@ -254,6 +254,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-10** — Legal pages for go-live: draft `/terms` (incl. `#refunds`: EU withdrawal waiver, auto-refund of failed videos, refund of an unused mistaken charge within 14 days, cancel-anytime; acceptable use mirroring the prompt screen + deepfakes; AI-label clause telling users to keep the label and turn on the platform's AI toggle) and `/privacy` (data, purposes + GDPR bases, six sub-processors, retention, essential cookies only, rights), rendered from `config/legal.ts`. Footer on every page, sign-up notice, required Terms + withdrawal-waiver checkbox on `/pricing`, enforced by `POST /api/checkout` (400 `terms_not_accepted`) and recorded in Stripe metadata. Picked because Stripe's live activation and EU consumer law both need these before the first real euro, and it needs no secrets; PR #31 (plan-only) was left alone. +15 tests (270 total). (CEO routine)
 - **2026-10-10** — Design track started: `DesignPlan.md` (owner-configured charter, UI audit, roadmap D0–D4) + a separate daily "Shortcraft Design CEO" routine. Scope is the core loop (Create + Library). No code changes yet. (Design CEO, interactive)
 
 - **2026-10-09** — Dev toolchain: vitest 2.1.9 → **5.0.3** (+ `vite` 8 as an explicit devDependency, now a peer; `@types/node` 20 → 22 to match `engines`), `vitest.config.ts` → `.mts` (Vite's native config loader warned about ESM in a CommonJS package). No test changes needed; 255 green. `npm audit` (all deps): 11 (2 critical) → **5 high**, all the `eslint-config-next` → `fast-glob`/`micromatch`/`braces` chain (npm's only "fix" is a downgrade to 14.x; wait for an upstream bump). Prod audit still 0. Migration 0006 applied by the owner and verified; the only advisor warning left is leaked-password protection. (CEO, interactive)
@@ -299,6 +300,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **Legal text lives in code as data, and checkout requires an explicit withdrawal waiver** (2026-10-10) → as data, tests catch drift (a new vendor, a price change, a new trial size) that a static page would hide. For digital content the EU 14-day withdrawal right only ends if the buyer expressly asks for immediate delivery; without the checkbox any buyer could use 13 days of credits and demand a full refund. The consent is stored on the Stripe objects (no migration), so every charge has its evidence next to it for disputes. **Money commitments in the draft, for the owner to confirm or cut:** (1) refund of a mistaken charge whose credits are unused, within 14 days (cheaper than a chargeback: fee + dispute ratio); (2) credits don't expire, with 30 days' notice before any expiry; (3) pro-rata refund of unused purchased credits if we close an account without cause; (4) 30 days' notice for price changes; (5) "prices include VAT" (ties to the Stripe Tax decision in §5).
 - **Design runs as its own routine and plan file** (2026-10-10, owner) → the main CEO has one slot a day and Phase 2/3 (real videos, deploy) still matter most for revenue; a separate design routine moves the UI in parallel without competing for that slot. The two routines don't collide because design owns the UI files and runs 3h later. `DesignPlan.md` keeps this file lean; product, money and priority calls stay here.
 
 - **Connectors are read-only by default** (2026-10-09) → the Supabase and Stripe connectors can change production state directly (apply DDL, create prices, move money in live mode), bypassing PR review. Agents use them freely for read-only verification (schema, advisors, catalog, webhook config), and every write needs the owner's explicit OK in the conversation. Migrations still land as files in a PR first, so the repo stays the source of truth even when the connector applies them.
