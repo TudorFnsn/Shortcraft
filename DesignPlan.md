@@ -87,11 +87,11 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 - [✓] **Direction canvas:** three directions published; **Tudor picked A, Paper & Ember** (2026-10-10).
 - [✓] **Design system** (Claude Design "Design System" artifact, **approved by Tudor 2026-10-10**): tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
-- [~] **Code** (PR #34, `ceo-design/foundations`): tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), primitives in `src/components/ui/*`, new shell/header with credits pill. No change to pages yet beyond the header.
+- [x] **Code** (PR #34, merged 2026-10-10): tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), Button + Badge primitives in `src/components/ui/*`, new shell/header with credits pill. The remaining primitives (Segmented, Choice card, Chip, Progress, Toast, Sheet, Skeleton) land with the screen that first needs them (D1/D2).
 
 ### D1: Create (desktop first)
 
-- [ ] **Canvas:** Create at 1440 and 1024, every state listed in §3, light + dark.
+- [~] **Canvas** (https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce, published 2026-10-10, **waiting on Tudor**): Create at 1440 and 1024, light + dark, plus every state (empty, not enough credits, plan-locked option picked, topic blocked, submitting, error + retry) in both themes. All boards are interactive (Play). Open decisions are on the canvas sticky and in §8.
 - [ ] **Code:** rebuild `create-form.tsx` on the primitives. Same API contract (`POST /api/jobs`), same entitlement and moderation logic. Theme sample images go in `public/themes/*` (generated once and committed, so no runtime cost).
 
 ### D2: Library (desktop first)
@@ -128,6 +128,7 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 ## 6. Links
 
 - Design canvas (D0 Direction): https://claude.ai/artifact/3gMxoCVVP4AKatSL7bJZYJ — three directions (A Paper & Ember, B Night Studio, C Sage Room), Create + Library each, light + dark. Private to Tudor; share it from its Share menu if a routine or teammate must read it.
+- D1 Create canvas: https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce: 16 artboards (4 layouts + 6 states × 2 themes), built on the Paper & Ember tokens, credit numbers from the real estimator. Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
@@ -135,6 +136,7 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 
 ## 7. Changelog
 
+- **2026-10-10** — D0 marked shipped (PR #34 merged). D1 Create canvas published: two-pane composer + sticky preview/cost panel at 1440 and 1024, six states, light + dark, interactive. Waiting on Tudor's approval and three decisions (§8). (Design CEO, routine)
 - **2026-10-11** — D0 foundations in review as PR #34: tokens (light + warm dark), System / Light / Dark picker with no flash, new header (mark, Create / Library nav, credits pill, account menu), Button + Badge primitives, all pages moved onto tokens. (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the Paper & Ember design system. D0 code starts on `ceo-design/foundations`.
 - **2026-10-10** — Paper & Ember design system published in Claude Design (tokens, brand book, mark, six core-loop components). Next: Tudor reviews it, then D0 code (tokens in `globals.css`, theme toggle, shell, `src/components/ui/*`).
@@ -143,6 +145,12 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+**Open — waiting on Tudor (D1 Create canvas):**
+
+1. **Theme cards crop the sample frame to 4:5** so all eight themes fit in a 4×2 grid above Length/Quality; the full 9:16 shows in the sticky phone preview. Alternative: true 9:16 cards in a horizontal scroller.
+2. **Locked options are pickable.** Picking 60s/90s/120s or Premium keeps the choice, shows the plan that unlocks it (price + credits) and swaps Generate for "See the Pro plan", with a one-tap "Use Standard / 30s instead". Alternative: locked options stay visible but can't be selected.
+3. **Three idea chips per theme** under the composer (one tap fills the prompt). Keep, or drop to keep the screen quieter?
 
 - **Direction A, Paper & Ember** (2026-10-10, owner: "I like option A") → the warmest of the three and the closest to "home", while the ember accent keeps creator energy. B (dark-first, CapCut) and C (sage, serif) are set aside; the Library's CapCut-style grid layout carries over regardless.
 
