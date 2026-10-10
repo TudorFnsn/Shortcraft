@@ -195,3 +195,29 @@ export function dailyIdeas(day: string, preferThemeId?: string | null): Idea[] {
 /** Link that opens Create prefilled with an idea. */
 export const createHref = (idea: Pick<Idea, 'themeId' | 'topic'>): string =>
   `/create?${new URLSearchParams({ theme: idea.themeId, idea: idea.topic }).toString()}`;
+
+/**
+ * A fresh idea in a theme, never the one just made ("Make another like this").
+ * `seed` (e.g. the video id) keeps the pick stable for that video.
+ */
+export function freshIdea(themeId: string, avoidTopic: string, seed: string): string {
+  const ideas = lookFor(themeId).ideas.filter(
+    (i) => i.toLowerCase() !== avoidTopic.trim().toLowerCase(),
+  );
+  return ideas[hash(seed) % ideas.length] ?? STARTER.topic;
+}
+
+/** Create link for "Make another like this": same theme, length and quality, fresh idea. */
+export const anotherLikeHref = (v: {
+  id: string;
+  themeId: string;
+  topic: string;
+  durationSec: number;
+  tier: string;
+}): string =>
+  `/create?${new URLSearchParams({
+    theme: v.themeId,
+    len: String(v.durationSec),
+    tier: v.tier,
+    idea: freshIdea(v.themeId, v.topic, v.id),
+  }).toString()}`;

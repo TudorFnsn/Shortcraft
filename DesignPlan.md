@@ -101,8 +101,8 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D2: Library (desktop first)
 
-- [~] **Canvas** (https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT, published 2026-10-10, **waiting on Tudor**): the Library at 1440 and 1024, light + dark, with Today's ideas, filter chips (All · In progress · Ready · Failed), a 9:16 card grid, in-progress cards (named step, step X of 6, progress bar), a failed card (credits refunded + Try again), the player sheet and the empty Library. All boards are interactive. Open decisions are in §8.
-- [ ] **Code:** card grid + filters + player sheet + polling. Data dependencies are done (#36): `/api/jobs/:id/thumbnail` (re-signed first scene image) and `/api/jobs/:id/video` (re-signed on view). Nothing touches credits, billing or the pipeline.
+- [✓] **Canvas** (https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT): the Library at 1440 and 1024, light + dark, Today's ideas, filter chips, the 9:16 grid, in-progress, failed, player sheet and empty Library. **Approved by Tudor 2026-10-10** with the three decisions in §8.
+- [~] **Code** (PR `ceo-design/d2-library`): `src/app/gallery/*` rebuilt to the canvas. The view model lives in `library.ts` (unit-tested). The grid, filters, one-click retry and player sheet live in `library-grid.tsx`; the sheet is a native modal `<dialog>`, so focus is trapped and Esc closes it. Thumbnails come from `video-thumb.tsx` (`/api/jobs/:id/thumbnail`, falling back to the drawn theme frame). The existing 4s refresh keeps polling while a video is in progress. "Make another like this" passes `len`/`tier` to Create (`composer.ts`). Nothing touches credits, billing or the pipeline.
 
 ### D3: Mobile pass
 
@@ -142,6 +142,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 
 ## 7. Changelog
 
+- **2026-10-10** — Tudor approved the D2 Library canvas and its three decisions. The D2 code is in review on `ceo-design/d2-library`. Next: D3 mobile canvas. (Design CEO, interactive)
 - **2026-10-10** — D1 shipped (PR #37: Create rebuild, one-tap first video, Today's ideas). D2 Library canvas published, waiting on Tudor's approval and three decisions (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D1 Create canvas and its three decisions, plus the two activation/retention ideas. PR #35 merged with the canvas docs only, so the Create rebuild, the one-tap first video and the Library's Today's ideas row follow in their own PR (same branch, restarted from main). (Design CEO, interactive)
 - **2026-10-10** — D0 marked shipped (PR #34 merged). D1 Create canvas published: two-pane composer + sticky preview/cost panel at 1440 and 1024, six states, light + dark, interactive. Waiting on Tudor's approval and three decisions (§8). (Design CEO, routine)
@@ -154,11 +155,10 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 
 ## 8. Decision log
 
-**Open — waiting on Tudor (D2 Library canvas):**
-
-1. **Grid density:** 5 columns at 1440 and 4 at 1024 (cards ~230px wide). The alternative is 4 and 3 for bigger previews.
-2. **Failed card "Try again"** starts the same video straight away and shows its cost on the button ("Try again · ~2,024"), because the failed run was refunded. The alternative is opening Create prefilled, so the creator presses Generate themselves.
-3. **Player sheet "Make another like this"** opens Create with the same theme, length and quality and a fresh idea from that theme. Primary action: Download MP4. Secondary: Copy title.
+- **D2 Library canvas approved** (2026-10-10, owner: "D2 approved. 1. first option. 2. first option. 3.yes"):
+  1. **5 columns at 1440, 4 at 1024** (3 on tablets, 2 on phones).
+  2. **"Try again" starts the same video straight away**, with its cost on the button. The failed run was refunded. When the balance is short, it becomes "Get credits to try again".
+  3. **"Make another like this"** opens Create with the same theme, length and quality plus a fresh idea from that theme.
 
 - **D1 Create canvas approved** (2026-10-10, owner: "i approve the canvas … 1. yes 2. yes 3. yes"):
   1. Theme cards crop the sample frame to **4:5** so all eight fit in a 4×2 grid. The full 9:16 shows in the sticky phone preview.

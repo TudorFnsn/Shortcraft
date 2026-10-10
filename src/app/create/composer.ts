@@ -98,7 +98,8 @@ const first = (v: string | string[] | undefined): string | undefined =>
 
 /**
  * Where the composer starts:
- * - a link with ?idea= / ?theme= (Library "Today's ideas", starter chips) wins;
+ * - a link with ?idea= / ?theme= / ?len= / ?tier= (Library "Today's ideas",
+ *   "Make another like this") wins;
  * - otherwise the creator's last settings (fast repeat use);
  * - a brand-new account gets a ready idea so the first video is one tap away.
  */
@@ -121,11 +122,18 @@ export function initialSelection(input: {
           ? STARTER.themeId
           : fallbackTheme;
 
-  const durationSec =
-    lastJob && (DURATIONS as readonly number[]).includes(lastJob.targetDurationSec)
+  const isDuration = (n: number) => (DURATIONS as readonly number[]).includes(n);
+  const lenParam = Number(first(params.len));
+  const tierParam = first(params.tier);
+  const durationSec = isDuration(lenParam)
+    ? lenParam
+    : lastJob && isDuration(lastJob.targetDurationSec)
       ? lastJob.targetDurationSec
       : 15;
-  const tier: ModelTier = lastJob?.modelTier ?? 'standard';
+  const tier: ModelTier =
+    tierParam && (TIERS as readonly string[]).includes(tierParam)
+      ? (tierParam as ModelTier)
+      : (lastJob?.modelTier ?? 'standard');
   const topic = ideaParam ?? (firstRun ? (lookFor(themeId).ideas[0] ?? STARTER.topic) : '');
 
   return { topic, themeId, durationSec, tier, firstRun: firstRun && ideaParam === undefined };
