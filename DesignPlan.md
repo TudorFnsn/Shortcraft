@@ -84,7 +84,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D0: Direction & foundations
 
-- [ ] **Direction canvas:** two or three moodboard directions within the charter (palette, type, card style, one Create hero frame each), in light + dark. Owner picks one.
+- [~] **Direction canvas:** two or three moodboard directions within the charter (palette, type, card style, one Create hero frame each), in light + dark. Owner picks one.
 - [ ] **Design system canvas:** tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
 - [ ] **Code:** tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), primitives in `src/components/ui/*`, new shell/header with credits pill. No change to pages yet beyond the header.
 
@@ -126,13 +126,14 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 
 ## 6. Links
 
-- Design canvas: _not created yet. The first D0 run creates it and records the link here._
+- Design canvas (D0 Direction): https://claude.ai/artifact/3gMxoCVVP4AKatSL7bJZYJ — three directions (A Paper & Ember, B Night Studio, C Sage Room), Create + Library each, light + dark. Private to Tudor; share it from its Share menu if a routine or teammate must read it.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-10** — D0 direction canvas published (3 directions × Create + Library, interactive, light + dark). Waiting on Tudor to pick one.
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
