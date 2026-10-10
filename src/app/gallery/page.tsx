@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/features/auth/session';
 import { getStore } from '@/features/render/store';
 import { isTerminal, progress, type RenderStatus } from '@/features/render/machine';
 import { AutoRefresh } from './auto-refresh';
+import { DailyIdeas } from './daily-ideas';
 
 /** What each pipeline step means to the person waiting. */
 const statusLabel: Record<RenderStatus, string> = {
@@ -32,18 +33,23 @@ export default async function GalleryPage() {
   const working = jobs.some((j) => !isTerminal(j.status));
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-12">
+    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-12">
       <AutoRefresh active={working} />
       <div className="flex items-baseline justify-between">
         <h1 className="font-display text-2xl font-semibold">My Creations</h1>
         <span className="text-ink-muted text-sm">{balance.toLocaleString()} credits</span>
       </div>
 
+      <DailyIdeas
+        preferThemeId={jobs[0]?.themeId ?? null}
+        heading={jobs.length === 0 ? 'Start with one of these' : undefined}
+      />
+
       {jobs.length === 0 ? (
         <p className="text-ink-muted">
-          Nothing yet.{' '}
+          Nothing yet. Pick an idea above, or{' '}
           <Link href="/create" className="text-ink underline">
-            Create your first video
+            write your own
           </Link>
           .
         </p>

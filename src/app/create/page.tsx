@@ -3,26 +3,31 @@ import { getCurrentUser } from '@/features/auth/session';
 import { getStore } from '@/features/render/store';
 import { PLANS } from '@/config/plans';
 import { CreateForm } from './create-form';
+import { initialSelection } from './composer';
 
-export default async function CreatePage() {
+export default async function CreatePage({ searchParams }: PageProps<'/create'>) {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
 
   const store = getStore();
-  const [balance, planId, hasPaid] = await Promise.all([
+  const [balance, planId, hasPaid, jobs, params] = await Promise.all([
     store.balance(user.id),
     store.planOf(user.id),
     store.hasPaid(user.id),
+    store.listJobs(user.id),
+    searchParams,
   ]);
   const { limits } = PLANS[planId];
+  // Newest first: the last video's settings are the creator's defaults.
+  const lastJob = jobs[0] ?? null;
+  const { firstRun, ...initial } = initialSelection({ params, lastJob });
 
   return (
-    <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-12">
-      <div className="flex items-baseline justify-between">
-        <h1 className="font-display text-2xl font-semibold">Create a video</h1>
-        <span className="text-ink-muted text-sm">{balance.toLocaleString()} credits</span>
-      </div>
+    <main className="mx-auto max-w-[1344px] px-4 py-8 sm:px-8 lg:py-10 xl:px-12">
       <CreateForm
+        initial={initial}
+        firstRun={firstRun}
+        lastThemeId={lastJob?.themeId ?? null}
         balance={balance}
         maxDurationSec={limits.maxVideoDurationSec}
         allowedTiers={[...limits.modelTiers]}
