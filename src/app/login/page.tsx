@@ -43,7 +43,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-      <h1 className="text-2xl font-semibold">
+      <h1 className="font-display text-2xl font-semibold">
         {mode === 'signin' ? 'Log in' : 'Create your account'}
       </h1>
 
@@ -54,7 +54,7 @@ export default function LoginPage() {
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+          className="border-line bg-surface focus:border-ember rounded-md border px-3 py-2 text-sm outline-none"
         />
         <input
           type="password"
@@ -63,33 +63,33 @@ export default function LoginPage() {
           placeholder="Password (min 6 chars)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+          className="border-line bg-surface focus:border-ember rounded-md border px-3 py-2 text-sm outline-none"
         />
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-200 disabled:opacity-50"
+          className="bg-ember text-on-ember rounded-md px-3 py-2 text-sm font-medium hover:brightness-95 disabled:opacity-50"
         >
           {loading ? 'Please wait…' : mode === 'signin' ? 'Log in' : 'Sign up'}
         </button>
       </form>
 
       {mode === 'signup' && (
-        <p className="text-xs text-neutral-500">
+        <p className="text-ink-muted text-xs">
           By signing up you agree to the{' '}
-          <Link href="/terms" className="underline hover:text-white">
+          <Link href="/terms" className="hover:text-ink underline">
             Terms
           </Link>{' '}
           and{' '}
-          <Link href="/privacy" className="underline hover:text-white">
+          <Link href="/privacy" className="hover:text-ink underline">
             Privacy Policy
           </Link>
           .
         </p>
       )}
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {notice && <p className="text-sm text-emerald-400">{notice}</p>}
+      {error && <p className="text-danger text-sm">{error}</p>}
+      {notice && <p className="text-success text-sm">{notice}</p>}
 
       <button
         type="button"
@@ -98,7 +98,7 @@ export default function LoginPage() {
           setError(null);
           setNotice(null);
         }}
-        className="text-sm text-neutral-400 hover:text-white"
+        className="text-ink-muted hover:text-ink text-sm"
       >
         {mode === 'signin' ? 'No account? Sign up' : 'Have an account? Log in'}
       </button>

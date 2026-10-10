@@ -19,8 +19,8 @@ const statusLabel: Record<RenderStatus, string> = {
 };
 
 const statusColor: Record<string, string> = {
-  done: 'text-emerald-400',
-  failed: 'text-red-400',
+  done: 'text-success',
+  failed: 'text-danger',
 };
 
 export default async function GalleryPage() {
@@ -35,14 +35,14 @@ export default async function GalleryPage() {
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-12">
       <AutoRefresh active={working} />
       <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">My Creations</h1>
-        <span className="text-sm text-neutral-400">{balance.toLocaleString()} credits</span>
+        <h1 className="font-display text-2xl font-semibold">My Creations</h1>
+        <span className="text-ink-muted text-sm">{balance.toLocaleString()} credits</span>
       </div>
 
       {jobs.length === 0 ? (
-        <p className="text-neutral-400">
+        <p className="text-ink-muted">
           Nothing yet.{' '}
-          <Link href="/create" className="text-white underline">
+          <Link href="/create" className="text-ink underline">
             Create your first video
           </Link>
           .
@@ -56,12 +56,12 @@ export default async function GalleryPage() {
             return (
               <li
                 key={job.id}
-                className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3"
+                className="border-line bg-surface flex flex-col gap-3 rounded-lg border px-4 py-3"
               >
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{job.title ?? job.topic}</p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-ink-muted text-xs">
                       {job.themeId} · {job.targetDurationSec}s ·{' '}
                       {isTerminal(job.status)
                         ? `${job.actualCredits.toLocaleString()} credits`
@@ -69,10 +69,10 @@ export default async function GalleryPage() {
                     </p>
                   </div>
                   <div className="ml-4 text-right">
-                    <span className={`text-sm ${statusColor[job.status] ?? 'text-neutral-300'}`}>
+                    <span className={`text-sm ${statusColor[job.status] ?? 'text-ink'}`}>
                       {statusLabel[job.status] ?? job.status}
                     </span>
-                    <p className="text-xs text-neutral-600">
+                    <p className="text-ink-muted text-xs">
                       {Math.round(progress(job.status as RenderStatus) * 100)}%
                     </p>
                   </div>
@@ -92,11 +92,11 @@ export default async function GalleryPage() {
                         href={videoUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-white underline"
+                        className="text-ink underline"
                       >
                         Open
                       </a>
-                      <a href={`${videoUrl}?download=1`} className="text-white underline">
+                      <a href={`${videoUrl}?download=1`} className="text-ink underline">
                         Download
                       </a>
                     </div>
@@ -108,7 +108,7 @@ export default async function GalleryPage() {
         </ul>
       )}
 
-      <Link href="/create" className="text-sm text-neutral-400 hover:text-white">
+      <Link href="/create" className="text-ink-muted hover:text-ink text-sm">
         + New video
       </Link>
     </main>

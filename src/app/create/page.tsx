@@ -19,8 +19,8 @@ export default async function CreatePage() {
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-12">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">Create a video</h1>
-        <span className="text-sm text-neutral-400">{balance.toLocaleString()} credits</span>
+        <h1 className="font-display text-2xl font-semibold">Create a video</h1>
+        <span className="text-ink-muted text-sm">{balance.toLocaleString()} credits</span>
       </div>
       <CreateForm
         balance={balance}

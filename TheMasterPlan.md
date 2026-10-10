@@ -140,7 +140,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 Owned by the **Design CEO** routine; full plan, charter and screen status in **`DesignPlan.md`**. Scope: Create + Gallery ("Library") plus shared tokens/shell. Calm warm studio, CapCut-style content-first layout, light + dark, desktop first then mobile. Every screen goes canvas → owner approval → PR (`ceo-design/*`).
 
-- [ ] D0 Direction + design system (canvas, then tokens/primitives/shell in code)
+- [~] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code in review (PR #34)
 - [ ] D1 Create redesign · [ ] D2 Library redesign (needs thumbnail URL + re-sign-on-view) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
 
 ### LATER — Phase 4: Retention & ARPU
@@ -259,6 +259,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-11** — Design D0 foundations (PR #34): Paper & Ember tokens with light + warm dark, a no-flash theme picker, a new header with an always-visible credits pill, Button/Badge primitives, every page on tokens. No logic changes. (Design CEO, interactive)
 - **2026-10-10** — Legal pages for go-live: draft `/terms` (incl. `#refunds`: EU withdrawal waiver, auto-refund of failed videos, refund of an unused mistaken charge within 14 days, cancel-anytime; acceptable use mirroring the prompt screen + deepfakes; AI-label clause telling users to keep the label and turn on the platform's AI toggle) and `/privacy` (data, purposes + GDPR bases, six sub-processors, retention, essential cookies only, rights), rendered from `config/legal.ts`. Footer on every page, sign-up notice, required Terms + withdrawal-waiver checkbox on `/pricing`, enforced by `POST /api/checkout` (400 `terms_not_accepted`) and recorded in Stripe metadata. Picked because Stripe's live activation and EU consumer law both need these before the first real euro, and it needs no secrets; PR #31 (plan-only) was left alone. +15 tests (270 total). (CEO routine)
 - **2026-10-10** — Design track started: `DesignPlan.md` (owner-configured charter, UI audit, roadmap D0–D4) + a separate daily "Shortcraft Design CEO" routine. Scope is the core loop (Create + Library). No code changes yet. (Design CEO, interactive)
 - **2026-10-09** — Recorded the owner's first real videos (2026-10-08: Standard 15s $0.037/44s, Standard 30s $0.049/52s, Premium 30s $1.92/3m26s, catalog-priced) from `render_jobs`. Leaked-password protection is Supabase-Pro-only, so it's accepted as a known warning. Found a deploy blocker: Vercel Hobby fails any deploy whose cron runs more than once a day, and ours runs every minute. Options are in §5; the owner decides. (CEO, interactive)

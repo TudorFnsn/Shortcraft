@@ -81,7 +81,7 @@ export function CreateForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-neutral-300">What&apos;s your video about?</span>
+        <span className="text-ink">What&apos;s your video about?</span>
         <textarea
           required
           minLength={3}
@@ -89,16 +89,16 @@ export function CreateForm({
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="e.g. a cat who secretly runs a coffee shop"
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
+          className="border-line bg-surface focus:border-ember rounded-md border px-3 py-2 outline-none"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-neutral-300">Theme</span>
+        <span className="text-ink">Theme</span>
         <select
           value={themeId}
           onChange={(e) => setThemeId(e.target.value)}
-          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
+          className="border-line bg-surface focus:border-ember rounded-md border px-3 py-2 outline-none"
         >
           {THEMES.map((t) => (
             <option key={t.id} value={t.id}>
@@ -110,11 +110,11 @@ export function CreateForm({
 
       <div className="flex gap-4">
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="text-neutral-300">Length</span>
+          <span className="text-ink">Length</span>
           <select
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
+            className="border-line bg-surface focus:border-ember rounded-md border px-3 py-2 outline-none"
           >
             {DURATIONS.map((d) => {
               const locked = d > maxDurationSec;
@@ -127,11 +127,11 @@ export function CreateForm({
           </select>
         </label>
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="text-neutral-300">Quality</span>
+          <span className="text-ink">Quality</span>
           <select
             value={tier}
             onChange={(e) => setTier(e.target.value as ModelTier)}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 outline-none focus:border-neutral-400"
+            className="border-line bg-surface focus:border-ember rounded-md border px-3 py-2 outline-none"
           >
             {TIERS.map((t) => {
               const locked = !allowedTiers.includes(t.id);
@@ -147,10 +147,10 @@ export function CreateForm({
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-neutral-400">
-          Est. <span className="text-neutral-200">~{estimate.toLocaleString()}</span> credits
+        <span className="text-ink-muted">
+          Est. <span className="text-ink">~{estimate.toLocaleString()}</span> credits
         </span>
-        <span className={affordable ? 'text-neutral-500' : 'text-red-400'}>
+        <span className={affordable ? 'text-ink-muted' : 'text-danger'}>
           you have {balance.toLocaleString()}
         </span>
       </div>
@@ -158,13 +158,13 @@ export function CreateForm({
       <button
         type="submit"
         disabled={loading || !affordable}
-        className="rounded-md bg-white px-4 py-2.5 font-medium text-neutral-900 hover:bg-neutral-200 disabled:opacity-50"
+        className="bg-ember text-on-ember rounded-md px-4 py-2.5 font-medium hover:brightness-95 disabled:opacity-50"
       >
         {loading ? 'Generating…' : 'Generate video'}
       </button>
 
       {!affordable && (
-        <p className="text-sm text-red-400">
+        <p className="text-danger text-sm">
           Not enough credits — pick a shorter length, or{' '}
           <Link href="/pricing" className="underline">
             get more credits
@@ -173,7 +173,7 @@ export function CreateForm({
         </p>
       )}
       {(maxDurationSec < Math.max(...DURATIONS) || allowedTiers.length < TIERS.length) && (
-        <p className="text-sm text-neutral-500">
+        <p className="text-ink-muted text-sm">
           Longer videos and premium quality unlock on higher plans —{' '}
           <Link href="/pricing" className="underline">
             see plans
@@ -182,7 +182,7 @@ export function CreateForm({
         </p>
       )}
       {freeTrial && (
-        <p className="text-sm text-neutral-500">
+        <p className="text-ink-muted text-sm">
           Free-trial videos include a small &ldquo;Made with Shortcraft&rdquo; watermark. Any plan
           or top-up removes it —{' '}
           <Link href="/pricing" className="underline">
@@ -191,7 +191,7 @@ export function CreateForm({
           .
         </p>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-danger text-sm">{error}</p>}
     </form>
   );
 }
