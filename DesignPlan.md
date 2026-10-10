@@ -69,11 +69,12 @@ The UI is still the Next.js scaffold: ~600 lines across 7 screens, `neutral-950`
 - Clicking a finished card opens a **player sheet**: an inline 9:16 player, download, copy title/caption, and "Make another like this" (prefills Create).
 - Filter chips: All · In progress · Ready · Failed. The empty state is a warm illustration with three one-click starter ideas.
 
-### Identity (proposal, needs owner approval on the canvas)
+### Identity: Direction A "Paper & Ember" (owner-chosen 2026-10-10)
 
-- **Palette:** warm off-white and charcoal-brown neutrals (paper / ink), with one accent. Candidates go on the canvas: an ember coral (energetic, creator-ish) and a deep studio teal (calm). Status colours are tuned to sit with the accent.
-- **Type:** keep **Geist** for UI (already loaded, fast). Explore a warmer display face for headings only.
-- **Mark:** a simple monogram or play-glyph that also works as the favicon and as the in-video watermark.
+- **Palette:** light = paper `#F7F3EC` ground, `#FFFDF9` surface, `#EFE9DF` raised, `#E3DBCD` border, ink `#221C17`, muted `#6B6158`, ember `#C2461F` (white text on it), soft `#FBE3D8`, accent text `#A63A17`. Dark = `#1A1613` / `#231E1A` / `#2D2722` / `#3A322B`, text `#F3EDE5`, muted `#A89C90`, ember `#F0714A` (dark text on it), soft `#3A2219`, accent text `#F59272`. Status colours get tuned to sit with ember in the design-system step.
+- **Type:** **Bricolage Grotesque** (700) for display and headings, **Geist** for UI and body.
+- **Shape:** 16px radius on cards and inputs, 20px on panels, pill chips and nav, 14px on primary buttons.
+- **Mark:** an ember rounded square with a play glyph next to the "Shortcraft" wordmark. It also works as the favicon.
 - **Voice:** friendly, concise and second person ("Your video is ready"), never hype.
 
 ---
@@ -84,8 +85,8 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D0: Direction & foundations
 
-- [~] **Direction canvas:** two or three moodboard directions within the charter (palette, type, card style, one Create hero frame each), in light + dark. Owner picks one.
-- [ ] **Design system canvas:** tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
+- [✓] **Direction canvas:** three directions published; **Tudor picked A, Paper & Ember** (2026-10-10).
+- [~] **Design system canvas:** tokens (colour, type scale, radii, spacing, shadow, motion) and the primitives Button, Input/Textarea, Segmented, Choice card, Chip, Badge, Progress, Toast, Sheet/Modal, Skeleton.
 - [ ] **Code:** tokens in `globals.css` (light + dark + `data-theme` override), theme toggle (no flash on load), primitives in `src/components/ui/*`, new shell/header with credits pill. No change to pages yet beyond the header.
 
 ### D1: Create (desktop first)
@@ -133,10 +134,13 @@ Home dashboard · onboarding / first-run flow · landing + pricing redesign · a
 
 ## 7. Changelog
 
+- **2026-10-10** — Tudor picked **Direction A, Paper & Ember**. Identity in §3 updated with its exact tokens. The design-system canvas comes next.
 - **2026-10-10** — D0 direction canvas published (3 directions × Create + Library, interactive, light + dark). Waiting on Tudor to pick one.
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **Direction A, Paper & Ember** (2026-10-10, owner: "I like option A") → the warmest of the three and the closest to "home", while the ember accent keeps creator energy. B (dark-first, CapCut) and C (sage, serif) are set aside; the Library's CapCut-style grid layout carries over regardless.
 
 - **Core loop first, marketing later** (2026-10-10, owner) → retention (weekly creators) lives in Create + Library. Landing and pricing redesigns wait until the core loop feels like home.
 - **Desktop first, then mobile** (2026-10-10, owner) → creation happens at a desk today. Mobile gets its own pass (D3) rather than a compromise layout.
