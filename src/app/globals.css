@@ -1,26 +1,125 @@
 @import 'tailwindcss';
 
+/*
+ * Paper & Ember — Shortcraft's design tokens (DesignPlan.md §3; source of truth:
+ * the "Shortcraft — Paper & Ember" design system in Claude Design).
+ * Light values on :root; dark follows the OS unless the user picked a theme
+ * (data-theme on <html>, set before paint by the script in layout.tsx).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #f7f3ec;
+  --surface: #fffdf9;
+  --raised: #efe9df;
+  --line: #e3dbcd;
+  --line-strong: #8c8175;
+  --ink: #221c17;
+  --ink-muted: #6b6158;
+  --ember: #c2461f;
+  --on-ember: #ffffff;
+  --ember-soft: #fbe3d8;
+  --ember-ink: #a63a17;
+  --success: #2f7a4b;
+  --warning: #8a5a00;
+  --danger: #b42318;
+  --scrim: rgb(34 28 23 / 0.55);
+  --elev-sm: 0 1px 2px rgb(34 28 23 / 0.12);
+  --elev-selected: 0 0 0 4px var(--ember-soft);
+  --elev-sheet: 0 24px 48px rgb(34 28 23 / 0.18);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme='light']) {
+    --paper: #1a1613;
+    --surface: #231e1a;
+    --raised: #2d2722;
+    --line: #3a322b;
+    --line-strong: #7a6e63;
+    --ink: #f3ede5;
+    --ink-muted: #a89c90;
+    --ember: #f0714a;
+    --on-ember: #1a1613;
+    --ember-soft: #3a2219;
+    --ember-ink: #f59272;
+    --success: #6fcf97;
+    --warning: #f2b84b;
+    --danger: #f97066;
+    --scrim: rgb(0 0 0 / 0.6);
+    --elev-sm: 0 1px 2px rgb(0 0 0 / 0.45);
+    --elev-sheet: 0 24px 48px rgb(0 0 0 / 0.55);
+    color-scheme: dark;
   }
 }
 
+:root[data-theme='dark'] {
+  --paper: #1a1613;
+  --surface: #231e1a;
+  --raised: #2d2722;
+  --line: #3a322b;
+  --line-strong: #7a6e63;
+  --ink: #f3ede5;
+  --ink-muted: #a89c90;
+  --ember: #f0714a;
+  --on-ember: #1a1613;
+  --ember-soft: #3a2219;
+  --ember-ink: #f59272;
+  --success: #6fcf97;
+  --warning: #f2b84b;
+  --danger: #f97066;
+  --scrim: rgb(0 0 0 / 0.6);
+  --elev-sm: 0 1px 2px rgb(0 0 0 / 0.45);
+  --elev-sheet: 0 24px 48px rgb(0 0 0 / 0.55);
+  color-scheme: dark;
+}
+
+/* Tailwind utilities: bg-paper, text-ink, border-line, rounded-card, font-display, … */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ember: var(--ember);
+  --color-on-ember: var(--on-ember);
+  --color-ember-soft: var(--ember-soft);
+  --color-ember-ink: var(--ember-ink);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-scrim: var(--scrim);
+
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-bricolage), var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+
+  --radius-sm: 8px;
+  --radius-button: 14px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+
+  --shadow-sm: var(--elev-sm);
+  --shadow-selected: var(--elev-selected);
+  --shadow-sheet: var(--elev-sheet);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
