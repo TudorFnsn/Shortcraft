@@ -140,8 +140,8 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 
 Owned by the **Design CEO** routine; full plan, charter and screen status in **`DesignPlan.md`**. Scope: Create + Gallery ("Library") plus shared tokens/shell. Calm warm studio, CapCut-style content-first layout, light + dark, desktop first then mobile. Every screen goes canvas → owner approval → PR (`ceo-design/*`).
 
-- [~] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code in review (PR #34)
-- [ ] D1 Create redesign · [ ] D2 Library redesign (needs thumbnail URL + re-sign-on-view) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
+- [x] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code shipped (PR #34)
+- [~] D1 Create redesign: canvas published 2026-10-10, waiting on Tudor's approval (see `DesignPlan.md` §4, §8) · [ ] D2 Library redesign (needs thumbnail URL + re-sign-on-view) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
 
 ### LATER — Phase 4: Retention & ARPU
 
