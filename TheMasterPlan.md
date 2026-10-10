@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 270 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 280 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -75,7 +75,7 @@ src/features/
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
-src/app/           landing, login, create, gallery, pricing, terms, privacy, api/{jobs,jobs/[id]/video,checkout,webhooks/stripe,billing/portal,health}
+src/app/           landing, login, create, gallery, pricing, terms, privacy, api/{jobs,jobs/[id]/video,jobs/[id]/thumbnail,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc
@@ -141,7 +141,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 Owned by the **Design CEO** routine; full plan, charter and screen status in **`DesignPlan.md`**. Scope: Create + Gallery ("Library") plus shared tokens/shell. Calm warm studio, CapCut-style content-first layout, light + dark, desktop first then mobile. Every screen goes canvas → owner approval → PR (`ceo-design/*`).
 
 - [~] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code in review (PR #34)
-- [ ] D1 Create redesign · [ ] D2 Library redesign (needs thumbnail URL + re-sign-on-view) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
+- [ ] D1 Create redesign · [ ] D2 Library redesign (data dependencies done: re-sign-on-view via `/api/jobs/:id/video`, thumbnail via `/api/jobs/:id/thumbnail`, PR `ceo/gallery-thumbnails`) · [ ] D3 Mobile pass · [ ] D4 A11y/QA
 
 ### LATER — Phase 4: Retention & ARPU
 
@@ -258,6 +258,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-10** — Library thumbnails (unblocks Design D2): `GET /api/jobs/:id/thumbnail` re-signs the job's first scene image (owner-only; someone else's job is a 404, and their scenes are never loaded) and 302-redirects with `Cache-Control: private, max-age=1800` (under the 1h signed-URL TTL). It answers as soon as scene 0's image exists, so in-progress cards get a picture; 409 before that, 404 in mock mode (the card shows a placeholder). Pure helper `thumbnailUrlFor` next to `watchUrlFor`. No migration, no UI change (D2 owns the card). +5 tests (280 total). (CEO, interactive: "continue the plan")
 
 - **2026-10-11** — Design D0 foundations (PR #34): Paper & Ember tokens with light + warm dark, a no-flash theme picker, a new header with an always-visible credits pill, Button/Badge primitives, every page on tokens. No logic changes. (Design CEO, interactive)
 - **2026-10-10** — Legal pages for go-live: draft `/terms` (incl. `#refunds`: EU withdrawal waiver, auto-refund of failed videos, refund of an unused mistaken charge within 14 days, cancel-anytime; acceptable use mirroring the prompt screen + deepfakes; AI-label clause telling users to keep the label and turn on the platform's AI toggle) and `/privacy` (data, purposes + GDPR bases, six sub-processors, retention, essential cookies only, rights), rendered from `config/legal.ts`. Footer on every page, sign-up notice, required Terms + withdrawal-waiver checkbox on `/pricing`, enforced by `POST /api/checkout` (400 `terms_not_accepted`) and recorded in Stripe metadata. Picked because Stripe's live activation and EU consumer law both need these before the first real euro, and it needs no secrets; PR #31 (plan-only) was left alone. +15 tests (270 total). (CEO routine)
