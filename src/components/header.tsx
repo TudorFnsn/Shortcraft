@@ -14,7 +14,7 @@ export async function Header() {
   return (
     <header className="border-line flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4 sm:px-8">
       <div className="flex items-center gap-6 sm:gap-10">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5 max-md:min-h-11">
           <BrandMark />
           <span className="font-display text-xl font-bold tracking-tight">{siteConfig.name}</span>
         </Link>
@@ -31,7 +31,7 @@ export async function Header() {
           {/* The balance is always in view; the pill doubles as the way to top up. */}
           <Link
             href="/pricing"
-            className="border-line bg-surface hover:bg-raised flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm"
+            className="border-line bg-surface hover:bg-raised flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm max-md:min-h-11"
           >
             <svg
               width="16"
@@ -58,11 +58,11 @@ export async function Header() {
         <nav aria-label="Main" className="flex items-center gap-2">
           <Link
             href="/pricing"
-            className="text-ink-muted hover:text-ink rounded-full px-3.5 py-2 text-[15px] font-medium"
+            className="text-ink-muted hover:text-ink rounded-full px-3.5 py-2 text-[15px] font-medium max-md:inline-flex max-md:min-h-11 max-md:items-center"
           >
             Pricing
           </Link>
-          <Link href="/login" className={buttonClasses({ size: 'sm' })}>
+          <Link href="/login" className={buttonClasses({ size: 'sm', className: 'max-md:h-11' })}>
             Log in
           </Link>
         </nav>

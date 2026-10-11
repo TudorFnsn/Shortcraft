@@ -297,7 +297,7 @@ export function CreateForm({
                     update({ topic: idea });
                     setFailure(null);
                   }}
-                  className="border-line-strong text-ink hover:bg-raised min-h-10 shrink-0 rounded-full border px-3.5 py-1.5 text-sm whitespace-nowrap transition-colors sm:min-h-9 sm:whitespace-normal"
+                  className="border-line-strong text-ink hover:bg-raised min-h-11 shrink-0 rounded-full border px-3.5 py-1.5 text-sm whitespace-nowrap transition-colors sm:min-h-9 sm:whitespace-normal"
                 >
                   {idea}
                 </button>
@@ -607,7 +607,7 @@ export function CreateForm({
               onClick={() =>
                 update(state.tierLocked ? { tier: 'standard' } : { durationSec: longestOnPlan })
               }
-              className="text-ember-ink inline-flex min-h-6 items-center self-start text-sm font-semibold underline underline-offset-2"
+              className="text-ember-ink inline-flex min-h-11 items-center self-start text-sm font-semibold underline underline-offset-2 md:min-h-6"
             >
               {state.tierLocked ? 'Use Standard instead' : `Use ${longestOnPlan}s instead`}
             </button>
