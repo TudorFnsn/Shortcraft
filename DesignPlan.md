@@ -112,7 +112,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### D3: Mobile pass
 
 - [✓] **Canvas** (https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7): Create, Library (light + dark), the player sheet and the Account sheet at 390×844, with a bottom tab bar (Library · Create · Account). **Approved by Tudor 2026-10-11** with the recommended answers (§8).
-- [ ] **Code:** responsive implementation. Create becomes a single scroll with a sticky Generate bar.
+- [~] **Code** (PR `ceo-design/d3-mobile`): below `md`, a fixed bottom tab bar (`tab-bar.tsx` via `mobile-nav.tsx` in the layout), with Account as a bottom-sheet `<dialog>` (credits, appearance, pricing, terms, sign out). The header keeps the logo and credits pill. On Create, the big preview and summary chips are hidden on phones, and the cost + primary action ride in a bar above the tab bar (`md:contents` keeps desktop markup unchanged). Themes and idea chips scroll sideways; length locks show an icon. In the Library, Today's ideas and filters scroll sideways and the player sheet is full-screen with a sticky Close.
 
 ### D4: Quality bar
 
@@ -150,6 +150,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 7. Changelog
 
+- **2026-10-11** — D3 mobile code in review on `ceo-design/d3-mobile` (stacked on the landing PR). (Design CEO, interactive)
 - **2026-10-11** — Tudor approved the Landing and D3 canvases. Landing code is in review on `ceo-design/landing`; D3 code follows. (Design CEO, interactive)
 - **2026-10-11** — The Landing and D3 canvases (PR #40) are still waiting on Tudor, so the routine took D4 for the shipped desktop loop. axe was clean in both themes, and 8 manual findings were fixed on `ceo-design/d4-a11y-audit` (report in `docs/design/d4-a11y-audit.md`). (Design CEO, routine)
 - **2026-10-10** — D2 shipped (PR #39). Tudor added the landing page to the scope ("continue with d3 after redesigning the landing page"). Landing and D3 mobile canvases published, both waiting on approval (§8). (Design CEO, interactive)

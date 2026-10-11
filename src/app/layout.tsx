@@ -5,6 +5,7 @@ import { siteConfig } from '@/config/site';
 import { Header } from '@/components/header';
 import { themeInitScript } from '@/components/theme/theme';
 import { Footer } from '@/components/footer';
+import { MobileNav } from '@/components/mobile-nav';
 import { InlineScript } from '@/components/inline-script';
 
 const geistSans = Geist({
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           {children}
         </div>
         <Footer />
+        <MobileNav />
       </body>
     </html>
   );

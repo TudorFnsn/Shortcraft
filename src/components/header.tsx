@@ -18,7 +18,12 @@ export async function Header() {
           <BrandMark />
           <span className="font-display text-xl font-bold tracking-tight">{siteConfig.name}</span>
         </Link>
-        {user && <NavLinks />}
+        {/* Phones get the bottom tab bar instead (MobileNav). */}
+        {user && (
+          <div className="hidden md:block">
+            <NavLinks />
+          </div>
+        )}
       </div>
 
       {user ? (
@@ -45,7 +50,9 @@ export async function Header() {
             <span className="text-ink-muted hidden sm:inline">credits</span>
             <span className="text-ember-ink ml-1 hidden font-semibold md:inline">Get more</span>
           </Link>
-          <AccountMenu email={user.email ?? null} />
+          <div className="hidden md:block">
+            <AccountMenu email={user.email ?? null} />
+          </div>
         </div>
       ) : (
         <nav aria-label="Main" className="flex items-center gap-2">

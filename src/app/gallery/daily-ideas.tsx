@@ -25,9 +25,12 @@ export function DailyIdeas({
         </h2>
         <span className="text-ink-muted text-[13px]">New ideas every day</span>
       </div>
-      <ul className="grid gap-3 sm:grid-cols-3">
+      <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-3 sm:overflow-visible sm:p-0">
         {ideas.map((idea) => (
-          <li key={`${idea.themeId}:${idea.topic}`}>
+          <li
+            key={`${idea.themeId}:${idea.topic}`}
+            className="w-[260px] shrink-0 snap-start sm:w-auto"
+          >
             <Link
               href={createHref(idea)}
               className="bg-surface border-line hover:border-line-strong rounded-card flex h-full items-center gap-3 border-2 p-2 pr-4 transition-colors"
