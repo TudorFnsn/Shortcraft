@@ -106,12 +106,12 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### L: Landing page (owner-approved scope, 2026-10-10)
 
-- [~] **Canvas** (https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC, published 2026-10-10, **waiting on Tudor**): the logged-out landing at 1440 and 390, light + dark. It has a hero with an idea box and a fan of 9:16 frames, How it works (3 steps), the eight themes, what's in the file, a pricing teaser with the real plans, and a final CTA. Every claim comes from the product (trial credits, plans.ts, the real steps). No testimonials or stats yet.
-- [ ] **Code:** `src/app/page.tsx` (+ `src/components/landing/*`). The hero idea box carries the idea through sign-up into Create (`/create?idea=…`).
+- [✓] **Canvas** (https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC): the logged-out landing at 1440 and 390, light + dark. **Approved by Tudor 2026-10-11** with the recommended answers (§8).
+- [~] **Code** (PR `ceo-design/landing`): `src/app/page.tsx` → `src/components/landing/landing.tsx`. The pricing teaser reads `plans.ts` and the real 15s estimate (`plan-teaser.ts`, unit-tested). The hero idea box is a plain GET form to `/login?idea=…` (or `/create?idea=…` when signed in). Login opens on sign-up when an idea is present and lands on Create with it. No open redirect: only `idea` is passed.
 
 ### D3: Mobile pass
 
-- [~] **Canvas** (https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7, published 2026-10-10, **waiting on Tudor**): Create, Library (light + dark), the player sheet and the Account sheet at 390×844, with a bottom tab bar (Library · Create · Account). Create is one scroll with a sticky cost + Generate bar. Open decisions are in §8.
+- [✓] **Canvas** (https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7): Create, Library (light + dark), the player sheet and the Account sheet at 390×844, with a bottom tab bar (Library · Create · Account). **Approved by Tudor 2026-10-11** with the recommended answers (§8).
 - [ ] **Code:** responsive implementation. Create becomes a single scroll with a sticky Generate bar.
 
 ### D4: Quality bar
@@ -150,6 +150,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 7. Changelog
 
+- **2026-10-11** — Tudor approved the Landing and D3 canvases. Landing code is in review on `ceo-design/landing`; D3 code follows. (Design CEO, interactive)
 - **2026-10-11** — The Landing and D3 canvases (PR #40) are still waiting on Tudor, so the routine took D4 for the shipped desktop loop. axe was clean in both themes, and 8 manual findings were fixed on `ceo-design/d4-a11y-audit` (report in `docs/design/d4-a11y-audit.md`). (Design CEO, routine)
 - **2026-10-10** — D2 shipped (PR #39). Tudor added the landing page to the scope ("continue with d3 after redesigning the landing page"). Landing and D3 mobile canvases published, both waiting on approval (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D2 Library canvas and its three decisions. The D2 code is in review on `ceo-design/d2-library`. Next: D3 mobile canvas. (Design CEO, interactive)
@@ -165,17 +166,10 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 8. Decision log
 
-**Open — waiting on Tudor (Landing canvas):**
-
-1. **Headline:** "Post a Short every day without showing your face." (alternative: "Type an idea. Get a vertical video.")
-2. **The hero idea box** goes to sign-up, and the idea is waiting in Create after login (`/create?idea=…`). This touches the login redirect (one line in `src/app/login`), so it needs your OK.
-3. **Pricing teaser on the landing:** 3 plans with "about N videos of 15s" (from the ~2,024-credit estimate) + top-ups from €12, linking to the full /pricing.
-
-**Open — waiting on Tudor (D3 Mobile canvas):**
-
-1. **Create on a phone drops the big phone preview.** The selected theme card and the sticky cost + Generate bar carry it.
-2. **Themes and Today's ideas become sideways-scrolling rows** on a phone instead of grids.
-3. **Account opens as a bottom sheet** (credits, plan, appearance picker, pricing, terms, sign out), not a separate page.
+- **Landing and D3 canvases approved** (2026-10-11, owner: "approve everything and start implementing"), with the recommended answers:
+  - Landing: (1) headline "Post a Short every day without showing your face."; (2) the hero idea box carries the idea through sign-up into Create (one change in `src/app/login`); (3) a pricing teaser with the real plans, linking to /pricing.
+  - D3: (1) no big preview on phone Create; the selected theme card and the sticky cost + Generate bar carry it; (2) themes and Today's ideas scroll sideways on phones; (3) Account opens as a bottom sheet.
+  - Real theme sample stills still need a paid image run, which can't happen in a mock-mode session. They stay drawn until a live run is set up.
 
 - **Landing page added to the design scope** (2026-10-10, owner) → the landing inherits Paper & Ember and gets its own canvas → approval → code item (L). Pricing and auth screens stay in Later.
 
