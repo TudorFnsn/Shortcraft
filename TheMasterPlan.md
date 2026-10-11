@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-10
+> Last updated: 2026-10-11
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 280 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 323 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -119,7 +119,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] **Watch link survives the 24h URL expiry** _(PR `ceo/rewatch-link`, 2026-10-09)_: `/gallery`'s Watch goes through `GET /api/jobs/:id/video`, which checks ownership, recovers the object path from the stored signed URL and redirects to a fresh 1h URL.
 - [x] **Inline player + Download on `/gallery`** _(PR `ceo/gallery-player`, 2026-10-09)_: finished live renders play inline (9:16 `<video preload="metadata">` via the re-signing route) and get a Download link (`?download=1` → signed URL with `Content-Disposition: attachment`, filename slugged from the title).
 - [~] Media storage: `MediaStore` port + Supabase Storage implementation (private bucket `media`, 24h signed URLs) landed with the voice adapter. Still to do: move to Cloudflare R2 (no egress fees) behind the same port, and a retention policy.
-- [~] Moderation. **Done (2026-10-08, PR `ceo/prompt-moderation`):** a local, deterministic prompt screen (`features/moderation/prompt-check.ts`) runs in `POST /api/jobs` before plan checks, job creation or credit holds, so a blocked topic costs the user nothing and calls no provider; returns 422 `moderation_blocked` with a plain reason shown on `/create`; logs only the category, never the prompt. It blocks five categories (sexual content with minors, explicit sexual content, self-harm instructions, weapon/drug synthesis how-tos, calls for violence against a group) and lets educational topics through (suicide prevention, atomic-bomb history, bath bombs, naked mole rats; covered by tests). Provider filters (Claude refusals, fal safety checker) already fail the step and refund. **Still to do:** an LLM classifier (Haiku-class, ~$0.0005/check) behind the same `PromptModerator` port for the grey zone (real-person deepfakes, harassment, medical/financial scams) once live providers are on; moderate the generated script's image prompts too; an abuse counter (repeat blocks → review).
+- [~] Moderation. **Done (2026-10-08, PR `ceo/prompt-moderation`):** a local, deterministic prompt screen (`features/moderation/prompt-check.ts`) runs in `POST /api/jobs` before plan checks, job creation or credit holds, so a blocked topic costs the user nothing and calls no provider; returns 422 `moderation_blocked` with a plain reason shown on `/create`; logs only the category, never the prompt. It blocks five categories (sexual content with minors, explicit sexual content, self-harm instructions, weapon/drug synthesis how-tos, calls for violence against a group) and lets educational topics through (suicide prevention, atomic-bomb history, bath bombs, naked mole rats; covered by tests). Provider filters (Claude refusals, fal safety checker) already fail the step and refund. **Done (2026-10-11, PR `ceo/script-prompt-moderation`):** the script model's generated scene prompts are screened right after scripting (`screenScenePrompts`: image + motion prompts, visual categories only — sexual content with minors and explicit sexual content); a flagged scene fails the job before any image or clip is generated, refunds the whole hold, records the script's API cost, and stores `moderation_blocked: scene N prompt (<category>)` (never the prompt). **Still to do:** an LLM classifier (Haiku-class, ~$0.0005/check) behind the same `PromptModerator` port for the grey zone (real-person deepfakes, harassment, medical/financial scams) once live providers are on; an abuse counter (repeat blocks → review); a friendly Library message for moderation-failed jobs (Design track owns the card).
 
 ### NEXT — Phase 3: Ship it
 
@@ -141,7 +141,7 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 Owned by the **Design CEO** routine; full plan, charter and screen status in **`DesignPlan.md`**. Scope: Create + Gallery ("Library") plus shared tokens/shell. Calm warm studio, CapCut-style content-first layout, light + dark, desktop first then mobile. Every screen goes canvas → owner approval → PR (`ceo-design/*`).
 
 - [x] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code shipped (PR #34)
-- [x] D1 Create redesign + one-tap first video + Library "Today's ideas" (PR #37) · [x] D2 Library redesign (PR #39) · [ ] D3 Mobile pass (canvas in review, PR #40) · [~] D4 A11y/QA: desktop core loop audited, 8 fixes in review (`ceo-design/d4-a11y-audit`)
+- [x] D1 Create redesign + one-tap first video + Library "Today's ideas" (PR #37) · [x] D2 Library redesign (PR #39) · [~] Landing redesign: canvas published 2026-10-10, waiting on Tudor · [~] D3 Mobile pass: canvas published 2026-10-10, waiting on Tudor · [~] D4 A11y/QA: desktop core loop audited, 8 fixes in review (`ceo-design/d4-a11y-audit`)
 
 ### LATER — Phase 4: Retention & ARPU
 
@@ -259,6 +259,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-11** — Generated scene prompts are moderated: after scripting, the orchestrator runs `screenScenePrompts` (visual categories of the existing rule screen) over every planned scene's image + motion prompt. A hit fails the job before the images step (no image/clip/voice/render calls), refunds the hold, meters the script's cost, and stores a category-only error. Text-only categories (self-harm/weapons how-tos, calls for violence) are not applied to pictures, so dark fiction and history still render. Picked because Design PR #40 is open (UI files off-limits) and every Phase 3 item needs owner decisions or secrets; this closes the gap where a topic that passes the screen steers the script into prompts we must never send to an image model. +10 tests (323 total). (CEO routine)
 - **2026-10-10** — Library thumbnails (unblocks Design D2): `GET /api/jobs/:id/thumbnail` re-signs the job's first scene image (owner-only; someone else's job is a 404, and their scenes are never loaded) and 302-redirects with `Cache-Control: private, max-age=1800` (under the 1h signed-URL TTL). It answers as soon as scene 0's image exists, so in-progress cards get a picture; 409 before that, 404 in mock mode (the card shows a placeholder). Pure helper `thumbnailUrlFor` next to `watchUrlFor`. No migration, no UI change (D2 owns the card). +5 tests (280 total). (CEO, interactive: "continue the plan")
 
 - **2026-10-11** — Design D0 foundations (PR #34): Paper & Ember tokens with light + warm dark, a no-flash theme picker, a new header with an always-visible credits pill, Button/Badge primitives, every page on tokens. No logic changes. (Design CEO, interactive)
@@ -308,6 +309,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **Generated prompts are screened for visual categories only, and a hit fails the whole job** (2026-10-11) → an image model can depict sexual content but not "instructions" or "a call for violence"; applying those text rules to scene prompts would fail war-history and horror videos the user already paid a hold for. Failing (with a refund) rather than dropping or rewriting the scene keeps the result honest and the code small; the fal safety checker remains the line after this one.
 - **Legal text lives in code as data, and checkout requires an explicit withdrawal waiver** (2026-10-10) → as data, tests catch drift (a new vendor, a price change, a new trial size) that a static page would hide. For digital content the EU 14-day withdrawal right only ends if the buyer expressly asks for immediate delivery; without the checkbox any buyer could use 13 days of credits and demand a full refund. The consent is stored on the Stripe objects (no migration), so every charge has its evidence next to it for disputes. **Money commitments in the draft, for the owner to confirm or cut:** (1) refund of a mistaken charge whose credits are unused, within 14 days (cheaper than a chargeback: fee + dispute ratio); (2) credits don't expire, with 30 days' notice before any expiry; (3) pro-rata refund of unused purchased credits if we close an account without cause; (4) 30 days' notice for price changes; (5) "prices include VAT" (ties to the Stripe Tax decision in §5).
 - **Design runs as its own routine and plan file** (2026-10-10, owner) → the main CEO has one slot a day and Phase 2/3 (real videos, deploy) still matter most for revenue; a separate design routine moves the UI in parallel without competing for that slot. The two routines don't collide because design owns the UI files and runs 3h later. `DesignPlan.md` keeps this file lean; product, money and priority calls stay here.
 
