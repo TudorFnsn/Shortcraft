@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { siteConfig } from '@/config/site';
 import { Header } from '@/components/header';
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         </div>
         <Footer />
         <MobileNav />
+        <SpeedInsights />
       </body>
     </html>
   );

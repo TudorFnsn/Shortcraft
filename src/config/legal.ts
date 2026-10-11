@@ -13,7 +13,7 @@ import { siteConfig } from './site';
 
 /** Bump when the Terms change materially; recorded with every checkout consent. */
 export const TERMS_VERSION = '2026-10-10';
-export const PRIVACY_VERSION = '2026-10-10';
+export const PRIVACY_VERSION = '2026-10-11';
 
 /** True until the operator fields below are real and the text has been reviewed. */
 export const LEGAL_DRAFT = true;
@@ -57,7 +57,7 @@ const planList = Object.values(PLANS)
  */
 export const SUBPROCESSORS = [
   { name: 'Supabase', purpose: 'accounts, database and file storage (EU, Ireland)' },
-  { name: 'Vercel', purpose: 'hosting and running the app' },
+  { name: 'Vercel', purpose: 'hosting and running the app, and measuring page speed (no cookies)' },
   { name: 'Stripe', purpose: 'payments, invoices and subscriptions' },
   { name: 'Anthropic', purpose: 'writing video scripts from your topic' },
   { name: 'ElevenLabs', purpose: 'generating voiceovers from the script' },
@@ -220,7 +220,7 @@ export const PRIVACY: LegalDocument = {
       id: 'cookies',
       heading: '6. Cookies',
       paragraphs: [
-        'We use only the cookies needed to keep you logged in. We do not use analytics or advertising cookies. If that changes, we will ask for your consent first, with an equally easy option to reject.',
+        'We use only the cookies needed to keep you logged in. We do not use analytics or advertising cookies; page-speed measurement (Vercel Speed Insights) works without cookies. If that changes, we will ask for your consent first, with an equally easy option to reject.',
       ],
     },
     {
