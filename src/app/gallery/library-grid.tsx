@@ -109,7 +109,7 @@ export function LibraryGrid({
             setFilter,
           )
         }
-        className="flex flex-wrap gap-2"
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
       >
         {FILTERS.map((f) => {
           const checked = f.id === filter;
@@ -121,7 +121,7 @@ export function LibraryGrid({
               aria-checked={checked}
               tabIndex={checked ? 0 : -1}
               onClick={() => setFilter(f.id)}
-              className={`text-ink inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm transition-colors ${
+              className={`text-ink inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm whitespace-nowrap transition-colors ${
                 checked
                   ? 'bg-raised border-ink font-semibold'
                   : 'border-line-strong hover:bg-raised font-medium'
@@ -309,10 +309,32 @@ function PlayerSheet({
         // A click on the backdrop lands on the <dialog> itself.
         if (e.target === e.currentTarget) ref.current?.close();
       }}
-      className="bg-surface text-ink rounded-panel shadow-sheet backdrop:bg-scrim m-auto max-h-[calc(100dvh-2rem)] w-[min(960px,calc(100vw-2rem))] overflow-y-auto p-0"
+      className="bg-surface text-ink shadow-sheet backdrop:bg-scrim sm:rounded-panel m-0 h-dvh max-h-none w-full max-w-none overflow-y-auto p-0 sm:m-auto sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[min(960px,calc(100vw-2rem))]"
     >
-      <div className="flex flex-col gap-6 p-5 sm:flex-row sm:gap-8 sm:p-7">
-        <div className="rounded-card relative mx-auto w-full max-w-[380px] shrink-0 overflow-hidden bg-black sm:w-[340px] lg:w-[380px]">
+      {/* Full-screen on phones: keep Close in reach while the sheet scrolls. */}
+      <div className="bg-surface sticky top-0 z-10 flex justify-end px-3 pt-3 sm:hidden">
+        <button
+          type="button"
+          onClick={() => ref.current?.close()}
+          aria-label="Close"
+          className="border-line flex size-11 items-center justify-center rounded-full border"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex flex-col gap-6 p-5 pt-2 sm:flex-row sm:gap-8 sm:p-7">
+        <div className="rounded-card relative mx-auto w-full max-w-[min(380px,calc((100dvh-360px)*9/16))] shrink-0 overflow-hidden bg-black sm:w-[340px] sm:max-w-[380px] lg:w-[380px]">
           {card.playable ? (
             <video
               controls
@@ -354,7 +376,7 @@ function PlayerSheet({
               type="button"
               onClick={() => ref.current?.close()}
               aria-label="Close"
-              className="border-line hover:bg-raised flex size-10 shrink-0 items-center justify-center rounded-full border"
+              className="border-line hover:bg-raised hidden size-10 shrink-0 items-center justify-center rounded-full border sm:flex"
             >
               <svg
                 width="16"

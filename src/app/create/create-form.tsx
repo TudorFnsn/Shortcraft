@@ -285,8 +285,8 @@ export function CreateForm({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-ink-muted mr-1 text-sm">Ideas for {theme.label}:</span>
+          <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+            <span className="text-ink-muted mr-1 shrink-0 text-sm">Ideas for {theme.label}:</span>
             {lookFor(sel.themeId)
               .ideas.slice(0, 3)
               .map((idea) => (
@@ -297,7 +297,7 @@ export function CreateForm({
                     update({ topic: idea });
                     setFailure(null);
                   }}
-                  className="border-line-strong text-ink hover:bg-raised min-h-9 rounded-full border px-3.5 py-1.5 text-sm transition-colors"
+                  className="border-line-strong text-ink hover:bg-raised min-h-10 shrink-0 rounded-full border px-3.5 py-1.5 text-sm whitespace-nowrap transition-colors sm:min-h-9 sm:whitespace-normal"
                 >
                   {idea}
                 </button>
@@ -325,7 +325,7 @@ export function CreateForm({
                 (themeId) => update({ themeId }),
               )
             }
-            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pt-1 pb-2 sm:mx-0 sm:grid sm:snap-none sm:grid-cols-4 sm:overflow-visible sm:p-0"
           >
             {THEMES.map((t) => {
               const checked = t.id === sel.themeId;
@@ -337,7 +337,7 @@ export function CreateForm({
                   aria-checked={checked}
                   tabIndex={checked ? 0 : -1}
                   onClick={() => update({ themeId: t.id })}
-                  className={`bg-surface rounded-card flex flex-col gap-2.5 border-2 p-1.5 pb-3 text-left transition-shadow ${
+                  className={`bg-surface rounded-card flex w-[148px] shrink-0 snap-start flex-col gap-2.5 border-2 p-1.5 pb-3 text-left transition-shadow sm:w-auto ${
                     checked
                       ? 'border-ember shadow-selected'
                       : 'border-line hover:border-line-strong'
@@ -398,9 +398,9 @@ export function CreateForm({
                 >
                   {d}s
                   {plan && (
-                    <span className="text-ink-muted hidden items-center gap-1 text-xs sm:flex">
+                    <span className="text-ink-muted flex items-center gap-1 text-xs">
                       <LockIcon />
-                      {plan}
+                      <span className="hidden sm:inline">{plan}</span>
                     </span>
                   )}
                 </button>
@@ -482,7 +482,8 @@ export function CreateForm({
         aria-label="Preview and generate"
         className="bg-surface border-line rounded-panel flex flex-col gap-5 border p-6 lg:sticky lg:top-6"
       >
-        <div className="flex flex-col items-center gap-2.5">
+        {/* Phones drop the big preview: the selected theme card and the sticky bar carry it. */}
+        <div className="hidden flex-col items-center gap-2.5 md:flex">
           <div className="relative w-[216px] overflow-hidden rounded-[28px] border-[6px] border-[#221c17] xl:w-[248px] dark:border-[#0d0b09]">
             <ThemeFrame themeId={sel.themeId} variant="phone" />
             <span className="absolute top-3 left-3 rounded-full bg-[rgb(20_16_13/0.55)] px-2 py-0.5 text-[11px] leading-4 font-semibold text-white">
@@ -499,7 +500,10 @@ export function CreateForm({
           </span>
         </div>
 
-        <ul aria-label="Your choices" className="flex flex-wrap justify-center gap-2 text-[13px]">
+        <ul
+          aria-label="Your choices"
+          className="hidden flex-wrap justify-center gap-2 text-[13px] md:flex"
+        >
           <li className="bg-raised rounded-full px-2.5 py-1">{theme.label}</li>
           <li className="bg-raised rounded-full px-2.5 py-1">{sel.durationSec}s</li>
           <li className="bg-raised rounded-full px-2.5 py-1">{TIER_COPY[sel.tier].title}</li>
@@ -626,50 +630,66 @@ export function CreateForm({
           <span className="text-ink-muted text-center text-sm">Describe your idea to start.</span>
         )}
 
-        {state.primary.kind === 'upgrade' ? (
-          <Link href="/pricing" className={buttonClasses({ size: 'lg' })}>
-            See the {state.primary.planName} plan
-          </Link>
-        ) : state.primary.kind === 'top-up' ? (
-          <Link href="/pricing" className={buttonClasses({ size: 'lg' })}>
-            Get more credits
-          </Link>
-        ) : (
-          <Button
-            type="submit"
-            size="lg"
-            aria-disabled={!canGenerate}
-            className={!state.primary.enabled ? '!bg-raised !text-ink-muted !opacity-100' : ''}
-          >
-            {submitting ? (
-              <>
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                  className="animate-spin"
-                >
-                  <path d="M10 2.5a7.5 7.5 0 1 1-7.5 7.5" />
-                </svg>
-                Starting your video…
-              </>
-            ) : (
-              <>
-                {otherError ? 'Try again' : 'Generate video'}
-                {state.primary.enabled && (
-                  <span className="hidden rounded-md border border-current/35 px-1.5 py-0.5 text-xs sm:inline">
-                    {modKey} Enter
-                  </span>
-                )}
-              </>
-            )}
-          </Button>
-        )}
+        {/* On phones the primary action rides in a bar above the tab bar; from md it sits in the panel. */}
+        <div className="bg-surface border-line fixed inset-x-0 bottom-[72px] z-30 flex items-center gap-3 border-t px-4 py-2.5 md:contents">
+          <span className="flex min-w-0 flex-1 flex-col md:hidden">
+            <span className="text-[15px] leading-5 font-semibold tabular-nums">
+              ~{fmt(state.estimate)} credits
+            </span>
+            <span className="text-ink-muted truncate text-xs">
+              {theme.label} · {sel.durationSec}s ·{' '}
+              {locked
+                ? `needs ${state.upgradePlan?.name ?? 'a plan'}`
+                : state.affordable
+                  ? `~${fmt(balance - state.estimate)} left`
+                  : `short by ~${fmt(state.estimate - balance)}`}
+            </span>
+          </span>
+          {state.primary.kind === 'upgrade' ? (
+            <Link href="/pricing" className={buttonClasses({ size: 'lg' })}>
+              See the {state.primary.planName} plan
+            </Link>
+          ) : state.primary.kind === 'top-up' ? (
+            <Link href="/pricing" className={buttonClasses({ size: 'lg' })}>
+              Get more credits
+            </Link>
+          ) : (
+            <Button
+              type="submit"
+              size="lg"
+              aria-disabled={!canGenerate}
+              className={!state.primary.enabled ? '!bg-raised !text-ink-muted !opacity-100' : ''}
+            >
+              {submitting ? (
+                <>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                    className="animate-spin"
+                  >
+                    <path d="M10 2.5a7.5 7.5 0 1 1-7.5 7.5" />
+                  </svg>
+                  Starting your video…
+                </>
+              ) : (
+                <>
+                  {otherError ? 'Try again' : 'Generate video'}
+                  {state.primary.enabled && (
+                    <span className="hidden rounded-md border border-current/35 px-1.5 py-0.5 text-xs sm:inline">
+                      {modKey} Enter
+                    </span>
+                  )}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
 
         {freeTrial && (
           <p className="text-ink-muted text-center text-[13px] leading-[18px]">
@@ -680,6 +700,7 @@ export function CreateForm({
           </p>
         )}
       </aside>
+      <div aria-hidden="true" className="h-16 md:hidden" />
     </form>
   );
 }
