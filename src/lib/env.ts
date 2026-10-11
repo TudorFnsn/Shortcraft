@@ -55,9 +55,43 @@ const schema = z.object({
 
   /** Vercel Cron sends it as a Bearer token; required for /api/cron/* outside development. */
   CRON_SECRET: z.string().min(1).optional(),
+
+  /** Set by Vercel on every deployment (system env var); unset locally and in CI. */
+  VERCEL_ENV: z.enum(['production', 'preview', 'development']).optional(),
+  /** Escape hatch: let a Preview deployment call paid providers (see applyDeploymentGuards). */
+  ALLOW_LIVE_PROVIDERS_IN_PREVIEW: bool('false'),
 });
 
 export type Env = z.infer<typeof schema>;
+
+const LIVE_STRIPE_KEY = /^(sk|rk)_live_/;
+
+/**
+ * Fail-closed guards for non-production deployments (docs/DEPLOYMENT.md).
+ * Every PR gets a Vercel Preview, including the daily routine PRs, so a
+ * misconfigured Preview must never spend money or charge real cards:
+ *  - Preview runs on mock providers unless ALLOW_LIVE_PROVIDERS_IN_PREVIEW=true.
+ *  - A live Stripe key is ignored anywhere but Production (checkout then fails
+ *    with "Stripe not configured" instead of taking a real payment).
+ * Returns the guarded env plus a warning per override. Pure, for tests.
+ */
+export function applyDeploymentGuards(raw: Env): { env: Env; warnings: string[] } {
+  const env = { ...raw };
+  const warnings: string[] = [];
+  if (env.VERCEL_ENV === 'preview' && !env.MOCK_PROVIDERS && !env.ALLOW_LIVE_PROVIDERS_IN_PREVIEW) {
+    env.MOCK_PROVIDERS = true;
+    warnings.push(
+      'MOCK_PROVIDERS forced to true on a Preview deployment (set ALLOW_LIVE_PROVIDERS_IN_PREVIEW=true to override)',
+    );
+  }
+  const isProduction =
+    env.VERCEL_ENV === 'production' || (!env.VERCEL_ENV && env.NODE_ENV === 'production');
+  if (env.STRIPE_SECRET_KEY && LIVE_STRIPE_KEY.test(env.STRIPE_SECRET_KEY) && !isProduction) {
+    env.STRIPE_SECRET_KEY = undefined;
+    warnings.push('live Stripe key ignored outside Production; use a test key (sk_test_…) here');
+  }
+  return { env, warnings };
+}
 
 function load(): Env {
   const parsed = schema.safeParse(process.env);
@@ -68,7 +102,10 @@ function load(): Env {
       .join('\n');
     throw new Error(`Invalid environment variables:\n${issues}`);
   }
-  return parsed.data;
+  const { env, warnings } = applyDeploymentGuards(parsed.data);
+  // console, not the logger: the logger reads env, so it can't be used while env loads.
+  for (const w of warnings) console.warn(`[env] ${w}`);
+  return env;
 }
 
 export const env: Env = load();

@@ -259,6 +259,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-11** — Deployment strategy (owner request, app now live at `shortcraft-rho.vercel.app`): `docs/DEPLOYMENT.md` (Production = `main`, Preview = every PR and our staging, Development = local; per-environment variable matrix; release flow with branch protection; expand → deploy → contract migrations; smoke test; rollback; secrets hygiene). Code guards in `env.ts` (`applyDeploymentGuards`): Preview is forced onto mock providers unless `ALLOW_LIVE_PROVIDERS_IN_PREVIEW=true`, and a live Stripe key is ignored outside Production. `vercel.json` `ignoreCommand` skips builds for docs-only commits. +8 tests. (CEO, interactive)
+
 - **2026-10-11** — Vercel Speed Insights (owner request): `@vercel/speed-insights` + `<SpeedInsights />` in the root layout (Core Web Vitals per page, cookieless, a no-op outside Vercel). Privacy Policy updated: Vercel's processor line and the cookies section mention it (version 2026-10-11). Owner: enable Speed Insights in the Vercel project's tab. (CEO, interactive)
 
 - **2026-10-11** — Deploy blocker removed (owner chose option b): per-minute render sweep moves to Supabase `pg_cron` + `pg_net` (migration `0007_pg_cron_sweep`: tick function in a non-exposed `private` schema, revoked from `anon`/`authenticated`, secrets from Vault, no-op until configured; plus 7-day pruning of cron history), `vercel.json` cron is now daily (Hobby-safe backstop). Sweep logic extracted to `features/render/sweep.ts`; the route answers 202 and drives jobs in `after()`. Migration verified in PGlite with stubbed `vault`/`net`/`cron` (no-op unconfigured, one correct request configured, re-runnable, `anon` can't execute). +7 tests (336 total). (CEO, interactive)
@@ -312,6 +314,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Preview is staging, and it can't spend money** (2026-10-11) → Hobby has no custom environments, and every routine PR gets a Preview, so Previews run on mocks and test Stripe by default, enforced in code (fail closed), not only by dashboard checkboxes. A separate free `shortcraft-staging` Supabase project is recommended so previews never write to production data. Migrations stay owner-applied and additive (expand → deploy → contract) so an Instant Rollback never needs a schema rollback.
 
 - **Per-minute sweep runs from Supabase pg_cron, not Vercel Cron** (2026-10-11, owner) → keeps Vercel on the free Hobby plan (sub-daily crons fail the deploy) at no cost, with no new service. Secrets stay in Vault, never in a migration. The route returns 202 before doing work, so any scheduler with a short HTTP timeout can trigger it; the job lease still prevents double runs. Revisit if we move to Vercel Pro anyway.
 
