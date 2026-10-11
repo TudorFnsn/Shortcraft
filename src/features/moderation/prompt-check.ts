@@ -110,6 +110,49 @@ export function screenPrompt(text: string): ModerationCategory | null {
   return RULES.find((r) => r.pattern.test(normalized))?.category ?? null;
 }
 
+/**
+ * Categories an image or video model can actually depict. The other categories
+ * are about instructions or calls to action, which live in words, not pictures;
+ * matching them against scene prompts would mostly flag dark fiction and history
+ * ("soldiers wipe out the men"), failing paid videos for nothing.
+ */
+const VISUAL_CATEGORIES: ReadonlySet<ModerationCategory> = new Set([
+  'minor_sexual',
+  'sexual_explicit',
+]);
+
+/** Like `screenPrompt`, limited to what a picture can show. */
+export function screenVisualPrompt(text: string): ModerationCategory | null {
+  const normalized = normalizeForModeration(text);
+  return (
+    RULES.find((r) => VISUAL_CATEGORIES.has(r.category) && r.pattern.test(normalized))?.category ??
+    null
+  );
+}
+
+export interface FlaggedScene {
+  sceneIndex: number;
+  category: ModerationCategory;
+}
+
+/**
+ * Screens the prompts a script model wrote for the image and video models. The
+ * user's topic already passed `screenPrompt`, but a borderline topic can still
+ * steer the script into prompts we must never send to an image model; this
+ * catches them before any image is generated (the provider safety checker is
+ * the line after this one).
+ */
+export function screenScenePrompts(
+  scenes: readonly { index: number; imagePrompt: string; motionPrompt: string }[],
+): FlaggedScene | null {
+  for (const scene of scenes) {
+    const category =
+      screenVisualPrompt(scene.imagePrompt) ?? screenVisualPrompt(scene.motionPrompt);
+    if (category) return { sceneIndex: scene.index, category };
+  }
+  return null;
+}
+
 export const ruleBasedModerator: PromptModerator = {
   async check(text) {
     const category = screenPrompt(text);

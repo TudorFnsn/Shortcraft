@@ -35,6 +35,7 @@ import type {
   VideoOutput,
 } from '@/features/providers/types';
 import { refundJob, reserveForJob, settleJob } from '@/features/credits/service';
+import { screenScenePrompts } from '@/features/moderation/prompt-check';
 import { advance, isTerminal, type RenderStatus } from './machine';
 import { billableCredits, estimateJobCredits, fitScenesToBudget } from './pricing';
 import type { PlanRepository } from '@/features/billing/entitlements';
@@ -175,6 +176,15 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
       const res = inline(await script.run(input, ctx('scripting')));
       await repo.updateJob(job.id, { title: res.output.title });
       const planned = fitScenesToBudget(res.output.scenes, job.targetDurationSec);
+      const flagged = screenScenePrompts(planned);
+      if (flagged) {
+        // Record the script's API cost, then fail before any image is generated. The
+        // message names the category, never the prompt; the catch refunds the hold.
+        await charge(script.costCredits(input), res.costUsd);
+        throw new Error(
+          `moderation_blocked: scene ${flagged.sceneIndex + 1} prompt (${flagged.category})`,
+        );
+      }
       await repo.addScenes(
         job.id,
         planned.map((s) => ({

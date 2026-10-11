@@ -3,6 +3,8 @@ import {
   normalizeForModeration,
   ruleBasedModerator,
   screenPrompt,
+  screenScenePrompts,
+  screenVisualPrompt,
 } from '@/features/moderation/prompt-check';
 
 describe('normalizeForModeration', () => {
@@ -69,5 +71,44 @@ describe('ruleBasedModerator', () => {
     expect(res.error.code).toBe('moderation_blocked');
     expect(res.error.category).toBe('weapons');
     expect(res.error.message).not.toContain('pipe bomb');
+  });
+});
+
+describe('screenVisualPrompt / screenScenePrompts — generated scene prompts', () => {
+  const scene = (index: number, imagePrompt: string, motionPrompt = 'slow push-in') => ({
+    index,
+    imagePrompt,
+    motionPrompt,
+  });
+
+  it.each([
+    ['a nude woman lying on a bed, cinematic lighting', 'sexual_explicit'],
+    ['seductive schoolgirl in a dim classroom', 'minor_sexual'],
+  ] as const)('blocks %j as %s', (text, category) => {
+    expect(screenVisualPrompt(text)).toBe(category);
+  });
+
+  it.each([
+    // Text-only categories are not applied to pictures: dark fiction and history must pass.
+    'soldiers wipe out the men of the village, smoke over the ruins',
+    'a lone figure reading a guide to making a bomb shelter',
+    'naked mole rat colony in a sandy tunnel, macro shot',
+    'a cat CEO in a glass office, golden hour',
+  ])('passes %j', (text) => {
+    expect(screenVisualPrompt(text)).toBeNull();
+  });
+
+  it('returns the first flagged scene, checking motion prompts too', () => {
+    expect(
+      screenScenePrompts([
+        scene(0, 'city skyline at dawn'),
+        scene(1, 'a dancer on stage', 'camera lingers on nude photos'),
+        scene(2, 'porn set'),
+      ]),
+    ).toEqual({ sceneIndex: 1, category: 'sexual_explicit' });
+  });
+
+  it('passes a clean script', () => {
+    expect(screenScenePrompts([scene(0, 'a forest at night'), scene(1, 'an owl')])).toBeNull();
   });
 });
