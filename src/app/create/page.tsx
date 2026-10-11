@@ -1,9 +1,13 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { siteConfig } from '@/config/site';
 import { getCurrentUser } from '@/features/auth/session';
 import { getStore } from '@/features/render/store';
 import { PLANS } from '@/config/plans';
 import { CreateForm } from './create-form';
 import { initialSelection } from './composer';
+
+export const metadata: Metadata = { title: `Create a video — ${siteConfig.name}` };
 
 export default async function CreatePage({ searchParams }: PageProps<'/create'>) {
   const user = await getCurrentUser();

@@ -5,7 +5,7 @@
 > priority; this file wins on how the app looks and feels. Every design PR
 > updates this file (screen status + changelog) in the same change.
 >
-> Last updated: 2026-10-10
+> Last updated: 2026-10-11
 
 ---
 
@@ -102,7 +102,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### D2: Library (desktop first)
 
 - [✓] **Canvas** (https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT): the Library at 1440 and 1024, light + dark, Today's ideas, filter chips, the 9:16 grid, in-progress, failed, player sheet and empty Library. **Approved by Tudor 2026-10-10** with the three decisions in §8.
-- [~] **Code** (PR `ceo-design/d2-library`): `src/app/gallery/*` rebuilt to the canvas. The view model lives in `library.ts` (unit-tested). The grid, filters, one-click retry and player sheet live in `library-grid.tsx`; the sheet is a native modal `<dialog>`, so focus is trapped and Esc closes it. Thumbnails come from `video-thumb.tsx` (`/api/jobs/:id/thumbnail`, falling back to the drawn theme frame). The existing 4s refresh keeps polling while a video is in progress. "Make another like this" passes `len`/`tier` to Create (`composer.ts`). Nothing touches credits, billing or the pipeline.
+- [x] **Code** (PR #39, merged 2026-10-10): `src/app/gallery/*` rebuilt to the canvas. The view model is in `library.ts` (unit-tested). The grid, filters, one-click retry and native `<dialog>` player sheet are in `library-grid.tsx`, and thumbnails in `video-thumb.tsx`. "Make another like this" passes `len`/`tier` to Create.
 
 ### D3: Mobile pass
 
@@ -111,7 +111,8 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D4: Quality bar
 
-- [ ] Accessibility audit (WCAG 2.2 AA, both themes, keyboard-only run). Before/after screenshots in each PR.
+- [~] **Accessibility audit, desktop core loop** (PR `ceo-design/d4-a11y-audit`, 2026-10-11): axe (WCAG 2.2 A/AA) found 0 violations on Create (4 states), Library, landing, login and pricing in both themes. The manual pass fixed 8 smaller issues: page titles, a skip link, arrow keys in the theme picker, focus return from the account menu, reliable status messages (cost/plan changes, "video is ready"), reduced-motion spinners and 24px text targets. Report: `docs/design/d4-a11y-audit.md`. No visual change, so it needs no canvas.
+- [ ] **Audit, mobile + landing:** repeat once D3 and L ship (44px touch targets, 390px). Plus a real screen-reader smoke test (VoiceOver/NVDA) by a person.
 
 ### Later (out of the current charter, needs owner sign-off)
 
@@ -142,6 +143,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 
 ## 7. Changelog
 
+- **2026-10-11** — The Landing and D3 canvases (PR #40) are still waiting on Tudor, so the routine took D4 for the shipped desktop loop. axe was clean in both themes, and 8 manual findings were fixed on `ceo-design/d4-a11y-audit` (report in `docs/design/d4-a11y-audit.md`). (Design CEO, routine)
 - **2026-10-10** — Tudor approved the D2 Library canvas and its three decisions. The D2 code is in review on `ceo-design/d2-library`. Next: D3 mobile canvas. (Design CEO, interactive)
 - **2026-10-10** — D1 shipped (PR #37: Create rebuild, one-tap first video, Today's ideas). D2 Library canvas published, waiting on Tudor's approval and three decisions (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D1 Create canvas and its three decisions, plus the two activation/retention ideas. PR #35 merged with the canvas docs only, so the Create rebuild, the one-tap first video and the Library's Today's ideas row follow in their own PR (same branch, restarted from main). (Design CEO, interactive)
@@ -154,6 +156,8 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **D4 audit runs before D3** (2026-10-11, routine) → the D3 and Landing canvases are gated on Tudor. D4's desktop half covers code that has already shipped and been approved, and it changes nothing visible, so it needs no new canvas. The mobile/landing half waits for D3 and L.
 
 - **D2 Library canvas approved** (2026-10-10, owner: "D2 approved. 1. first option. 2. first option. 3.yes"):
   1. **5 columns at 1440, 4 at 1024** (3 on tablets, 2 on phones).

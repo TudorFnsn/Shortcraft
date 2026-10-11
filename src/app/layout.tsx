@@ -41,8 +41,16 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <InlineScript html={themeInitScript} />
       </head>
       <body className="bg-paper text-ink flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="bg-ember text-on-ember rounded-button shadow-sheet sr-only z-50 font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:px-4 focus:py-2.5"
+        >
+          Skip to content
+        </a>
         <Header />
-        <div className="flex-1">{children}</div>
+        <div id="main" className="flex-1">
+          {children}
+        </div>
         <Footer />
       </body>
     </html>

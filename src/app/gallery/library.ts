@@ -134,5 +134,20 @@ export function librarySummary(jobs: readonly RenderJobRecord[], now: Date): str
   return week.length > 0 ? `${total} · ${week.length} this week` : total;
 }
 
+/**
+ * What a screen reader should hear after a poll: the videos that were in progress
+ * in `before` and have now finished or failed. Empty when nothing changed.
+ */
+export function finishedMessage(
+  before: readonly LibraryCard[],
+  after: readonly LibraryCard[],
+): string {
+  const was = new Map(before.map((c) => [c.id, c.kind]));
+  return after
+    .filter((c) => was.get(c.id) === 'working' && c.kind !== 'working')
+    .map((c) => (c.kind === 'ready' ? `${c.title} is ready.` : `${c.title} didn't finish.`))
+    .join(' ');
+}
+
 export const anyWorking = (jobs: readonly RenderJobRecord[]) =>
   jobs.some((j) => !isTerminal(j.status as RenderStatus));
