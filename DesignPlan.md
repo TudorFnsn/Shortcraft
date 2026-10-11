@@ -107,17 +107,17 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### L: Landing page (owner-approved scope, 2026-10-10)
 
 - [✓] **Canvas** (https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC): the logged-out landing at 1440 and 390, light + dark. **Approved by Tudor 2026-10-11** with the recommended answers (§8).
-- [~] **Code** (PR `ceo-design/landing`): `src/app/page.tsx` → `src/components/landing/landing.tsx`. The pricing teaser reads `plans.ts` and the real 15s estimate (`plan-teaser.ts`, unit-tested). The hero idea box is a plain GET form to `/login?idea=…` (or `/create?idea=…` when signed in). Login opens on sign-up when an idea is present and lands on Create with it. No open redirect: only `idea` is passed.
+- [x] **Code** (PR #43, merged 2026-10-11): `src/app/page.tsx` → `src/components/landing/landing.tsx`. The pricing teaser reads `plans.ts` (`plan-teaser.ts`, unit-tested). The hero idea box rides through sign-up into Create (`?idea=` only, no open redirect).
 
 ### D3: Mobile pass
 
 - [✓] **Canvas** (https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7): Create, Library (light + dark), the player sheet and the Account sheet at 390×844, with a bottom tab bar (Library · Create · Account). **Approved by Tudor 2026-10-11** with the recommended answers (§8).
-- [~] **Code** (PR `ceo-design/d3-mobile`): below `md`, a fixed bottom tab bar (`tab-bar.tsx` via `mobile-nav.tsx` in the layout), with Account as a bottom-sheet `<dialog>` (credits, appearance, pricing, terms, sign out). The header keeps the logo and credits pill. On Create, the big preview and summary chips are hidden on phones, and the cost + primary action ride in a bar above the tab bar (`md:contents` keeps desktop markup unchanged). Themes and idea chips scroll sideways; length locks show an icon. In the Library, Today's ideas and filters scroll sideways and the player sheet is full-screen with a sticky Close.
+- [x] **Code** (PR #44, merged 2026-10-11): below `md`, a bottom tab bar (`tab-bar.tsx`) with an Account bottom sheet. Phone Create has a sticky cost + Generate bar and sideways theme and idea rows. Phone Library has sideways ideas and filters and a full-screen player.
 
 ### D4: Quality bar
 
-- [~] **Accessibility audit, desktop core loop** (PR `ceo-design/d4-a11y-audit`, 2026-10-11): axe (WCAG 2.2 A/AA) found 0 violations on Create (4 states), Library, landing, login and pricing in both themes. The manual pass fixed 8 smaller issues: page titles, a skip link, arrow keys in the theme picker, focus return from the account menu, reliable status messages (cost/plan changes, "video is ready"), reduced-motion spinners and 24px text targets. Report: `docs/design/d4-a11y-audit.md`. No visual change, so it needs no canvas.
-- [ ] **Audit, mobile + landing:** repeat once D3 and L ship (44px touch targets, 390px). Plus a real screen-reader smoke test (VoiceOver/NVDA) by a person.
+- [x] **Accessibility audit, desktop core loop** (PR #42, merged 2026-10-11): axe (WCAG 2.2 A/AA) found 0 violations on Create (4 states), Library, landing, login and pricing in both themes. The manual pass fixed 8 smaller issues: page titles, a skip link, arrow keys in the theme picker, focus return from the account menu, reliable status messages (cost/plan changes, "video is ready"), reduced-motion spinners and 24px text targets. Report: `docs/design/d4-a11y-audit.md`. No visual change, so it needs no canvas.
+- [~] **Audit, phones + landing** (PR `ceo-design/d4-mobile-audit`, 2026-10-11): axe found 0 violations at 390px in both themes (landing, login, Create, plan-locked Create, Library). Five touch-target fixes bring the header, footer, idea chips, the "Use … instead" link and the filter chips to 44px on phones. The tab bar and Account sheet keyboard check passed. The login form stays with the auth-screens item in Later. Report: `docs/design/d4-a11y-audit.md` (part 2).
 
 ### Later (out of the current charter, needs owner sign-off)
 
@@ -150,6 +150,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 7. Changelog
 
+- **2026-10-11** — Landing (#43) and D3 (#44) shipped. D4 part 2 (phones + landing) in review on `ceo-design/d4-mobile-audit`. Left: a real screen-reader run by a person, theme sample stills (needs a live image run), and the Later items (pricing and auth screens, home dashboard). (Design CEO, interactive)
 - **2026-10-11** — D3 mobile code in review on `ceo-design/d3-mobile` (stacked on the landing PR). (Design CEO, interactive)
 - **2026-10-11** — Tudor approved the Landing and D3 canvases. Landing code is in review on `ceo-design/landing`; D3 code follows. (Design CEO, interactive)
 - **2026-10-11** — The Landing and D3 canvases (PR #40) are still waiting on Tudor, so the routine took D4 for the shipped desktop loop. axe was clean in both themes, and 8 manual findings were fixed on `ceo-design/d4-a11y-audit` (report in `docs/design/d4-a11y-audit.md`). (Design CEO, routine)

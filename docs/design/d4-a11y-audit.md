@@ -67,3 +67,39 @@ state or boundary. Use `line-strong` (3.4:1 or more) for that.
 
 Library after the fixes (no visual change apart from the 24px retry link):
 [light](d4/library-light.png) · [dark](d4/library-dark.png)
+
+---
+
+# D4, part 2: phones (390px) and the landing page — 2026-10-11
+
+Scope: everything shipped by item L (#43) and D3 (#44). That covers the landing, login (the `?idea=` hand-off), Create (normal and plan-locked) and the Library, plus the bottom tab bar and the Account sheet. Each was checked at 390×844 with touch emulation and reduced motion on, in light and dark.
+
+## Method
+
+- **axe-core 4.10** (WCAG 2.0/2.1/2.2 A + AA), same setup as part 1. Create and Library were again mounted with fixture props on a throwaway route that was **not committed**. The landing and login ran on their real routes.
+- **Touch targets:** a script measured every visible link, button, input and radio, and listed anything under the charter's 44px phone target. Links inside a sentence are exempt under 2.5.8 and are only listed.
+- **Keyboard:** Tab order through the tab bar, then opening the Account sheet, trapping focus, closing it with Esc and returning focus.
+
+## Results
+
+axe found **0 violations** on every page, in both themes.
+
+| #   | Finding at 390px                                                        | Fix (phones only, desktop unchanged)      |
+| --- | ----------------------------------------------------------------------- | ----------------------------------------- |
+| 1   | Header logo link 32px, "Pricing" 39px, "Log in" 40px, credits pill 38px | `max-md:min-h-11` (44px)                  |
+| 2   | Footer links 16px tall                                                  | 44px tall, at least 45px wide             |
+| 3   | Create idea chips 40px                                                  | 44px on phones (36px from `sm` as before) |
+| 4   | "Use 30s / Standard instead" 24px                                       | 44px on phones                            |
+| 5   | Library filter chips 40px                                               | 44px on phones                            |
+
+Already fine:
+
+- Tab bar items are 52px tall and Create is 56×44.
+- The Account sheet is a native modal `<dialog>`: focus stays inside after 12 Tabs, Esc closes it, and focus returns to the Account button.
+- Sideways rows (themes, ideas, filters) are all reachable by Tab and arrow keys.
+
+## Still open
+
+- **Login form** (inputs 38px, button 36px, "Have an account?" 20px): auth screens are in _Later_ (DesignPlan §4), so this is left to that redesign.
+- Inline text links ("See plans", "See full pricing", Terms/Privacy inside sentences) are exempt under 2.5.8.
+- **Screen-reader smoke test** with VoiceOver (iOS) and NVDA or TalkBack on a real device: needs a person.

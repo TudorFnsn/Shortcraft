@@ -121,7 +121,7 @@ export function LibraryGrid({
               aria-checked={checked}
               tabIndex={checked ? 0 : -1}
               onClick={() => setFilter(f.id)}
-              className={`text-ink inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm whitespace-nowrap transition-colors ${
+              className={`text-ink inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm whitespace-nowrap transition-colors md:min-h-10 ${
                 checked
                   ? 'bg-raised border-ink font-semibold'
                   : 'border-line-strong hover:bg-raised font-medium'
