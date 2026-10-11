@@ -9,6 +9,7 @@ import { SignOutButton } from './sign-out-button';
 export function AccountMenu({ email }: { email: string | null }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const initial = (email?.trim()[0] ?? '?').toUpperCase();
 
@@ -18,7 +19,10 @@ export function AccountMenu({ email }: { email: string | null }) {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      // Closing unmounts the panel; keep keyboard focus on the trigger.
+      if (rootRef.current?.contains(document.activeElement)) buttonRef.current?.focus();
     };
     document.addEventListener('pointerdown', onPointer);
     document.addEventListener('keydown', onKey);
@@ -31,6 +35,7 @@ export function AccountMenu({ email }: { email: string | null }) {
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label="Account menu"
         aria-expanded={open}

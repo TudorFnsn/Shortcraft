@@ -184,6 +184,19 @@ export function CreateForm({
     }
   }
 
+  // Spoken when the cost or plan state changes. One live region that is always in
+  // the page, because a region that mounts with its text is often not announced.
+  const notice =
+    state.primary.kind === 'top-up'
+      ? `Not enough credits for ${sel.durationSec}s.${
+          affordableLength ? ` ${affordableLength}s fits your balance.` : ''
+        }`
+      : locked && state.upgradePlan
+        ? state.tierLocked
+          ? `Premium AI video comes with ${state.upgradePlan.name}.`
+          : `${sel.durationSec}s videos come with ${state.upgradePlan.name}.`
+        : '';
+
   const moderation = failure?.kind === 'moderation' ? failure : null;
   const otherError = failure?.kind === 'other' ? failure : null;
 
@@ -538,8 +551,12 @@ export function CreateForm({
           )}
         </div>
 
+        <p role="status" className="sr-only">
+          {notice}
+        </p>
+
         {state.primary.kind === 'top-up' && (
-          <div role="status" className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5">
             <span className="text-danger text-[15px] leading-5 font-semibold">
               Not enough credits for {sel.durationSec}s.
             </span>
@@ -570,7 +587,7 @@ export function CreateForm({
         )}
 
         {locked && state.upgradePlan && (
-          <div role="status" className="bg-ember-soft rounded-card flex flex-col gap-2.5 p-4">
+          <div className="bg-ember-soft rounded-card flex flex-col gap-2.5 p-4">
             <span className="text-ink text-[15px] leading-5 font-semibold">
               {state.tierLocked
                 ? `Premium AI video comes with ${state.upgradePlan.name}`
@@ -586,7 +603,7 @@ export function CreateForm({
               onClick={() =>
                 update(state.tierLocked ? { tier: 'standard' } : { durationSec: longestOnPlan })
               }
-              className="text-ember-ink self-start text-sm font-semibold underline underline-offset-2"
+              className="text-ember-ink inline-flex min-h-6 items-center self-start text-sm font-semibold underline underline-offset-2"
             >
               {state.tierLocked ? 'Use Standard instead' : `Use ${longestOnPlan}s instead`}
             </button>

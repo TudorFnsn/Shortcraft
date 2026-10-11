@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   countByFilter,
+  finishedMessage,
   librarySummary,
   stepOf,
   timeAgo,
@@ -167,5 +168,29 @@ describe('Make another like this', () => {
   it('ignores a bogus length or quality in the link', () => {
     const sel = initialSelection({ params: { len: '45', tier: 'ultra-hd' }, lastJob: null });
     expect(sel).toMatchObject({ durationSec: 15, tier: 'standard' });
+  });
+});
+
+describe('finishedMessage', () => {
+  const card = (patch: Partial<RenderJobRecord>) => toCard(job(patch), NOW);
+
+  it('announces videos that finished or failed since the last poll', () => {
+    const before = [
+      card({ id: 'a', status: 'subtitles', title: 'Honey' }),
+      card({ id: 'b', status: 'clips', title: 'Owls' }),
+      card({ id: 'c', status: 'done', title: 'Old one' }),
+    ];
+    const after = [
+      card({ id: 'a', status: 'done', title: 'Honey' }),
+      card({ id: 'b', status: 'failed', title: 'Owls' }),
+      card({ id: 'c', status: 'done', title: 'Old one' }),
+    ];
+    expect(finishedMessage(before, after)).toBe("Honey is ready. Owls didn't finish.");
+  });
+
+  it('stays quiet when nothing changed or a video is new', () => {
+    const working = [card({ id: 'a', status: 'clips' })];
+    expect(finishedMessage(working, working)).toBe('');
+    expect(finishedMessage([], [card({ id: 'z', status: 'done' })])).toBe('');
   });
 });

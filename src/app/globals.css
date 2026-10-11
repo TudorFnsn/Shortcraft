@@ -121,5 +121,8 @@ body {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    /* Infinite loops (spinners) would otherwise flicker at 0.01ms per turn. */
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }

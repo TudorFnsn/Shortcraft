@@ -1,6 +1,7 @@
 'use client';
 
 import { useLayoutEffect, useSyncExternalStore } from 'react';
+import { onRadioKeyDown } from '@/components/ui/radio-keys';
 import {
   applyThemeAttribute,
   readThemeChoice,
@@ -72,7 +73,19 @@ export function ThemeToggle() {
   }
 
   return (
-    <div role="radiogroup" aria-label="Theme" className="bg-raised flex gap-1 rounded-xl p-1">
+    <div
+      role="radiogroup"
+      aria-label="Theme"
+      onKeyDown={(e) =>
+        onRadioKeyDown(
+          e,
+          OPTIONS.map((o) => o.id),
+          choice,
+          pick,
+        )
+      }
+      className="bg-raised flex gap-1 rounded-xl p-1"
+    >
       {OPTIONS.map((o) => {
         const on = o.id === choice;
         return (
@@ -81,6 +94,7 @@ export function ThemeToggle() {
             type="button"
             role="radio"
             aria-checked={on}
+            tabIndex={on ? 0 : -1}
             onClick={() => pick(o.id)}
             className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[9px] px-2 text-sm transition-colors ${
               on ? 'bg-surface font-semibold shadow-sm' : 'text-ink-muted hover:text-ink'

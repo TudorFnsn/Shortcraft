@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { siteConfig } from '@/config/site';
 import { getCurrentUser } from '@/features/auth/session';
 import { getStore } from '@/features/render/store';
 import { buttonClasses } from '@/components/ui/button';
@@ -7,6 +9,8 @@ import { AutoRefresh } from './auto-refresh';
 import { DailyIdeas } from './daily-ideas';
 import { LibraryGrid } from './library-grid';
 import { anyWorking, librarySummary, toCard } from './library';
+
+export const metadata: Metadata = { title: `Your videos — ${siteConfig.name}` };
 
 export default async function LibraryPage() {
   const user = await getCurrentUser();

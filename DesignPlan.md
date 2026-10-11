@@ -5,7 +5,7 @@
 > priority; this file wins on how the app looks and feels. Every design PR
 > updates this file (screen status + changelog) in the same change.
 >
-> Last updated: 2026-10-10
+> Last updated: 2026-10-11
 
 ---
 
@@ -116,7 +116,8 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D4: Quality bar
 
-- [ ] Accessibility audit (WCAG 2.2 AA, both themes, keyboard-only run). Before/after screenshots in each PR.
+- [~] **Accessibility audit, desktop core loop** (PR `ceo-design/d4-a11y-audit`, 2026-10-11): axe (WCAG 2.2 A/AA) found 0 violations on Create (4 states), Library, landing, login and pricing in both themes. The manual pass fixed 8 smaller issues: page titles, a skip link, arrow keys in the theme picker, focus return from the account menu, reliable status messages (cost/plan changes, "video is ready"), reduced-motion spinners and 24px text targets. Report: `docs/design/d4-a11y-audit.md`. No visual change, so it needs no canvas.
+- [ ] **Audit, mobile + landing:** repeat once D3 and L ship (44px touch targets, 390px). Plus a real screen-reader smoke test (VoiceOver/NVDA) by a person.
 
 ### Later (out of the current charter, needs owner sign-off)
 
@@ -149,6 +150,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 7. Changelog
 
+- **2026-10-11** — The Landing and D3 canvases (PR #40) are still waiting on Tudor, so the routine took D4 for the shipped desktop loop. axe was clean in both themes, and 8 manual findings were fixed on `ceo-design/d4-a11y-audit` (report in `docs/design/d4-a11y-audit.md`). (Design CEO, routine)
 - **2026-10-10** — D2 shipped (PR #39). Tudor added the landing page to the scope ("continue with d3 after redesigning the landing page"). Landing and D3 mobile canvases published, both waiting on approval (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D2 Library canvas and its three decisions. The D2 code is in review on `ceo-design/d2-library`. Next: D3 mobile canvas. (Design CEO, interactive)
 - **2026-10-10** — D1 shipped (PR #37: Create rebuild, one-tap first video, Today's ideas). D2 Library canvas published, waiting on Tudor's approval and three decisions (§8). (Design CEO, interactive)
@@ -176,6 +178,8 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 3. **Account opens as a bottom sheet** (credits, plan, appearance picker, pricing, terms, sign out), not a separate page.
 
 - **Landing page added to the design scope** (2026-10-10, owner) → the landing inherits Paper & Ember and gets its own canvas → approval → code item (L). Pricing and auth screens stay in Later.
+
+- **D4 audit runs before D3** (2026-10-11, routine) → the D3 and Landing canvases are gated on Tudor. D4's desktop half covers code that has already shipped and been approved, and it changes nothing visible, so it needs no new canvas. The mobile/landing half waits for D3 and L.
 
 - **D2 Library canvas approved** (2026-10-10, owner: "D2 approved. 1. first option. 2. first option. 3.yes"):
   1. **5 columns at 1440, 4 at 1024** (3 on tablets, 2 on phones).

@@ -6,7 +6,13 @@ import { useRouter } from 'next/navigation';
 import { anotherLikeHref } from '@/components/ideas';
 import { buttonClasses } from '@/components/ui/button';
 import { onRadioKeyDown } from '@/components/ui/radio-keys';
-import { STEP_COUNT, countByFilter, type Filter, type LibraryCard } from './library';
+import {
+  STEP_COUNT,
+  countByFilter,
+  finishedMessage,
+  type Filter,
+  type LibraryCard,
+} from './library';
 import { VideoThumb } from './video-thumb';
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -34,6 +40,16 @@ export function LibraryGrid({
   const [retrying, setRetrying] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Tell screen readers when a video finishes while the Library polls. Compares
+  // with the previous render's cards (React's "adjust state on prop change").
+  const [prevCards, setPrevCards] = useState(cards);
+  const [finished, setFinished] = useState('');
+  if (cards !== prevCards) {
+    setPrevCards(cards);
+    const message = finishedMessage(prevCards, cards);
+    if (message) setFinished(message);
+  }
 
   const counts = countByFilter(cards);
   const shown = cards.filter((c) => filter === 'all' || c.kind === filter);
@@ -222,7 +238,7 @@ export function LibraryGrid({
                   ) : (
                     <Link
                       href="/pricing"
-                      className="text-ember-ink mt-1 text-sm font-semibold underline underline-offset-2"
+                      className="text-ember-ink mt-1 inline-flex min-h-6 items-center text-sm font-semibold underline underline-offset-2"
                     >
                       Get credits to try again
                     </Link>
@@ -247,6 +263,10 @@ export function LibraryGrid({
           onCopied={() => flash('Title copied')}
         />
       )}
+
+      <p role="status" className="sr-only">
+        {finished}
+      </p>
 
       <div
         role="status"
