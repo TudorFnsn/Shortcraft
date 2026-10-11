@@ -102,11 +102,16 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### D2: Library (desktop first)
 
 - [✓] **Canvas** (https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT): the Library at 1440 and 1024, light + dark, Today's ideas, filter chips, the 9:16 grid, in-progress, failed, player sheet and empty Library. **Approved by Tudor 2026-10-10** with the three decisions in §8.
-- [~] **Code** (PR `ceo-design/d2-library`): `src/app/gallery/*` rebuilt to the canvas. The view model lives in `library.ts` (unit-tested). The grid, filters, one-click retry and player sheet live in `library-grid.tsx`; the sheet is a native modal `<dialog>`, so focus is trapped and Esc closes it. Thumbnails come from `video-thumb.tsx` (`/api/jobs/:id/thumbnail`, falling back to the drawn theme frame). The existing 4s refresh keeps polling while a video is in progress. "Make another like this" passes `len`/`tier` to Create (`composer.ts`). Nothing touches credits, billing or the pipeline.
+- [x] **Code** (PR #39, merged 2026-10-10): `src/app/gallery/*` rebuilt to the canvas. The view model is in `library.ts` (unit-tested). The grid, filters, one-click retry and native `<dialog>` player sheet are in `library-grid.tsx`, and thumbnails in `video-thumb.tsx`. "Make another like this" passes `len`/`tier` to Create.
+
+### L: Landing page (owner-approved scope, 2026-10-10)
+
+- [~] **Canvas** (https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC, published 2026-10-10, **waiting on Tudor**): the logged-out landing at 1440 and 390, light + dark. It has a hero with an idea box and a fan of 9:16 frames, How it works (3 steps), the eight themes, what's in the file, a pricing teaser with the real plans, and a final CTA. Every claim comes from the product (trial credits, plans.ts, the real steps). No testimonials or stats yet.
+- [ ] **Code:** `src/app/page.tsx` (+ `src/components/landing/*`). The hero idea box carries the idea through sign-up into Create (`/create?idea=…`).
 
 ### D3: Mobile pass
 
-- [ ] **Canvas:** Create and Library at 390px, bottom tab bar.
+- [~] **Canvas** (https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7, published 2026-10-10, **waiting on Tudor**): Create, Library (light + dark), the player sheet and the Account sheet at 390×844, with a bottom tab bar (Library · Create · Account). Create is one scroll with a sticky cost + Generate bar. Open decisions are in §8.
 - [ ] **Code:** responsive implementation. Create becomes a single scroll with a sticky Generate bar.
 
 ### D4: Quality bar
@@ -115,7 +120,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### Later (out of the current charter, needs owner sign-off)
 
-Home dashboard · fuller onboarding (beyond the one-tap first video) · landing + pricing redesign · auth screens.
+Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing page redesign · auth screens.
 
 ---
 
@@ -124,7 +129,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 - **Read first:** `TheMasterPlan.md`, then this file, then `git log -20`, open and recent PRs (`gh pr list --state all --limit 20`), and the canvas comments when the canvas is reachable.
 - **One item per run:** take the top unchecked item in §4 that is not already in an open `ceo-design/*` PR. Prefer improving an open design PR over starting a new one.
 - **Approval gate:** never open a code PR for a screen whose canvas item is not `[✓]`. Only Tudor sets `[✓]`, through a canvas comment or an edit to this file.
-- **Files it may change:** `src/app/create/**`, `src/app/gallery/**`, `src/components/**`, `src/app/globals.css`, `src/app/layout.tsx`, `public/**`, this file, and the Design-track lines of `TheMasterPlan.md`. Small read-only data helpers for D2 are allowed. It never touches `src/features/credits|billing`, migrations, webhooks, providers or pricing.
+- **Files it may change:** `src/app/create/**`, `src/app/gallery/**`, `src/components/**`, `src/app/globals.css`, `src/app/layout.tsx`, `src/app/page.tsx` + `src/components/landing/**` (landing, owner-approved 2026-10-10), `public/**`, this file, and the Design-track lines of `TheMasterPlan.md`. Small read-only data helpers for D2 are allowed. It never touches `src/features/credits|billing`, migrations, webhooks, providers or pricing.
 - **Bar:** `npm run format:check && npm run lint && npm run typecheck && npm test && npx next build` all pass in mock mode. Every page still works with JavaScript-light server rendering, and both themes reach AA.
 - **Output:** a digest with what moved, the canvas and PR links, what is waiting on Tudor, and the next item.
 
@@ -135,6 +140,8 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 - Design canvas (D0 Direction): https://claude.ai/artifact/3gMxoCVVP4AKatSL7bJZYJ — three directions (A Paper & Ember, B Night Studio, C Sage Room), Create + Library each, light + dark. Private to Tudor; share it from its Share menu if a routine or teammate must read it.
 - D1 Create canvas: https://claude.ai/artifact/P9KyYHKzwai14M61UvsKce: 16 artboards (4 layouts + 6 states × 2 themes), built on the Paper & Ember tokens, credit numbers from the real estimator. Private to Tudor.
 - D2 Library canvas: https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT: 8 artboards (grid at 1440/1024, player sheet, empty Library × light/dark). Private to Tudor.
+- Landing canvas: https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC: 4 artboards (1440 + 390, light/dark). Private to Tudor.
+- D3 Mobile canvas: https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7: 6 phone artboards (Create and Library light/dark, player sheet, Account sheet). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
@@ -142,6 +149,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 
 ## 7. Changelog
 
+- **2026-10-10** — D2 shipped (PR #39). Tudor added the landing page to the scope ("continue with d3 after redesigning the landing page"). Landing and D3 mobile canvases published, both waiting on approval (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D2 Library canvas and its three decisions. The D2 code is in review on `ceo-design/d2-library`. Next: D3 mobile canvas. (Design CEO, interactive)
 - **2026-10-10** — D1 shipped (PR #37: Create rebuild, one-tap first video, Today's ideas). D2 Library canvas published, waiting on Tudor's approval and three decisions (§8). (Design CEO, interactive)
 - **2026-10-10** — Tudor approved the D1 Create canvas and its three decisions, plus the two activation/retention ideas. PR #35 merged with the canvas docs only, so the Create rebuild, the one-tap first video and the Library's Today's ideas row follow in their own PR (same branch, restarted from main). (Design CEO, interactive)
@@ -154,6 +162,20 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · landing 
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+**Open — waiting on Tudor (Landing canvas):**
+
+1. **Headline:** "Post a Short every day without showing your face." (alternative: "Type an idea. Get a vertical video.")
+2. **The hero idea box** goes to sign-up, and the idea is waiting in Create after login (`/create?idea=…`). This touches the login redirect (one line in `src/app/login`), so it needs your OK.
+3. **Pricing teaser on the landing:** 3 plans with "about N videos of 15s" (from the ~2,024-credit estimate) + top-ups from €12, linking to the full /pricing.
+
+**Open — waiting on Tudor (D3 Mobile canvas):**
+
+1. **Create on a phone drops the big phone preview.** The selected theme card and the sticky cost + Generate bar carry it.
+2. **Themes and Today's ideas become sideways-scrolling rows** on a phone instead of grids.
+3. **Account opens as a bottom sheet** (credits, plan, appearance picker, pricing, terms, sign out), not a separate page.
+
+- **Landing page added to the design scope** (2026-10-10, owner) → the landing inherits Paper & Ember and gets its own canvas → approval → code item (L). Pricing and auth screens stay in Later.
 
 - **D2 Library canvas approved** (2026-10-10, owner: "D2 approved. 1. first option. 2. first option. 3.yes"):
   1. **5 columns at 1440, 4 at 1024** (3 on tablets, 2 on phones).
