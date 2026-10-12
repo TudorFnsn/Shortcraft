@@ -106,8 +106,8 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 ### D2.1: Library follow-up (from TheMasterPlan §5, Moderation "still to do")
 
-- [ ] **Canvas** (https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ): the failed card for a video our safety check stopped (job error starts with `moderation_blocked`), at 1440 and 390, light + dark. It drops "Try again" (the same script would be blocked again), offers "Try a different idea" (Create with the same theme, length and quality plus a fresh idea from that theme) and a "What we don't make" link to the Terms. The copy never repeats the prompt; the refund line stays. Every other failed card is unchanged. **Waiting on Tudor** (§8 open questions).
-- [ ] **Code** (after approval): `library.ts` gets a `blocked` flag from `job.error` (unit-tested) and `library-grid.tsx` draws the variant. No API, credits or moderation changes.
+- [✓] **Canvas** (https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ): the failed card for a video our safety check stopped (job error starts with `moderation_blocked`), at 1440 and 390, light + dark. It drops "Try again" (the same script would be blocked again), offers "Try a different idea" (Create with the same theme, length and quality plus a fresh idea from that theme) and a "What we don't make" link to the Terms. The copy never repeats the prompt; the refund line stays. Every other failed card is unchanged. **Approved by Tudor 2026-10-12** with the recommended answers (§8).
+- [~] **Code** (PR `ceo-design/d2-blocked-card`, 2026-10-12): `library.ts` sets `blocked` from `job.error` (`isModerationBlock`, unit-tested) and announces "<title> wasn't made" to screen readers; `library-grid.tsx` draws the variant. "Try a different idea" reuses `anotherLikeHref`. No API, credits or moderation changes.
 
 ### L: Landing page (owner-approved scope, 2026-10-10)
 
@@ -156,6 +156,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 7. Changelog
 
+- **2026-10-12** — Tudor approved the D2.1 canvas. The code is in review on `ceo-design/d2-blocked-card`. Once it ships, the routine pauses (decision 4). (Design CEO, interactive)
 - **2026-10-12** — D4 part 2 marked shipped (PR #45). D0–D4 are now all shipped; what is left needs a person (screen-reader run) or a paid image run (theme stills). Picked up the one design item TheMasterPlan still assigns to this track, a friendly Library card for videos the safety check stopped: canvas published for review (D2.1). (Design CEO, routine)
 - **2026-10-11** — Landing (#43) and D3 (#44) shipped. D4 part 2 (phones + landing) in review on `ceo-design/d4-mobile-audit`. Left: a real screen-reader run by a person, theme sample stills (needs a live image run), and the Later items (pricing and auth screens, home dashboard). (Design CEO, interactive)
 - **2026-10-11** — D3 mobile code in review on `ceo-design/d3-mobile` (stacked on the landing PR). (Design CEO, interactive)
@@ -175,11 +176,11 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 8. Decision log
 
-- **Open for Tudor: D2.1 blocked-video card** (2026-10-12, routine). Recommended answers in brackets:
-  1. Replace "Try again" with "Try a different idea" on blocked cards? [yes: retrying the same topic would very likely be blocked again]
-  2. One generic reason line ("The script asked for images Shortcraft doesn't make") rather than one per category? [yes: calmer, and never hints at what was asked]
-  3. Keep blocked cards under the existing "Didn't finish" filter rather than a new chip? [yes]
-  4. Pause the Design CEO routine after D2.1 ships, as §1 says ("pause once the core loop ships")? [yes, unless you want the Later items next]
+- **D2.1 blocked-video card approved** (2026-10-12, owner: "D2.1 approved"), with the recommended answers:
+  1. Blocked cards offer **"Try a different idea"** instead of "Try again" (the same topic would very likely be blocked again).
+  2. **One generic reason line** ("The script asked for images Shortcraft doesn't make"), not one per category: calmer, and it never hints at what was asked.
+  3. Blocked cards stay under the existing **Failed** filter (the canvas drew it as "Didn't finish"; the shipped label stays).
+  4. **Pause the Design CEO routine once D2.1 ships**, as §1 says.
 
 - **Landing and D3 canvases approved** (2026-10-11, owner: "approve everything and start implementing"), with the recommended answers:
   - Landing: (1) headline "Post a Short every day without showing your face."; (2) the hero idea box carries the idea through sign-up into Create (one change in `src/app/login`); (3) a pricing teaser with the real plans, linking to /pricing.

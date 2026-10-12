@@ -200,7 +200,52 @@ export function LibraryGrid({
                 </div>
               )}
 
-              {c.kind === 'failed' && (
+              {c.kind === 'failed' && c.blocked && (
+                <div className="rounded-card bg-raised flex aspect-[9/16] flex-col items-center justify-center gap-2.5 p-4 text-center">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    className="text-ink-muted"
+                  >
+                    <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />
+                    <path d="M12 8v4" />
+                    <path d="M12 15.5h.01" />
+                  </svg>
+                  <span className="text-[15px] leading-5 font-semibold">
+                    We didn&apos;t make this one
+                  </span>
+                  <span className="text-ink-muted text-[13px] leading-[18px]">
+                    The script asked for images Shortcraft doesn&apos;t make, so we stopped before
+                    drawing anything. Your credits were refunded.
+                  </span>
+                  <Link
+                    href={anotherLikeHref(c)}
+                    aria-label={`Try a different idea instead of ${c.title}`}
+                    className={buttonClasses({
+                      variant: 'secondary',
+                      size: 'sm',
+                      className: 'mt-1 min-h-11',
+                    })}
+                  >
+                    Try a different idea
+                  </Link>
+                  <Link
+                    href="/terms#acceptable-use"
+                    className="text-ember-ink inline-flex min-h-11 items-center text-[13px] font-medium underline underline-offset-2 md:min-h-6"
+                  >
+                    What we don&apos;t make
+                  </Link>
+                </div>
+              )}
+
+              {c.kind === 'failed' && !c.blocked && (
                 <div className="rounded-card bg-raised flex aspect-[9/16] flex-col items-center justify-center gap-2.5 p-4 text-center">
                   <svg
                     width="28"
