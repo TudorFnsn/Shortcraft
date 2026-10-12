@@ -52,7 +52,9 @@ const SceneSchema = z.object({
 });
 const ScriptSchema = z.object({
   title: z.string().describe('A short, hooky title for the video.'),
-  scenes: z.array(SceneSchema),
+  scenes: z
+    .array(SceneSchema)
+    .describe('In order. The last scene concludes the video; it never sets up more content.'),
 });
 type ParsedScript = z.infer<typeof ScriptSchema>;
 
@@ -67,12 +69,24 @@ export function costUsdFor(
   return (usage.input_tokens * inPerM + usage.output_tokens * outPerM) / 1_000_000;
 }
 
+/**
+ * Speaking rate the word budget assumes. Deliberately a little slower than real
+ * TTS (~2.5–2.8 wps) so narration fits its scenes with room to land the ending.
+ */
+export const WORDS_PER_SEC = 2.2;
+
 export function buildScriptPrompt(input: ScriptInput): { system: string; user: string } {
   const theme = THEMES.find((t) => t.id === input.themeId);
   const scenes = estimateSceneCount(input.targetDurationSec);
+  const totalWords = Math.floor(input.targetDurationSec * WORDS_PER_SEC);
   const system = [
     'You write scripts for short vertical videos (TikTok, Reels, Shorts) that are narrated',
     'over AI-generated images. The first scene must hook the viewer in under two seconds.',
+    'Every script is a complete story, however short: hook, then the substance, then an',
+    'ending. The final scene is the conclusion: it pays off the hook with a clear takeaway,',
+    'answer or punchline, and its last sentence sounds final when spoken. Never end on a',
+    'teaser, a cliffhanger, a list that trails off or "follow for part two". A 15-second',
+    'video still needs a real ending; cut detail from the middle, never the conclusion.',
     'Narration is spoken aloud, so write it the way people talk: short sentences, no stage',
     'directions, no emojis, no hashtags. Image prompts describe one concrete visual each and',
     'never include text, captions or logos. Motion prompts bring that image to life: name what',
@@ -85,8 +99,10 @@ export function buildScriptPrompt(input: ScriptInput): { system: string; user: s
     theme ? `Style: ${theme.label} — ${theme.blurb}` : `Style: ${input.themeId}`,
     `Language for title and narration: ${input.language}. Image and motion prompts in English.`,
     `Target length: about ${input.targetDurationSec} seconds, in exactly ${scenes} scenes of at`,
-    `most ${MAX_SCENE_SEC} seconds each. Speak about 2.5 words per second, so keep each scene's`,
-    `narration under ${Math.floor(MAX_SCENE_SEC * 2.5)} words.`,
+    `most ${MAX_SCENE_SEC} seconds each. Budget ${WORDS_PER_SEC} spoken words per second: about`,
+    `${totalWords} words of narration in total, and no scene longer than durationSec × ${WORDS_PER_SEC}`,
+    `words (never more than ${Math.floor(MAX_SCENE_SEC * WORDS_PER_SEC)}).`,
+    `Scene ${scenes} is the conclusion; plan the script backwards from it so it fits.`,
   ].join('\n');
   return { system, user };
 }

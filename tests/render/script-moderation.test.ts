@@ -68,8 +68,9 @@ describe('generated scene prompts are moderated before any image is made', () =>
   it('fails a job whose script asks for an explicit image, refunds it, and generates nothing', async () => {
     const { res, store, jobId, start, imageCalls } = await runWithScript([
       'a dancer warming up in an empty studio',
-      'a nude woman posing on the stage',
+      // Over budget (12s → 2 scenes): extras go from the middle, the last scene stays.
       'applause from the crowd',
+      'a nude woman posing on the stage',
     ]);
 
     expect(res.ok).toBe(false);

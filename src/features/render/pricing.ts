@@ -44,15 +44,20 @@ export function estimateJobCredits(input: JobEstimateInput): number {
 /**
  * Clamp a script's scene plan to what the estimate paid for: at most
  * `estimateSceneCount` scenes, each at most MAX_SCENE_SEC long. Guards the hold
- * against a script model that over-delivers.
+ * against a script model that over-delivers. Extra scenes come out of the
+ * middle, never the end: the last scene is the video's conclusion.
  */
-export function fitScenesToBudget<S extends { durationSec: number }>(
+export function fitScenesToBudget<S extends { durationSec: number; index?: number }>(
   scenes: readonly S[],
   targetDurationSec: number,
 ): S[] {
-  return scenes
-    .slice(0, estimateSceneCount(targetDurationSec))
-    .map((s) => ({ ...s, durationSec: Math.min(s.durationSec, MAX_SCENE_SEC) }));
+  const max = estimateSceneCount(targetDurationSec);
+  const kept = scenes.length > max ? [...scenes.slice(0, max - 1), scenes.at(-1)!] : scenes;
+  return kept.map((s, i) => ({
+    ...s,
+    ...(s.index === undefined ? {} : { index: i }),
+    durationSec: Math.min(s.durationSec, MAX_SCENE_SEC),
+  }));
 }
 
 /** What the user is actually billed: the metered cost, never more than the hold. */
