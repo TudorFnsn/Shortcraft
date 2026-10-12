@@ -22,8 +22,14 @@ export interface SubscriptionSnapshot {
 
 const isPlanId = (id: string): id is PlanId => Object.hasOwn(PLANS, id);
 
+/** True when the subscription is live and on a plan we sell (i.e. a paying subscriber). */
+export const isLiveSubscription = (
+  sub: SubscriptionSnapshot,
+): sub is SubscriptionSnapshot & { planId: PlanId } =>
+  LIVE_STATUSES.has(sub.status) && isPlanId(sub.planId);
+
 export function effectivePlanId(sub: SubscriptionSnapshot | null): PlanId {
-  if (!sub || !LIVE_STATUSES.has(sub.status) || !isPlanId(sub.planId)) return FREE_PLAN_ID;
+  if (!sub || !isLiveSubscription(sub)) return FREE_PLAN_ID;
   return sub.planId;
 }
 

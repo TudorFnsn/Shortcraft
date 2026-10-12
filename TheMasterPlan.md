@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-11
+> Last updated: 2026-10-12
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 336 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 349 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -75,11 +75,12 @@ src/features/
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
+  metrics/         north-star report math (weekly paying-retained creators, activation, trial→paid, failure rate)
 src/app/           landing, login, create, gallery, pricing, terms, privacy, api/{jobs,jobs/[id]/video,jobs/[id]/thumbnail,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc, 0007_pg_cron_sweep
-scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate)
+scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only)
 ```
 
 ---
@@ -132,7 +133,8 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
   4. **Tax:** decide Stripe Tax vs manual EU VAT before charging EU consumers (the margin gate already deducts VAT).
 - [ ] Later, with the Stripe connector: MRR/churn/cohort reporting via Stripe Sigma analytics for the weekly digest once there are paying users.
 - [~] **ffmpeg in production** _(PR `ceo/ffmpeg-static`, 2026-10-09)_: `ffmpeg-static` (ffmpeg 7.0.2, downloaded for the install platform at `npm install`) is a dependency; `resolveFfmpegPath` picks `FFMPEG_PATH` → the bundled build → PATH; `next.config.ts` traces the binary into `/api/jobs` and `/api/cron/advance-jobs` (~83 MB per function, limit 250 MB; a test fails if a new route drives the pipeline without it). Both routes already have `maxDuration = 300`. Found on the way: the AI-clip crossfade failed on ffmpeg ≥ 7 (fixed, regression test on the bundled binary). **Still to do:** measure a 60s Standard render's wall time on a Vercel function after deploy; if it doesn't fit, move render to a container job behind `RenderProvider`.
-- [ ] Sentry + PostHog wired, Resend transactional email. (CI ✅ done in Phase 1.)
+- [x] **North-star measurement, no vendor** _(PR `ceo/north-star-metrics`, 2026-10-12)_: `npx tsx scripts/metrics-report.mts` (read-only `select`s with the service role from `.env.local`; `--json` for the digest) prints weekly paying-retained creators, paying subscribers and the share of them who made a video this week, weekly creators/videos/signups, activation (7–14-day signup cohort with a finished video within 7 days), trial → paid (7–35-day cohort, any subscription grant or top-up), render failure rate, and a 4-week trend (past weeks use "paid by week end" as the paying proxy, since subscription history isn't stored). Math is pure and tested in `features/metrics/north-star.ts`. **Owner:** run it weekly (or let the CEO routine read it once a read-only DB path exists) and paste the numbers into §10; they decide what to work on next.
+- [ ] Sentry + PostHog wired, Resend transactional email. (CI ✅ done in Phase 1.) PostHog is now for funnels/attribution only (the north star comes from our DB); it needs the cookie banner first.
 - [~] Legal. **Done (2026-10-10, PR `ceo/legal-pages`): draft Terms of Service + Privacy Policy** at `/terms` and `/privacy` (content in `src/config/legal.ts`, tested against the config: trial credits, plan prices, every vendor that processes data, every moderation category), a refund/cancellation section at `/terms#refunds`, a site footer (Terms · Privacy · Refunds · support email), a sign-up notice, and a **required checkout consent** on `/pricing`: accept the Terms + request immediate delivery and waive the EU 14-day withdrawal right (CRD Art. 16(m)); `POST /api/checkout` returns 400 `terms_not_accepted` without it and stores `terms_version` + `withdrawal_waiver_at` on the Checkout Session, subscription and payment intent (no migration). Pages show a "Draft" banner while `LEGAL_DRAFT = true`. **Owner, before live payments:** fill `operator` in `src/config/legal.ts` (legal name, address, country, company/VAT no.), review the text (ideally with a lawyer), approve the money commitments flagged in §11, set `LEGAL_DRAFT = false`, and enter the `/terms` + `/privacy` URLs in Stripe (Settings → Public details) — Stripe's live-account review expects them. Cookie banner not needed while we set only auth cookies; required the day PostHog lands. **Done (2026-10-08, PR `ceo/ai-content-label`):** EU AI Act AI-generated labelling. Every in-house render carries a visible top-right "AI-generated" tag on every frame (drawn from the caption ASS file, so it costs no extra pass) and MP4 `comment`/`description` metadata saying it is AI-generated with Shortcraft. The overlay is now a required render input, so a render can't ship unlabelled; `scripts/render-smoke.mts` fails if the metadata is missing. **Still to do:** C2PA Content Credentials (signed provenance manifest; the standard TikTok/YouTube/Meta read to auto-apply their AI labels); account self-deletion (today: by email, as the Privacy Policy says); cookie banner (reject-all) together with analytics.
 - [x] **Free-trial watermark** (owner decision, 2026-10-08, same PR): videos from users who have never paid show "Made with Shortcraft" under the AI label; any subscription grant or top-up removes it for good (`PlanRepository.hasPaid`, read from the credit ledger, no migration). `/create` tells trial users and `/pricing` lists "No watermark" on every plan.
 
@@ -259,6 +261,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-12** — North-star report (app is live, and nothing measured the metric we steer by): `features/metrics/north-star.ts` (pure `computeNorthStar` + `formatRatio`) and `scripts/metrics-report.mts` (read-only, paged selects of `profiles`, `render_jobs`, `subscriptions` and paid `credit_transactions`). Exported `isLiveSubscription` from entitlements so "paying" means exactly what plan gating means. +5 tests (349). No migration, no new dependency, no runtime change. (CEO routine)
 - **2026-10-11** — Deployment strategy (owner request, app now live at `shortcraft-rho.vercel.app`): `docs/DEPLOYMENT.md` (Production = `main`, Preview = every PR and our staging, Development = local; per-environment variable matrix; release flow with branch protection; expand → deploy → contract migrations; smoke test; rollback; secrets hygiene). Code guards in `env.ts` (`applyDeploymentGuards`): Preview is forced onto mock providers unless `ALLOW_LIVE_PROVIDERS_IN_PREVIEW=true`, and a live Stripe key is ignored outside Production. `vercel.json` `ignoreCommand` skips builds for docs-only commits. +8 tests. (CEO, interactive)
 
 - **2026-10-11** — Vercel Speed Insights (owner request): `@vercel/speed-insights` + `<SpeedInsights />` in the root layout (Core Web Vitals per page, cookieless, a no-op outside Vercel). Privacy Policy updated: Vercel's processor line and the cookies section mention it (version 2026-10-11). Owner: enable Speed Insights in the Vercel project's tab. (CEO, interactive)
@@ -315,6 +318,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **The north star is computed from our own DB, not an analytics tool** (2026-10-12) → every input (signups, finished videos, live subscriptions, paid grants) is already in Postgres, so a read-only script measures it today with no vendor, no cookie banner and no client tracking. Counting only `done` videos keeps failed renders from looking like engagement; "paying" reuses `isLiveSubscription` so metrics and plan gating can't disagree. Subscription history isn't stored, so past weeks use "paid by week end" as a proxy; add a subscription-events table only if that proxy misleads. PostHog stays planned for funnels and attribution.
 - **Preview is staging, and it can't spend money** (2026-10-11) → Hobby has no custom environments, and every routine PR gets a Preview, so Previews run on mocks and test Stripe by default, enforced in code (fail closed), not only by dashboard checkboxes. A separate free `shortcraft-staging` Supabase project is recommended so previews never write to production data. Migrations stay owner-applied and additive (expand → deploy → contract) so an Instant Rollback never needs a schema rollback.
 
 - **Per-minute sweep runs from Supabase pg_cron, not Vercel Cron** (2026-10-11, owner) → keeps Vercel on the free Hobby plan (sub-daily crons fail the deploy) at no cost, with no new service. Secrets stay in Vault, never in a migration. The route returns 202 before doing work, so any scheduler with a short HTTP timeout can trigger it; the job lease still prevents double runs. Revisit if we move to Vercel Pro anyway.
