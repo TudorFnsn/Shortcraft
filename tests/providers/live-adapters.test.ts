@@ -125,6 +125,8 @@ describe('anthropic script adapter', () => {
     const { user } = buildScriptPrompt(scriptInput);
     expect(user).toContain(`exactly ${estimateSceneCount(15)} scenes`);
     expect(user).toContain('Fun Facts');
+    expect(user).toContain(`Scene ${estimateSceneCount(15)} is the conclusion`);
+    expect(buildScriptPrompt(scriptInput).system).toMatch(/final scene is the conclusion/);
     expect(() => toScriptOutput({ title: '', scenes: [] })).toThrow();
   });
 

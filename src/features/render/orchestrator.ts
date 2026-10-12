@@ -33,11 +33,13 @@ import type {
   ProviderOutcome,
   RenderClip,
   VideoOutput,
+  WordTiming,
 } from '@/features/providers/types';
 import { refundJob, reserveForJob, settleJob } from '@/features/credits/service';
 import { screenScenePrompts } from '@/features/moderation/prompt-check';
 import { advance, isTerminal, type RenderStatus } from './machine';
 import { billableCredits, estimateJobCredits, fitScenesToBudget } from './pricing';
+import { fitSlotsToVoice } from './timeline';
 import type { PlanRepository } from '@/features/billing/entitlements';
 import type {
   CreditRepository,
@@ -280,12 +282,13 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
     case 'stitching': {
       const fresh = await repo.getJob(job.id);
       if (!fresh?.voiceoverUrl) throw new Error('voiceover missing at stitching');
-      const clips = await buildClips(job, await repo.listScenes(job.id));
+      const words = fresh.words ?? [];
+      const clips = await buildClips(job, await repo.listScenes(job.id), words);
       const render = getRenderProvider();
       const input = {
         clips,
         voiceoverUrl: fresh.voiceoverUrl,
-        words: fresh.words ?? [],
+        words,
         subtitleStyleId: 'default',
         aspectRatio: '9:16' as const,
         // Decided at render time, so a user who upgrades mid-job gets a clean video.
@@ -325,14 +328,25 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
   }
 }
 
-/** Scene → render clip: an AI clip when the scene has one, else its animated still. */
-async function buildClips(job: RenderJobRecord, scenes: SceneRecord[]): Promise<RenderClip[]> {
+/**
+ * Scene → render clip: an AI clip when the scene has one, else its animated still.
+ * Slots are fitted to the voiceover so the video never cuts off the conclusion.
+ */
+async function buildClips(
+  job: RenderJobRecord,
+  scenes: SceneRecord[],
+  words: readonly WordTiming[],
+): Promise<RenderClip[]> {
   // The still's camera move is a pure function of the scene (local, free).
   const still = getVideoProvider(modelIdFor('video', 'standard'));
+  const slotsMs = fitSlotsToVoice(
+    scenes.map((s) => s.durationSec * 1000),
+    words,
+  );
   const clips: RenderClip[] = [];
   let startMs = 0;
-  for (const scene of scenes) {
-    const durationMs = scene.durationSec * 1000;
+  for (const [i, scene] of scenes.entries()) {
+    const durationMs = slotsMs[i]!;
     if (scene.videoUrl) {
       clips.push({
         kind: 'video',

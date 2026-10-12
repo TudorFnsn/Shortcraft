@@ -45,6 +45,18 @@ describe('fitScenesToBudget', () => {
     expect(fitted).toEqual({ durationSec: MAX_SCENE_SEC, narration: 'x' });
   });
 
+  it('keeps the concluding scene when dropping extras', () => {
+    const plan = Array.from({ length: 6 }, (_, index) => ({
+      index,
+      durationSec: 6,
+      narration: index === 5 ? 'the conclusion' : `beat ${index}`,
+    }));
+    const fitted = fitScenesToBudget(plan, 12);
+    expect(fitted).toHaveLength(estimateSceneCount(12));
+    expect(fitted.at(-1)?.narration).toBe('the conclusion');
+    expect(fitted.map((s) => s.index)).toEqual(fitted.map((_, i) => i));
+  });
+
   it('leaves a within-budget plan untouched', () => {
     const plan = [scene(4), scene(6)];
     expect(fitScenesToBudget(plan, 12)).toEqual(plan);
