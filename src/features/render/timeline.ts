@@ -15,7 +15,10 @@ export const END_HOLD_MS = 800;
 /** Shortest a scene may be squeezed to when the narration runs short. */
 export const MIN_SLOT_MS = 1500;
 
-export function fitSlotsToVoice(slotsMs: readonly number[], words: readonly WordTiming[]): number[] {
+export function fitSlotsToVoice(
+  slotsMs: readonly number[],
+  words: readonly WordTiming[],
+): number[] {
   const lastWordEnd = words.reduce((end, w) => Math.max(end, w.endMs), 0);
   const total = slotsMs.reduce((sum, ms) => sum + ms, 0);
   // No timings (or no slots): nothing to fit to, keep the script's plan.
