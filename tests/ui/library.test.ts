@@ -7,6 +7,7 @@ import {
   timeAgo,
   toCard,
   anyWorking,
+  isModerationBlock,
 } from '@/app/gallery/library';
 import { initialSelection } from '@/app/create/composer';
 import { anotherLikeHref, freshIdea, lookFor } from '@/components/ideas';
@@ -192,5 +193,32 @@ describe('finishedMessage', () => {
     const working = [card({ id: 'a', status: 'clips' })];
     expect(finishedMessage(working, working)).toBe('');
     expect(finishedMessage([], [card({ id: 'z', status: 'done' })])).toBe('');
+  });
+});
+
+describe('blocked by the safety check (D2.1)', () => {
+  const blockedError = 'moderation_blocked: scene 2 prompt (sexual_explicit)';
+
+  it('flags failed jobs the scene screen stopped, and only those', () => {
+    expect(isModerationBlock(blockedError)).toBe(true);
+    expect(isModerationBlock('provider_failed')).toBe(false);
+    expect(isModerationBlock(null)).toBe(false);
+    expect(toCard(job({ status: 'failed', error: blockedError }), NOW).blocked).toBe(true);
+    expect(toCard(job({ status: 'failed', error: 'fal timeout' }), NOW).blocked).toBe(false);
+    // A finished job never shows the blocked card, whatever its error says.
+    expect(toCard(job({ status: 'done', error: blockedError }), NOW).blocked).toBe(false);
+  });
+
+  it('stays under the Failed filter', () => {
+    const counts = countByFilter([toCard(job({ status: 'failed', error: blockedError }), NOW)]);
+    expect(counts.failed).toBe(1);
+  });
+
+  it('tells screen readers it was not made and was refunded', () => {
+    const before = [toCard(job({ id: 'a', status: 'scripting', title: 'Owls' }), NOW)];
+    const after = [
+      toCard(job({ id: 'a', status: 'failed', title: 'Owls', error: blockedError }), NOW),
+    ];
+    expect(finishedMessage(before, after)).toBe("Owls wasn't made. Your credits were refunded.");
   });
 });

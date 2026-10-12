@@ -46,6 +46,11 @@ export interface LibraryCard {
   isNew: boolean;
   /** The first scene image exists (from "clips" on), so a thumbnail can load. */
   hasThumb: boolean;
+  /**
+   * Failed because the safety check stopped the script (`moderation_blocked: …`).
+   * Retrying the same idea would be blocked again, so the card offers a new idea.
+   */
+  blocked: boolean;
   /** Live renders only: mock outputs aren't playable. */
   playable: boolean;
   step: number;
@@ -74,6 +79,10 @@ export function timeAgo(iso: string, now: Date): string {
   return `${MONTHS[then.getUTCMonth()]} ${then.getUTCDate()}`;
 }
 
+/** The orchestrator stores `moderation_blocked: scene N prompt (<category>)`. */
+export const isModerationBlock = (error: string | null): boolean =>
+  error?.startsWith('moderation_blocked') ?? false;
+
 const themeLabel = (id: string) => THEMES.find((t) => t.id === id)?.label ?? id;
 
 export function toCard(job: RenderJobRecord, now: Date): LibraryCard {
@@ -98,6 +107,7 @@ export function toCard(job: RenderJobRecord, now: Date): LibraryCard {
     }`,
     isNew: kind === 'ready' && now.getTime() - new Date(job.updatedAt).getTime() < DAY_MS,
     hasThumb: kind === 'ready' || imagesDone,
+    blocked: kind === 'failed' && isModerationBlock(job.error),
     playable: kind === 'ready' && Boolean(job.outputAssetUrl?.startsWith('https://')),
     step,
     stepLabel: label,
@@ -145,7 +155,13 @@ export function finishedMessage(
   const was = new Map(before.map((c) => [c.id, c.kind]));
   return after
     .filter((c) => was.get(c.id) === 'working' && c.kind !== 'working')
-    .map((c) => (c.kind === 'ready' ? `${c.title} is ready.` : `${c.title} didn't finish.`))
+    .map((c) =>
+      c.kind === 'ready'
+        ? `${c.title} is ready.`
+        : c.blocked
+          ? `${c.title} wasn't made. Your credits were refunded.`
+          : `${c.title} didn't finish.`,
+    )
     .join(' ');
 }
 
