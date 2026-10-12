@@ -5,7 +5,7 @@
 > priority; this file wins on how the app looks and feels. Every design PR
 > updates this file (screen status + changelog) in the same change.
 >
-> Last updated: 2026-10-11
+> Last updated: 2026-10-12
 
 ---
 
@@ -104,6 +104,11 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 - [✓] **Canvas** (https://claude.ai/artifact/SA65b6TeMc6TT139s8kPwT): the Library at 1440 and 1024, light + dark, Today's ideas, filter chips, the 9:16 grid, in-progress, failed, player sheet and empty Library. **Approved by Tudor 2026-10-10** with the three decisions in §8.
 - [x] **Code** (PR #39, merged 2026-10-10): `src/app/gallery/*` rebuilt to the canvas. The view model is in `library.ts` (unit-tested). The grid, filters, one-click retry and native `<dialog>` player sheet are in `library-grid.tsx`, and thumbnails in `video-thumb.tsx`. "Make another like this" passes `len`/`tier` to Create.
 
+### D2.1: Library follow-up (from TheMasterPlan §5, Moderation "still to do")
+
+- [ ] **Canvas** (https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ): the failed card for a video our safety check stopped (job error starts with `moderation_blocked`), at 1440 and 390, light + dark. It drops "Try again" (the same script would be blocked again), offers "Try a different idea" (Create with the same theme, length and quality plus a fresh idea from that theme) and a "What we don't make" link to the Terms. The copy never repeats the prompt; the refund line stays. Every other failed card is unchanged. **Waiting on Tudor** (§8 open questions).
+- [ ] **Code** (after approval): `library.ts` gets a `blocked` flag from `job.error` (unit-tested) and `library-grid.tsx` draws the variant. No API, credits or moderation changes.
+
 ### L: Landing page (owner-approved scope, 2026-10-10)
 
 - [✓] **Canvas** (https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC): the logged-out landing at 1440 and 390, light + dark. **Approved by Tudor 2026-10-11** with the recommended answers (§8).
@@ -117,7 +122,7 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 ### D4: Quality bar
 
 - [x] **Accessibility audit, desktop core loop** (PR #42, merged 2026-10-11): axe (WCAG 2.2 A/AA) found 0 violations on Create (4 states), Library, landing, login and pricing in both themes. The manual pass fixed 8 smaller issues: page titles, a skip link, arrow keys in the theme picker, focus return from the account menu, reliable status messages (cost/plan changes, "video is ready"), reduced-motion spinners and 24px text targets. Report: `docs/design/d4-a11y-audit.md`. No visual change, so it needs no canvas.
-- [~] **Audit, phones + landing** (PR `ceo-design/d4-mobile-audit`, 2026-10-11): axe found 0 violations at 390px in both themes (landing, login, Create, plan-locked Create, Library). Five touch-target fixes bring the header, footer, idea chips, the "Use … instead" link and the filter chips to 44px on phones. The tab bar and Account sheet keyboard check passed. The login form stays with the auth-screens item in Later. Report: `docs/design/d4-a11y-audit.md` (part 2).
+- [x] **Audit, phones + landing** (PR #45, merged 2026-10-11): axe found 0 violations at 390px in both themes (landing, login, Create, plan-locked Create, Library). Five touch-target fixes bring the header, footer, idea chips, the "Use … instead" link and the filter chips to 44px on phones. The tab bar and Account sheet keyboard check passed. The login form stays with the auth-screens item in Later. Report: `docs/design/d4-a11y-audit.md` (part 2).
 
 ### Later (out of the current charter, needs owner sign-off)
 
@@ -144,12 +149,14 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 - Landing canvas: https://claude.ai/artifact/NpzYH2qhCUUdffN1vT1FcC: 4 artboards (1440 + 390, light/dark). Private to Tudor.
 - D3 Mobile canvas: https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7: 6 phone artboards (Create and Library light/dark, player sheet, Account sheet). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
+- D2.1 blocked-card canvas: https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ: 4 artboards (Library 1440 + 390, light/dark) showing the new card next to the shipped ready, in-progress and failed cards. Private to Tudor.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-12** — D4 part 2 marked shipped (PR #45). D0–D4 are now all shipped; what is left needs a person (screen-reader run) or a paid image run (theme stills). Picked up the one design item TheMasterPlan still assigns to this track, a friendly Library card for videos the safety check stopped: canvas published for review (D2.1). (Design CEO, routine)
 - **2026-10-11** — Landing (#43) and D3 (#44) shipped. D4 part 2 (phones + landing) in review on `ceo-design/d4-mobile-audit`. Left: a real screen-reader run by a person, theme sample stills (needs a live image run), and the Later items (pricing and auth screens, home dashboard). (Design CEO, interactive)
 - **2026-10-11** — D3 mobile code in review on `ceo-design/d3-mobile` (stacked on the landing PR). (Design CEO, interactive)
 - **2026-10-11** — Tudor approved the Landing and D3 canvases. Landing code is in review on `ceo-design/landing`; D3 code follows. (Design CEO, interactive)
@@ -167,6 +174,12 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **Open for Tudor: D2.1 blocked-video card** (2026-10-12, routine). Recommended answers in brackets:
+  1. Replace "Try again" with "Try a different idea" on blocked cards? [yes: retrying the same topic would very likely be blocked again]
+  2. One generic reason line ("The script asked for images Shortcraft doesn't make") rather than one per category? [yes: calmer, and never hints at what was asked]
+  3. Keep blocked cards under the existing "Didn't finish" filter rather than a new chip? [yes]
+  4. Pause the Design CEO routine after D2.1 ships, as §1 says ("pause once the core loop ships")? [yes, unless you want the Later items next]
 
 - **Landing and D3 canvases approved** (2026-10-11, owner: "approve everything and start implementing"), with the recommended answers:
   - Landing: (1) headline "Post a Short every day without showing your face."; (2) the hero idea box carries the idea through sign-up into Create (one change in `src/app/login`); (3) a pricing teaser with the real plans, linking to /pricing.
