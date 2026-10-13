@@ -5,6 +5,8 @@ import { ThemeFrame } from '@/components/theme-frame';
 import { buttonClasses } from '@/components/ui/button';
 import { ideaPagePath } from '@/features/seo/site';
 import { planTeasers, topUpLine } from './plan-teaser';
+import type { ShowcaseVideo as ShowcaseClip } from './showcase';
+import { ShowcaseVideo } from './showcase-video';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
@@ -52,7 +54,14 @@ const sectionHeading =
 const wrap = 'mx-auto max-w-[1344px] px-4 sm:px-8 xl:px-12';
 
 /** The logged-out (and logged-in) home page: Paper & Ember landing (DesignPlan item L). */
-export function Landing({ signedIn }: { signedIn: boolean }) {
+export function Landing({
+  signedIn,
+  showcase = [],
+}: {
+  signedIn: boolean;
+  /** Real videos for the hero frames, left to right; empty slots stay drawn. */
+  showcase?: readonly ShowcaseClip[];
+}) {
   const plans = planTeasers();
   const startAction = signedIn ? '/create' : '/login';
 
@@ -107,21 +116,29 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
           </div>
 
           <div aria-hidden="true" className="relative h-[400px] min-w-0 sm:h-[520px] xl:h-[600px]">
-            {FAN.map((f) => (
-              <div
-                key={f.themeId}
-                className={`shadow-sheet absolute overflow-hidden rounded-[26px] border-[6px] border-[#221c17] dark:border-[#0d0b09] ${f.className}`}
-              >
-                <ThemeFrame
-                  themeId={f.themeId}
-                  variant="phone"
-                  caption={f.themeId === 'fun-facts'}
-                />
-                <span className="absolute top-3 left-3 rounded-full bg-[rgb(20_16_13/0.55)] px-2 py-0.5 text-[11px] leading-4 font-semibold text-white">
-                  {THEMES.find((t) => t.id === f.themeId)?.label}
-                </span>
-              </div>
-            ))}
+            {FAN.map((f, i) => {
+              const clip = showcase[i];
+              const themeId = clip?.themeId ?? f.themeId;
+              return (
+                <div
+                  key={f.themeId}
+                  className={`shadow-sheet absolute overflow-hidden rounded-[26px] border-[6px] border-[#221c17] dark:border-[#0d0b09] ${f.className}`}
+                >
+                  {clip ? (
+                    <ShowcaseVideo src={clip.url} />
+                  ) : (
+                    <ThemeFrame
+                      themeId={f.themeId}
+                      variant="phone"
+                      caption={f.themeId === 'fun-facts'}
+                    />
+                  )}
+                  <span className="absolute top-3 left-3 rounded-full bg-[rgb(20_16_13/0.55)] px-2 py-0.5 text-[11px] leading-4 font-semibold text-white">
+                    {THEMES.find((t) => t.id === themeId)?.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
