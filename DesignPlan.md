@@ -128,11 +128,11 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 
 Approved straight to code, without a canvas, in this order:
 
-- [~] **Landing hero plays real videos** (PR #55): the three phones play videos from Supabase, configured through `LANDING_SHOWCASE_JOB_IDS`. Drawn frames remain the fallback.
-- [~] **"Posted?" check-off + weekly streak** (PR #56): stored in the browser for now. A `posted_at` column would make it work across devices (main CEO track, migration).
-- [~] **Queue tomorrow's video** (PR #57): tomorrow's idea in the same theme, length and quality, shown in the Library and the player sheet.
-- [~] **Pricing page redesign** (PR #58): layout only; plans, checkout and waiver unchanged. Screenshots in `docs/design/pricing/`.
-- [~] **Login and sign-up screens** (`ceo-design/auth-screens`): labelled fields, autocomplete, show-password, visible focus, announced errors, a page title. axe found 0 violations. Screenshots in `docs/design/auth/`.
+- [x] **Landing hero plays real videos** (PR #55, merged 2026-10-13): the three phones play videos from Supabase, configured through `LANDING_SHOWCASE_JOB_IDS`. Drawn frames remain the fallback.
+- [x] **"Posted?" check-off + weekly streak** (PR #56, merged 2026-10-13): stored in the browser for now. A `posted_at` column would make it work across devices (main CEO track, migration).
+- [x] **Queue tomorrow's video** (PR #57, merged 2026-10-13): tomorrow's idea in the same theme, length and quality, shown in the Library and the player sheet.
+- [x] **Pricing page redesign** (PR #58, merged 2026-10-13): layout only; plans, checkout and waiver unchanged. Screenshots in `docs/design/pricing/`.
+- [x] **Login and sign-up screens** (PR #59, merged 2026-10-13): labelled fields, autocomplete, show-password, visible focus, announced errors, a page title. axe found 0 violations. Screenshots in `docs/design/auth/`.
 
 ### Later (out of the current charter, needs owner sign-off)
 
@@ -166,7 +166,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
-- **2026-10-13** — Tudor approved the four follow-ups plus real landing videos, straight to code. All five are in review (PRs #55–#58 and `ceo-design/auth-screens`). (Design CEO, interactive)
+- **2026-10-13** — Tudor approved the four follow-ups plus real landing videos, straight to code. All five shipped the same day (PRs #55–#59). (Design CEO, interactive)
 - **2026-10-13** — D2.1 shipped (PR #51). Every roadmap item in the charter is now shipped. The Design CEO routine is to be paused (decision 4) until Tudor picks one of the Later items. (Design CEO, interactive)
 - **2026-10-12** — Tudor approved the D2.1 canvas. The code is in review on `ceo-design/d2-blocked-card`. Once it ships, the routine pauses (decision 4). (Design CEO, interactive)
 - **2026-10-12** — D4 part 2 marked shipped (PR #45). D0–D4 are now all shipped; what is left needs a person (screen-reader run) or a paid image run (theme stills). Picked up the one design item TheMasterPlan still assigns to this track, a friendly Library card for videos the safety check stopped: canvas published for review (D2.1). (Design CEO, routine)
