@@ -171,13 +171,34 @@ The app works, but every screen asks for attention at once. This journey keeps P
 
 Three new surfaces, drawn in the Studio look. They follow the S rules: one violet action per screen, sheets instead of expanded sections, and helper text only where people get stuck.
 
-- [ ] **V0 Canvas:** at 1440 and 390, dark + light:
-  1. **Voice sheet on Create:** a 4th pill "Voice · <name>" after look · length · quality. The sheet shows My voices first, then about 8 catalog voices (name, two-word character, ▶ preview), with speed (Slower / Normal / Faster) and delivery (Calm / Natural / Lively) as segmented rows.
-  2. **Voiceover editor:** opened from "Edit voiceover" in the player. It lists scene thumbnails with editable narration, the voice pill, "▶ Hear this line" per scene, the re-voice cost, and one "Make new version" action. The original video is kept; the result shows as "v2".
-  3. **Create a voice:** a description box with example chips, then 3 generated samples to play and pick, a name field and "Save voice" (cost + saved-voice limit shown). Covers My voices management (rename, delete) and the limit-reached state.
-- [ ] **V2 Code** (after approval): the Create pill + sheet.
-- [ ] **V3 Code** (after approval): the voiceover editor in the player sheet.
-- [ ] **V4 Code** (after approval): Create a voice + My voices.
+- [~] **V0 Canvas** (https://claude.ai/artifact/RGGjuaD9kq5wxaQKPsg4C1, published 2026-10-13, **waiting on Tudor**): 10 artboards in the Studio look. Board 0 is the journey map. 1a–c are the Voice sheet (dark, light, phone). 2a–c are the voiceover editor (dark, light, phone). 3a–c are Create a voice (3 samples), My voices at the limit, and the phone describe step. 1a/b, 2a/b and 3a are interactive: ▶ toggles, picking, speed and delivery, and live word counts in the editor.
+  1. **Voice sheet on Create:** a 4th pill "Voice · Will" (violet-tinted while it's the only pill not on its default, plain otherwise). The sheet lists My voices first plus a dashed "Create a voice" tile, then the 8 catalog voices in two columns (one column on phones). Each tile has a 44px ▶ button, the name and two-word character; the look's default carries "Look's pick". Speed and Delivery sit under the list as two 3-way segmented rows. "Included in every video. No extra credits." sits beside **Done**.
+  2. **Voiceover editor:** "Edit voiceover" in the player opens a wide sheet. The video sits left (it plays the current line). On the right: the voice pill (Voice · Will · Normal · Natural, which opens the Voice sheet), then one row per scene with thumbnail, narration field, "▶ Hear this line" and a word count. An edited scene turns violet-tinted and says "Edited". Going over +30% turns the count amber ("Too long for this scene: 17 / 15 words") and disables Make new version. The footer line reads "1 scene changed · About 340 credits · you have 12,480". On phones it is a full-screen sheet with the action bar pinned to the bottom.
+  3. **Create a voice:** its own route. Step 1 is a description box ("Age, accent, pace, mood") with 4 starter chips and "Hear 3 samples · 100 credits"; a note says to describe a type of voice, not a real person. Step 2 shows what was asked with "Change · 100 credits", 3 sample cards (▶, waveform, a short note) as one radio group, a name field and **Save voice**. The line under it reads "1,500 credits, once… You'll have 2 of 3 voices on Pro". **My voices** shows N of M on the plan, rows with ▶, name, description and "in 4 videos", plus Rename and Delete. At the limit, Create a voice is disabled and a tinted notice says "Delete one to make room, or move to Ultra for 10."
+- **Implementation plan (design side), after approval.** Every step keeps the S rules: one violet action per screen, sheets instead of new sections, Studio tokens only, axe-clean in both themes and at 390px.
+  - [ ] **V2 Create pill + Voice sheet** (backend V1 is on main, so this can ship first):
+    - `create-form.tsx` gets a 4th pill and a `voice` sheet.
+    - New `src/components/voice/voice-picker.tsx` holds the tile grid plus the two segmented rows, and is reused by the editor.
+    - New `src/components/voice/use-voice-preview.ts` drives one shared `<audio>` playing `public/voices/<slug>.mp3`: one plays at a time, and it stops when the sheet closes.
+    - Unlike the other sheets, picking does not close this one, because speed and delivery follow; Done or Escape closes it.
+    - The voice is remembered with the other settings. Until the creator picks one, the voice follows the look's default; after that it stays put.
+    - `POST /api/jobs` already takes `voiceId`, `speed` and `delivery`.
+  - [ ] **V3 Voiceover editor** (needs `POST /api/jobs/:id/revoice`, `POST /api/voice/preview` and `estimateRevoiceCredits` from the CEO track first):
+    - "Edit voiceover" sits in the player sheet next to Download, only for finished videos you own.
+    - The editor is a `Sheet` with a new `size="wide"` variant (full screen on phones).
+    - It needs a read-only helper that loads a job's scene narration and thumbnails.
+    - Rows are built from scenes. Word limits come from the same +30% rule the API enforces, so the UI never offers what the server refuses.
+    - Make new version closes the sheet. The new job appears in Your videos as its own card with a "v2" badge and the usual progress, and the original stays.
+  - [ ] **V4 Create a voice + My voices** (needs Voice Design, `user_voices` and the credit holds from the CEO track):
+    - The routes are `/voices` (My voices) and `/voices/new` (describe, then samples).
+    - They are reached from the Voice sheet tile and a "My voices" item in the avatar menu. No new header link.
+    - Deleting a voice asks for confirmation ("Videos you already made keep their voice").
+    - Saved voices appear at the top of the Voice sheet and the editor.
+- **Open questions for Tudor** (my recommendation in brackets):
+  1. Does the Voice sheet stay open after picking a voice, with Done to close? [yes, because speed and delivery are tuned right after picking]
+  2. Is a new version its own card with a "v2" badge, or a version switcher inside one card? [its own card: it's simpler, and posting both is a real use]
+  3. Is the voice changed for the whole video only, not per scene? [whole video only: one voice per video sounds right and keeps the editor simple]
+  4. Is My voices its own page, reached from the Voice sheet and the avatar menu, rather than a header link? [yes, to keep the header quiet]
 
 ### Later (out of the current charter, needs owner sign-off)
 
@@ -205,6 +226,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - D3 Mobile canvas: https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7: 6 phone artboards (Create and Library light/dark, player sheet, Account sheet). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - D2.1 blocked-card canvas: https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ: 4 artboards (Library 1440 + 390, light/dark) showing the new card next to the shipped ready, in-progress and failed cards. Private to Tudor.
+- Voice Studio canvas (journey V): https://claude.ai/artifact/RGGjuaD9kq5wxaQKPsg4C1: 10 artboards (journey map; Voice sheet dark/light/phone; voiceover editor dark/light/phone; Create a voice, My voices at the limit, phone describe step), Studio tokens. Private to Tudor.
 - Calm & Clear canvas (journey S): https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG: 10 artboards (journey map, Create light, look picker dark, Home light/dark, phone Create and Home, three looks), on the Paper & Ember tokens. Private to Tudor.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
@@ -212,6 +234,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
+- **2026-10-13** — V0 Voice Studio canvas published (10 artboards, Studio look) with a design-side implementation plan for V2–V4 and four open questions. Waiting on Tudor. (Design CEO, interactive)
 - **2026-10-13** — Voice Studio added to the design scope (owner request): §4 V lists the Voice sheet, the voiceover editor and Create a voice. Canvas next. (CEO, interactive)
 
 - **2026-10-13** — Tudor picked **Look B, Studio** and asked for every screen to adapt. Shipped as four stacked PRs: tokens (#66), Create (#67), Home (#68), shell (#69). axe found 0 violations on every screen in dark, light and at 390px. (Design CEO, interactive)
