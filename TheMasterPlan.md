@@ -146,7 +146,7 @@ Owned by the **Design CEO** routine; full plan, charter and screen status in **`
 
 - [x] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code shipped (PR #34)
 - [x] D1 Create redesign + one-tap first video + Library "Today's ideas" (PR #37) · [x] D2 Library redesign (PR #39) · [x] Landing redesign (PR #43) · [x] D3 Mobile pass (PR #44) · [x] D4 A11y/QA: desktop (#42) + phones/landing (#45); screen-reader run by a person still open
-- [~] D2.1 Library card for moderation-blocked videos (the "friendly Library message" from Moderation above): canvas approved 2026-10-12; code in review (`ceo-design/d2-blocked-card`)
+- [x] D2.1 Library card for moderation-blocked videos (the "friendly Library message" from Moderation above): shipped in PR #51 (2026-10-12)
 
 ### LATER — Phase 4: Retention & ARPU
 
