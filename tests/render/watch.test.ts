@@ -194,6 +194,18 @@ describe('thumbnailUrlFor', () => {
     sign: vi.fn(async (path: string, _ttl: number) => `fresh://${path}`),
   };
 
+  it('re-signs a specific scene picture for the voiceover editor', async () => {
+    const load = vi.fn(async () => [scene(0, IMG(0)), scene(1, IMG(1)), scene(2, IMG(2))]);
+    expect(await thumbnailUrlFor(job(), 'user-1', load, storage, 2)).toEqual({
+      ok: true,
+      url: 'fresh://images/job-1_s2.jpg',
+    });
+    expect(await thumbnailUrlFor(job(), 'user-1', load, storage, 9)).toEqual({
+      ok: false,
+      reason: 'not_found',
+    });
+  });
+
   it('re-signs the first scene image, whatever order scenes load in', async () => {
     storage.sign.mockClear();
     const load = vi.fn(async () => [scene(2, IMG(2)), scene(0, IMG(0)), scene(1, IMG(1))]);

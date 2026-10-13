@@ -115,17 +115,23 @@ export async function thumbnailUrlFor(
     origin: string;
     sign: (path: string, ttlSec: number) => Promise<string>;
   },
+  /** A specific scene's picture (the voiceover editor's rows); default: the first scene. */
+  sceneIdx?: number,
 ): Promise<WatchResult> {
   if (!job || job.userId !== userId) return { ok: false, reason: 'not_found' };
 
   const scenes = await loadScenes(job.id);
-  const first = scenes.reduce<SceneRecord | null>(
-    (min, s) => (min === null || s.idx < min.idx ? s : min),
-    null,
-  );
-  if (!first?.imageUrl) return { ok: false, reason: 'not_ready' };
+  const pick =
+    sceneIdx === undefined
+      ? scenes.reduce<SceneRecord | null>(
+          (min, s) => (min === null || s.idx < min.idx ? s : min),
+          null,
+        )
+      : (scenes.find((s) => s.idx === sceneIdx) ?? null);
+  if (sceneIdx !== undefined && !pick) return { ok: false, reason: 'not_found' };
+  if (!pick?.imageUrl) return { ok: false, reason: 'not_ready' };
 
-  const path = storagePathFromSignedUrl(first.imageUrl, storage.bucket, storage.origin);
+  const path = storagePathFromSignedUrl(pick.imageUrl, storage.bucket, storage.origin);
   if (!path) return { ok: false, reason: 'not_playable' };
   return { ok: true, url: await storage.sign(path, WATCH_URL_TTL_SEC) };
 }
