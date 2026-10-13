@@ -30,6 +30,7 @@ misconfigured Preview would burn provider credit and pollute real data.
 | `STRIPE_SECRET_KEY`                                                                      | test key now → **live key** at go-live          | test key (`sk_test_…`); a live key is **ignored by code**   | test key                                   |
 | `STRIPE_WEBHOOK_SECRET`                                                                  | from the Production webhook endpoint            | not set (no webhooks reach previews)                        | from `stripe listen`                       |
 | `CRON_SECRET`                                                                            | long random string                              | not set                                                     | not needed (route is open in dev)          |
+| `NEXT_PUBLIC_SENTRY_DSN`                                                                 | the Sentry project's DSN                        | same DSN (events are tagged `preview`)                      | not set (Sentry off)                       |
 | `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_LINK_SECRET`                                      | Resend key, verified sender, long random string | not set (`RESEND_API_KEY` is **ignored by code**)           | not set (the lifecycle cron is a dry run)  |
 | `NEXT_PUBLIC_SITE_URL`                                                                   | the production URL / domain                     | not set (nothing reads it yet; reserved for emails/OG tags) | `http://localhost:3000`                    |
 

@@ -63,6 +63,10 @@ export const SUBPROCESSORS = [
   { name: 'ElevenLabs', purpose: 'generating voiceovers from the script' },
   { name: 'fal.ai', purpose: 'generating scene images and AI video clips' },
   { name: 'Resend', purpose: 'sending our reminder emails (your email address only)' },
+  {
+    name: 'Sentry',
+    purpose: 'error reports when something breaks (no cookies, no screen recording)',
+  },
 ] as const;
 
 export const TERMS: LegalDocument = {
