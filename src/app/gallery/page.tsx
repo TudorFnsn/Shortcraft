@@ -29,7 +29,7 @@ export default async function LibraryPage() {
   const hero = <TodayHero ideas={ideas} />;
 
   return (
-    <main className="mx-auto flex max-w-[1280px] flex-col gap-12 px-4 py-8 sm:px-8 lg:py-12 xl:px-12">
+    <main className="mx-auto flex max-w-[1280px] flex-col gap-12 px-4 pt-6 pb-28 sm:px-8 md:pb-12 lg:pt-10 xl:px-12">
       {/* Re-render every few seconds while a video is being made. */}
       <AutoRefresh active={anyWorking(jobs)} />
       <h1 className="sr-only">Your videos</h1>
