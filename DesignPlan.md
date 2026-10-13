@@ -234,6 +234,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
+- **2026-10-13** — S3 shell re-landed: #69 had merged into its old base branch (`ceo-design/s2-home`) instead of `main`, so its commit was reapplied onto `main` in a new PR. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the V0 Voice Studio canvas and the four recommendations. V2 (Voice pill + sheet on Create) and V3 (Edit voiceover + v2 badges) are in review. (Design CEO, interactive)
 - **2026-10-13** — V0 Voice Studio canvas published (10 artboards, Studio look) with a design-side implementation plan for V2–V4 and four open questions. Waiting on Tudor. (Design CEO, interactive)
 - **2026-10-13** — Voice Studio added to the design scope (owner request): §4 V lists the Voice sheet, the voiceover editor and Create a voice. Canvas next. (CEO, interactive)
