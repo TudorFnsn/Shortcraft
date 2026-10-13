@@ -22,16 +22,17 @@ The rule: **only Production can spend money, charge cards or write to the
 production database.** Previews run on every routine PR (several a day), so a
 misconfigured Preview would burn provider credit and pollute real data.
 
-| Variable                                                                                 | Production                             | Preview                                                     | Development (`.env.local`)                 |
-| ---------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------- | ------------------------------------------ |
-| `MOCK_PROVIDERS`                                                                         | `false`                                | `true` (**forced by code**, see §5)                         | `true` (flip to `false` only to test live) |
-| `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `FAL_KEY`                                     | real keys                              | **not set**                                                 | your keys, if testing live                 |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | production project                     | **staging project** (recommended) or not set (demo mode)    | staging project                            |
-| `STRIPE_SECRET_KEY`                                                                      | test key now → **live key** at go-live | test key (`sk_test_…`); a live key is **ignored by code**   | test key                                   |
-| `STRIPE_WEBHOOK_SECRET`                                                                  | from the Production webhook endpoint   | not set (no webhooks reach previews)                        | from `stripe listen`                       |
-| `CRON_SECRET`                                                                            | long random string                     | not set                                                     | not needed (route is open in dev)          |
-| `NEXT_PUBLIC_SENTRY_DSN`                                                                 | the Sentry project's DSN               | same DSN (events are tagged `preview`)                      | not set (Sentry off)                       |
-| `NEXT_PUBLIC_SITE_URL`                                                                   | the production URL / domain            | not set (nothing reads it yet; reserved for emails/OG tags) | `http://localhost:3000`                    |
+| Variable                                                                                 | Production                                      | Preview                                                     | Development (`.env.local`)                 |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------ |
+| `MOCK_PROVIDERS`                                                                         | `false`                                         | `true` (**forced by code**, see §5)                         | `true` (flip to `false` only to test live) |
+| `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `FAL_KEY`                                     | real keys                                       | **not set**                                                 | your keys, if testing live                 |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | production project                              | **staging project** (recommended) or not set (demo mode)    | staging project                            |
+| `STRIPE_SECRET_KEY`                                                                      | test key now → **live key** at go-live          | test key (`sk_test_…`); a live key is **ignored by code**   | test key                                   |
+| `STRIPE_WEBHOOK_SECRET`                                                                  | from the Production webhook endpoint            | not set (no webhooks reach previews)                        | from `stripe listen`                       |
+| `CRON_SECRET`                                                                            | long random string                              | not set                                                     | not needed (route is open in dev)          |
+| `NEXT_PUBLIC_SENTRY_DSN`                                                                 | the Sentry project's DSN                        | same DSN (events are tagged `preview`)                      | not set (Sentry off)                       |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_LINK_SECRET`                                      | Resend key, verified sender, long random string | not set (`RESEND_API_KEY` is **ignored by code**)           | not set (the lifecycle cron is a dry run)  |
+| `NEXT_PUBLIC_SITE_URL`                                                                   | the production URL / domain                     | not set (nothing reads it yet; reserved for emails/OG tags) | `http://localhost:3000`                    |
 
 In Vercel → Settings → Environment Variables, each variable has checkboxes for
 Production / Preview / Development. **Untick Preview for every secret that

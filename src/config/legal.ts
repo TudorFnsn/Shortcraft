@@ -62,6 +62,7 @@ export const SUBPROCESSORS = [
   { name: 'Anthropic', purpose: 'writing video scripts from your topic' },
   { name: 'ElevenLabs', purpose: 'generating voiceovers from the script' },
   { name: 'fal.ai', purpose: 'generating scene images and AI video clips' },
+  { name: 'Resend', purpose: 'sending our reminder emails (your email address only)' },
   {
     name: 'Sentry',
     purpose: 'error reports when something breaks (no cookies, no screen recording)',
@@ -202,6 +203,7 @@ export const PRIVACY: LegalDocument = {
         'To provide the service you signed up for: making your videos, keeping your account and credits, and billing (GDPR Art. 6(1)(b), contract).',
         'To keep tax and accounting records (Art. 6(1)(c), legal obligation).',
         'To keep the service secure, prevent abuse and fix errors (Art. 6(1)(f), legitimate interests).',
+        'To send a few reminders about the service you use: one if you haven’t made your first video a day after signing up, and at most one a week if you pay for a plan, haven’t made a video that week and still have credits (Art. 6(1)(f), legitimate interests). Every reminder has a one-click unsubscribe link.',
         'We do not sell your data, show ads, or use your content to train AI models.',
       ],
     },
