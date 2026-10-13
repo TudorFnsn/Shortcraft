@@ -85,6 +85,7 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
       actualCredits: 0,
       apiCostUsd: 0,
       error: null,
+      postedAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -101,6 +102,12 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
     const job = this.jobs.get(jobId);
     if (!job) throw new Error(`job ${jobId} not found`);
     this.jobs.set(jobId, { ...job, ...patch, updatedAt: new Date().toISOString() });
+  }
+
+  async setJobPosted(jobId: string, postedAt: string | null): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (!job) throw new Error(`job ${jobId} not found`);
+    this.jobs.set(jobId, { ...job, postedAt });
   }
 
   async listJobs(userId: string): Promise<RenderJobRecord[]> {

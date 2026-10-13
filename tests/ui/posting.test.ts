@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { localDay, postingStats, shiftDay, streakLine, togglePosted } from '@/app/gallery/posting';
+import {
+  legacyImports,
+  localDay,
+  logFromCards,
+  postingStats,
+  shiftDay,
+  streakLine,
+} from '@/app/gallery/posting';
 
 const TODAY = '2026-10-13';
 
@@ -8,16 +15,6 @@ describe('days', () => {
     expect(localDay(new Date(2026, 9, 3, 23, 30))).toBe('2026-10-03');
     expect(shiftDay('2026-11-01', -1)).toBe('2026-10-31');
     expect(shiftDay('2026-12-31', 1)).toBe('2027-01-01');
-  });
-});
-
-describe('togglePosted', () => {
-  it('marks today and unmarks again without mutating the log', () => {
-    const empty = {};
-    const on = togglePosted(empty, 'a', TODAY);
-    expect(on).toEqual({ a: TODAY });
-    expect(empty).toEqual({});
-    expect(togglePosted(on, 'a', TODAY)).toEqual({});
   });
 });
 
@@ -62,5 +59,29 @@ describe('streakLine', () => {
     expect(streakLine({ thisWeek: 1, streak: 0, atRisk: false })).toBe(
       '1 of 7 days posted this week. Post today to start a new streak.',
     );
+  });
+});
+
+describe('on the account', () => {
+  const card = (id: string, postedAt: string | null, kind = 'ready') => ({ id, kind, postedAt });
+
+  it('builds the log from saved times plus unsaved changes', () => {
+    const saved = new Date(2026, 9, 12, 18).toISOString();
+    const cards = [card('a', saved), card('b', null), card('c', saved)];
+    const now = new Date(2026, 9, 13, 9).toISOString();
+    expect(logFromCards(cards, { b: now, c: null })).toEqual({
+      a: '2026-10-12',
+      b: '2026-10-13',
+    });
+  });
+
+  it('imports browser-only days once, for finished videos not yet saved', () => {
+    const cards = [
+      card('a', null),
+      card('b', new Date(2026, 9, 1).toISOString()),
+      card('c', null, 'working'),
+    ];
+    const out = legacyImports({ a: '2026-10-11', b: '2026-10-11', c: '2026-10-11', z: 'x' }, cards);
+    expect(out).toEqual([{ id: 'a', postedAt: new Date(2026, 9, 11, 12).toISOString() }]);
   });
 });
