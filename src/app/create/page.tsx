@@ -6,6 +6,7 @@ import { getStore } from '@/features/render/store';
 import { PLANS } from '@/config/plans';
 import { CreateForm } from './create-form';
 import { initialSelection } from './composer';
+import { initialVoice } from '@/components/voice/voice-choice';
 import { loginHrefFor } from '@/features/auth/carry';
 
 export const metadata: Metadata = { title: `Create a video — ${siteConfig.name}` };
@@ -32,6 +33,7 @@ export default async function CreatePage({ searchParams }: PageProps<'/create'>)
     <main className="mx-auto max-w-[1344px] px-4 py-8 sm:px-8 lg:py-10 xl:px-12">
       <CreateForm
         initial={initial}
+        initialVoice={initialVoice(lastJob)}
         firstRun={firstRun}
         lastThemeId={lastJob?.themeId ?? null}
         balance={balance}
