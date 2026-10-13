@@ -78,7 +78,7 @@ export default async function ThemeIdeasPage({ params }: PageProps<'/ideas/[them
         </div>
         <div
           aria-hidden="true"
-          className="shadow-sheet mx-auto w-[220px] overflow-hidden rounded-[26px] border-[6px] border-[#221c17] dark:border-[#0d0b09]"
+          className="shadow-sheet mx-auto w-[220px] overflow-hidden rounded-[26px] border-[6px] border-[#050506]"
         >
           <ThemeFrame themeId={theme.id} variant="phone" />
         </div>

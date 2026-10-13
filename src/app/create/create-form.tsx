@@ -484,7 +484,7 @@ export function CreateForm({
       >
         {/* Phones drop the big preview: the selected theme card and the sticky bar carry it. */}
         <div className="hidden flex-col items-center gap-2.5 md:flex">
-          <div className="relative w-[216px] overflow-hidden rounded-[28px] border-[6px] border-[#221c17] xl:w-[248px] dark:border-[#0d0b09]">
+          <div className="relative w-[216px] overflow-hidden rounded-[28px] border-[6px] border-[#050506] xl:w-[248px]">
             <ThemeFrame themeId={sel.themeId} variant="phone" />
             <span className="absolute top-3 left-3 rounded-full bg-[rgb(20_16_13/0.55)] px-2 py-0.5 text-[11px] leading-4 font-semibold text-white">
               AI-generated

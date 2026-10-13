@@ -226,7 +226,7 @@ export function LoginView({
         aria-label={`Why ${siteConfig.name}`}
         className="bg-surface border-line rounded-panel hidden items-center gap-8 border p-8 lg:flex"
       >
-        <div className="w-[180px] shrink-0 overflow-hidden rounded-[22px] border-[5px] border-[#221c17] dark:border-[#0d0b09]">
+        <div className="w-[180px] shrink-0 overflow-hidden rounded-[22px] border-[5px] border-[#050506]">
           <ThemeFrame themeId="fun-facts" variant="phone" caption />
         </div>
         <div className="flex flex-col gap-4">
