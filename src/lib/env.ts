@@ -45,6 +45,11 @@ const schema = z.object({
   ELEVENLABS_VOICE_ID: z.string().min(1).optional(),
   /** Private Supabase Storage bucket for generated media (voiceovers, renders). */
   SUPABASE_MEDIA_BUCKET: z.string().min(1).default('media'),
+  /**
+   * Up to three finished render job ids (comma-separated) whose videos play in
+   * the landing hero's phone frames, left to right. Unset: drawn theme frames.
+   */
+  LANDING_SHOWCASE_JOB_IDS: z.string().optional(),
   RENDER_API_KEY: z.string().min(1).optional(),
   /** ffmpeg binary for the in-house renderer; defaults to `ffmpeg` on PATH. */
   FFMPEG_PATH: z.string().min(1).optional(),
