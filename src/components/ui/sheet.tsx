@@ -11,11 +11,14 @@ export function Sheet({
   open,
   onClose,
   title,
+  size = 'default',
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** `wide` fits an editor: wider panel from `sm` up, taller on phones. */
+  size?: 'default' | 'wide';
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -35,7 +38,11 @@ export function Sheet({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="bg-surface text-ink shadow-sheet backdrop:bg-scrim fixed inset-x-0 top-auto bottom-0 m-0 max-h-[85vh] w-full max-w-none overflow-y-auto rounded-t-[24px] p-0 sm:inset-0 sm:m-auto sm:w-[min(760px,calc(100vw-48px))] sm:rounded-[24px]"
+      className={`bg-surface text-ink shadow-sheet backdrop:bg-scrim fixed inset-x-0 top-auto bottom-0 m-0 w-full max-w-none overflow-y-auto rounded-t-[24px] p-0 sm:inset-0 sm:m-auto sm:rounded-[24px] ${
+        size === 'wide'
+          ? 'max-h-[94dvh] sm:max-h-[calc(100dvh-4rem)] sm:w-[min(1040px,calc(100vw-48px))]'
+          : 'max-h-[85vh] sm:w-[min(760px,calc(100vw-48px))]'
+      }`}
     >
       <div className="flex flex-col gap-5 p-6 sm:p-8">
         <div className="flex items-center justify-between gap-4">

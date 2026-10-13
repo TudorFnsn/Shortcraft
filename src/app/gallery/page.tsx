@@ -6,7 +6,7 @@ import { getStore } from '@/features/render/store';
 import { AutoRefresh } from './auto-refresh';
 import { TodayHero } from './today-hero';
 import { LibraryGrid } from './library-grid';
-import { anyWorking, toCard } from './library';
+import { anyWorking, toCard, versionsOf } from './library';
 import { dailyIdeas, dayKey } from '@/components/ideas';
 
 export const metadata: Metadata = { title: `Your videos — ${siteConfig.name}` };
@@ -22,7 +22,8 @@ export default async function LibraryPage() {
     store.hasPaid(user.id),
   ]);
   const now = new Date();
-  const cards = jobs.map((j) => toCard(j, now));
+  const versions = versionsOf(jobs);
+  const cards = jobs.map((j) => toCard(j, now, versions.get(j.id)));
   const empty = jobs.length === 0;
 
   const ideas = dailyIdeas(dayKey(now), jobs[0]?.themeId ?? null);
