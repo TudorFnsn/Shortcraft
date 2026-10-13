@@ -134,6 +134,39 @@ Approved straight to code, without a canvas, in this order:
 - [x] **Pricing page redesign** (PR #58, merged 2026-10-13): layout only; plans, checkout and waiver unchanged. Screenshots in `docs/design/pricing/`.
 - [x] **Login and sign-up screens** (PR #59, merged 2026-10-13): labelled fields, autocomplete, show-password, visible focus, announced errors, a page title. axe found 0 violations. Screenshots in `docs/design/auth/`.
 
+### S: Calm & Clear (owner brief 2026-10-13: "more intuitive, less crowded, easier on the eye, a straightforward journey")
+
+The app works, but every screen asks for attention at once. This journey keeps Paper & Ember and the content-first layout, and takes things away.
+
+**Audit (2026-10-13, from the shipped code):**
+
+- **Create** shows four sections expanded together (idea box with helper line, keyboard hint and 3 idea chips; 8 look cards; 5 length chips; 2 quality cards). It also has a side panel with a preview, a summary, a cost meter, a balance line and two notes. That is about 20 decisions or texts before Generate.
+- **Library** stacks five competing actions above the grid: New video, Tomorrow's video, 3 daily ideas, the streak line, and filter chips with counts. Each card adds a Posted toggle.
+- **Visual noise:** a hairline border on almost every card and input, several 13–15px grey helper lines, and ember appearing several times on one screen.
+
+**Journey (one question and one ember action per screen):** Idea → Make → Watch → Post.
+
+1. **Idea:** one big idea box, a "Surprise me" link and three setting pills (look · length · quality) that remember the last choice. The look picker opens as a sheet of 8 tiles only when asked.
+2. **Make:** one button, "Make video", with the cost under it ("About 2,024 credits · you have 12,480"). Locked options and short balances keep today's behaviour (principle 3), shown inline under the button.
+3. **Watch:** Home ("Your videos") shows the video being made as the first card, and the player opens when it is ready.
+4. **Post:** in the player, Download (ember), Copy title and Posted. Tomorrow's idea moves to Home as a single "Today's idea" card (replacing the Tomorrow block and the 3-idea row).
+
+**Visual rules:**
+
+- No hairline borders on cards; separate them with surface fills and space.
+- Two text sizes per block.
+- Helper text only where a person can get stuck.
+- Ember once per screen.
+- Content width 680px (Create) and 1120px (Home).
+- Navigation: "Your videos" + credits + avatar on desktop. On phones, a single floating "+" replaces the 3-tab bar.
+
+- [✓] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG). **Approved by Tudor 2026-10-13: Look B "Studio" (dark, violet), "all screens adapt to the new look, start implementing".** The layout recommendations (Q1–Q6) are taken as accepted with it.
+- [~] **Studio tokens** (PR #66): dark-first palette (`#0e0f11` ground, `#f5f5f4` ink, violet `#a78bfa`) plus an opt-in light partner. Geist-only type. Every screen adopts it through the existing token names.
+- [~] **S1 Create** (PR #67, stacked on #66): one idea box with Surprise me, three setting pills that open sheets, and one Make video button with the cost underneath.
+- [~] **S2 Home** (PR #68, stacked on #67): Today's idea as the headline with Make it, the latest video large, and one row of videos. Filters show only from 12 videos; Posted lives in the player.
+- [~] **S3 Shell** (PR #69, stacked on #68): a quiet header (Your videos · credits · New video · avatar) and one floating + on phones instead of the tab bar.
+- [ ] **S4 Check:** axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted). Count clicks before and after.
+
 ### Later (out of the current charter, needs owner sign-off)
 
 Home dashboard · fuller onboarding (beyond the one-tap first video).
@@ -160,12 +193,18 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - D3 Mobile canvas: https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7: 6 phone artboards (Create and Library light/dark, player sheet, Account sheet). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - D2.1 blocked-card canvas: https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ: 4 artboards (Library 1440 + 390, light/dark) showing the new card next to the shipped ready, in-progress and failed cards. Private to Tudor.
+- Calm & Clear canvas (journey S): https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG: 10 artboards (journey map, Create light, look picker dark, Home light/dark, phone Create and Home, three looks), on the Paper & Ember tokens. Private to Tudor.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-13** — Tudor picked **Look B, Studio** and asked for every screen to adapt. Shipped as four stacked PRs: tokens (#66), Create (#67), Home (#68), shell (#69). axe found 0 violations on every screen in dark, light and at 390px. (Design CEO, interactive)
+- **2026-10-13** — Pastels rejected too. Boards 8–10 replaced with three complete looks (Gallery, Studio, Soft contrast). The layout is more dynamic and less crowded: a big idea headline, the latest video large and one row of videos. (Design CEO, interactive)
+- **2026-10-13** — Tudor rejected the first palette set (too similar, too crowded) and picked a soft pastel direction. Boards 8–10 now show Rose, Mint and Lavender, one sparse screen each. (Design CEO, interactive)
+- **2026-10-13** — Tudor asked for a more natural palette ("seems a bit vibe coded"). Three options (Linen & Moss, Stone & Clay, Paper & Slate) added to the Calm & Clear canvas as board 8, contrast-checked in both themes. Recommended: Linen & Moss. (Design CEO, interactive)
+- **2026-10-13** — New journey **S: Calm & Clear** from Tudor's brief. Audited the shipped Create and Library and published a proposal canvas (one path: idea → make → watch → post; one ember action per screen). Waiting on Tudor's approval and the open questions in §8. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the four follow-ups plus real landing videos, straight to code. All five shipped the same day (PRs #55–#59). (Design CEO, interactive)
 - **2026-10-13** — D2.1 shipped (PR #51). Every roadmap item in the charter is now shipped. The Design CEO routine is to be paused (decision 4) until Tudor picks one of the Later items. (Design CEO, interactive)
 - **2026-10-12** — Tudor approved the D2.1 canvas. The code is in review on `ceo-design/d2-blocked-card`. Once it ships, the routine pauses (decision 4). (Design CEO, interactive)
@@ -187,6 +226,26 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **S Calm & Clear decided** (2026-10-13, owner: "lets go with look B studio dark, violet. i need all screens to adapt to the new look. start implementing"). The questions below were answered with that decision; my recommendations are in brackets:
+  1. Collapse look, length and quality into three pills that open small sheets, instead of showing every option at once? [yes; the last choices are remembered, so most days nobody opens them]
+  2. Drop the big phone preview on desktop Create (the look sheet shows each look instead)? [yes]
+  3. Merge Tomorrow's video and the 3-idea row into one "Today's idea" card with an "Another idea" link? [yes]
+  4. Hide the filter chips until a creator has 12 or more videos? [yes]
+  5. On phones, replace the 3-tab bar with Home plus one floating "+" button (Account moves to the avatar)? [yes]
+  6. Rename "Library" to "Your videos" everywhere? [yes]
+  7. **Look and palette.** Decided 2026-10-13: **Look B, Studio** (charcoal, off-white, soft violet; Geist only). Earlier rejected: earthy naturals (too similar), soft pastels, and the Gallery and Soft-contrast looks.
+
+     The looks are:
+     - **Gallery:** white, near-black text, cobalt `#2F54EB`.
+     - **Studio:** charcoal, off-white text, soft violet `#A78BFA`.
+     - **Soft contrast:** warm grey, near-black, coral `#FF5B37` used only as a fill, with dark text on it.
+
+     All three use one sans-serif (Geist) only, with neutral chrome so the videos carry the colour. All text pairings pass 4.5:1.
+
+     Each uses a pastel button with dark text, and every text pairing passes 4.5:1. The dark versions get drawn once one is picked. The chosen palette replaces the Paper & Ember colour tokens, and the mark and favicon take its accent.
+
+     The chosen palette replaces the Paper & Ember colour tokens in `globals.css` and the design system. The mark and favicon take the new accent.
 
 - **D2.1 blocked-video card approved** (2026-10-12, owner: "D2.1 approved"), with the recommended answers:
   1. Blocked cards offer **"Try a different idea"** instead of "Try again" (the same topic would very likely be blocked again).
