@@ -473,8 +473,8 @@ export function CreateForm({
         </div>
       )}
 
-      {/* Phones: the action rides in a bar above the bottom navigation. */}
-      <div className="bg-paper/95 fixed inset-x-0 bottom-[72px] z-30 flex flex-col items-center gap-1.5 px-4 pt-3 pb-3 backdrop-blur md:static md:bg-transparent md:p-0 md:backdrop-blur-none">
+      {/* Phones: the action rides in a bar at the bottom of the screen. */}
+      <div className="bg-paper/95 fixed inset-x-0 bottom-0 z-30 flex flex-col items-center gap-1.5 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:static md:bg-transparent md:p-0 md:backdrop-blur-none">
         {state.primary.kind === 'upgrade' ? (
           <Link
             href="/pricing"
