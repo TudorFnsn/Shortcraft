@@ -8,6 +8,7 @@ function env(patch: Partial<Env>): Env {
     NEXT_PUBLIC_SITE_URL: 'https://example.app',
     SUPABASE_MEDIA_BUCKET: 'media',
     ALLOW_LIVE_PROVIDERS_IN_PREVIEW: false,
+    GOOGLE_AUTH_ENABLED: false,
     ...patch,
   };
 }

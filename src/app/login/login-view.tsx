@@ -8,28 +8,57 @@ import { buttonClasses } from '@/components/ui/button';
 import { siteConfig } from '@/config/site';
 import { createSupabaseBrowserClient } from '@/utils/supabase/client';
 import { createHrefAfterLogin, type Carried } from '@/features/auth/carry';
+import { oauthRedirectTo } from '@/features/auth/oauth';
+import { GoogleButton } from './google-button';
 
 type Mode = 'signin' | 'signup';
 
 const field =
   'border-line-strong bg-surface text-ink placeholder:text-ink-muted focus-visible:border-ember min-h-12 w-full rounded-card border px-4 text-[16px]';
 
-export function LoginView({ carried }: { carried: Carried }) {
+export function LoginView({
+  carried,
+  googleEnabled = false,
+  initialError = null,
+}: {
+  carried: Carried;
+  googleEnabled?: boolean;
+  initialError?: string | null;
+}) {
   const router = useRouter();
   const { idea } = carried;
   const [mode, setMode] = useState<Mode>(idea ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const signup = mode === 'signup';
 
   function switchTo(next: Mode) {
     setMode(next);
     setError(null);
     setNotice(null);
+  }
+
+  async function onGoogle() {
+    setGoogleLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      // Redirects the browser to Google; we come back through /auth/callback.
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: oauthRedirectTo(window.location.origin, carried) },
+      });
+      if (error) throw error;
+    } catch {
+      setGoogleLoading(false);
+      setError('Google sign-in didn’t start. Try again, or use email.');
+    }
   }
 
   async function onSubmit(e: FormEvent) {
@@ -99,6 +128,17 @@ export function LoginView({ carried }: { carried: Carried }) {
           </p>
         )}
 
+        {googleEnabled && (
+          <>
+            <GoogleButton onClick={onGoogle} loading={googleLoading} disabled={loading} />
+            <div className="text-ink-muted flex items-center gap-3 text-[13px]" aria-hidden="true">
+              <span className="bg-line h-px flex-1" />
+              or with email
+              <span className="bg-line h-px flex-1" />
+            </div>
+          </>
+        )}
+
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-sm font-semibold">
@@ -153,7 +193,7 @@ export function LoginView({ carried }: { carried: Carried }) {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || googleLoading}
             className={buttonClasses({ size: 'lg', className: 'w-full disabled:opacity-60' })}
           >
             {loading ? 'One moment…' : signup ? 'Create account' : 'Log in'}
@@ -167,9 +207,9 @@ export function LoginView({ carried }: { carried: Carried }) {
           {notice}
         </p>
 
-        {signup && (
+        {(signup || googleEnabled) && (
           <p className="text-ink-muted text-[13px] leading-5">
-            By signing up you agree to the{' '}
+            {signup ? 'By signing up' : 'By continuing with Google'} you agree to the{' '}
             <Link href="/terms" className="text-ember-ink font-medium underline">
               Terms
             </Link>{' '}

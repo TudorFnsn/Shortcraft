@@ -54,6 +54,12 @@ const schema = z.object({
   /** ffmpeg binary for the in-house renderer; defaults to `ffmpeg` on PATH. */
   FFMPEG_PATH: z.string().min(1).optional(),
 
+  /**
+   * Show "Continue with Google" on /login. Turn on only after the Google
+   * provider is enabled in Supabase Auth (otherwise the button lands on an error).
+   */
+  GOOGLE_AUTH_ENABLED: bool('false'),
+
   // Stripe (added in the billing step)
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
