@@ -26,6 +26,17 @@ describe('applyDeploymentGuards', () => {
     expect(out.MOCK_PROVIDERS).toBe(false);
   });
 
+  it('never sends lifecycle email from a Preview deployment', () => {
+    const { env: preview } = applyDeploymentGuards(
+      env({ VERCEL_ENV: 'preview', MOCK_PROVIDERS: true, RESEND_API_KEY: 're_x' }),
+    );
+    expect(preview.RESEND_API_KEY).toBeUndefined();
+    const { env: prod } = applyDeploymentGuards(
+      env({ VERCEL_ENV: 'production', RESEND_API_KEY: 're_x' }),
+    );
+    expect(prod.RESEND_API_KEY).toBe('re_x');
+  });
+
   it('leaves Production and local runs as configured', () => {
     for (const VERCEL_ENV of ['production', undefined] as const) {
       const { env: out, warnings } = applyDeploymentGuards(

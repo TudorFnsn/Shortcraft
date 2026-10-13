@@ -177,7 +177,7 @@ export function LoginView({ carried }: { carried: Carried }) {
             <Link href="/privacy" className="text-ember-ink font-medium underline">
               Privacy Policy
             </Link>
-            .
+            . We may send a couple of reminder emails; every one has an unsubscribe link.
           </p>
         )}
       </div>
