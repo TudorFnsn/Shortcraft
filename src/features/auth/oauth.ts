@@ -31,7 +31,6 @@ export function safeNextPath(next: string | null | undefined): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) {
     return DEFAULT_AFTER_LOGIN;
   }
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\\]/.test(next)) return DEFAULT_AFTER_LOGIN;
   return next;
 }

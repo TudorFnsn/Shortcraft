@@ -7,7 +7,9 @@
  * seconds), so poll/webhook are never used.
  *
  * Model: eleven_flash_v2_5 — the catalog prices voice at Flash rates
- * ($0.05 per 1k characters). Voice: ELEVENLABS_VOICE_ID, or a stock voice.
+ * ($0.05 per 1k characters). Voice: the job's catalog voice (config/voices.ts),
+ * passed in as a provider id; 'default' = ELEVENLABS_VOICE_ID or a stock voice.
+ * Speed and stability come from the job's settings as `voice_settings`.
  */
 import type { ModelSpec } from '@/config/models';
 import { estimateSpeechSeconds } from '../mocks';
@@ -17,6 +19,7 @@ import type {
   VoiceInput,
   VoiceOutput,
   VoiceProvider,
+  VoiceTuning,
   WebhookPayload,
   WordTiming,
 } from '../types';
@@ -64,6 +67,19 @@ export function wordsFromAlignment(a: Alignment): WordTiming[] {
   return words;
 }
 
+/**
+ * ElevenLabs `voice_settings` for our tuning. similarity_boost and speaker
+ * boost stay at ElevenLabs' defaults; only speed and stability vary.
+ */
+export function voiceSettingsFor(t: VoiceTuning) {
+  return {
+    stability: t.stability,
+    similarity_boost: 0.75,
+    use_speaker_boost: true,
+    speed: t.speed,
+  };
+}
+
 const notAsync = () => {
   throw new Error('the voice adapter completes inline; poll/webhook is never used');
 };
@@ -94,7 +110,11 @@ export function createElevenLabsVoiceProvider(
         {
           method: 'POST',
           headers: { 'xi-api-key': deps.apiKey(), 'content-type': 'application/json' },
-          body: JSON.stringify({ text: input.text, model_id: ELEVENLABS_MODEL }),
+          body: JSON.stringify({
+            text: input.text,
+            model_id: ELEVENLABS_MODEL,
+            ...(input.settings ? { voice_settings: voiceSettingsFor(input.settings) } : {}),
+          }),
         },
       );
       if (!res.ok) {

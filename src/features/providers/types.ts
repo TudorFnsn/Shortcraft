@@ -111,8 +111,17 @@ export interface WordTiming {
 }
 export interface VoiceInput {
   text: string;
+  /** Provider voice id, or 'default' for the adapter's configured voice. */
   voiceId: string;
   language: string;
+  /** Provider-level tuning (Voice Studio); omitted = the provider's defaults. */
+  settings?: VoiceTuning;
+}
+export interface VoiceTuning {
+  /** Speaking-rate factor, 1 = normal. */
+  speed: number;
+  /** 0–1: lower is more varied/lively, higher calmer and more even. */
+  stability: number;
 }
 export interface VoiceOutput {
   audioUrl: string;

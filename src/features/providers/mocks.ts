@@ -137,7 +137,7 @@ export function createMockVoiceProvider(model: ModelSpec): VoiceProvider {
       }));
       const durationMs = words.length * perWordMs;
       const output: VoiceOutput = {
-        audioUrl: `mock://audio/${hash(input.text + input.voiceId)}.mp3`,
+        audioUrl: `mock://audio/${hash(input.text + input.voiceId + JSON.stringify(input.settings ?? {}))}.mp3`,
         durationMs,
         words: timings,
       };
