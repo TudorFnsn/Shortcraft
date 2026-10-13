@@ -221,3 +221,34 @@ export const anotherLikeHref = (v: {
     tier: v.tier,
     idea: freshIdea(v.themeId, v.topic, v.id),
   }).toString()}`;
+
+export interface TomorrowIdea {
+  topic: string;
+  href: string;
+}
+
+/**
+ * "Queue tomorrow's video": tomorrow's idea in the theme just made, with the same
+ * length and quality, so the next video can be made now and be waiting tomorrow.
+ * Never the topic just made.
+ */
+export function tomorrowIdea(
+  v: { themeId: string; topic: string; durationSec: number; tier: string },
+  now: Date,
+): TomorrowIdea {
+  const tomorrow = dayKey(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const same = (t: string) => t.trim().toLowerCase() === v.topic.trim().toLowerCase();
+  const picks = dailyIdeas(tomorrow, v.themeId).filter(
+    (i) => i.themeId === v.themeId && !same(i.topic),
+  );
+  const topic = picks[0]?.topic ?? freshIdea(v.themeId, v.topic, tomorrow);
+  return {
+    topic,
+    href: `/create?${new URLSearchParams({
+      theme: v.themeId,
+      len: String(v.durationSec),
+      tier: v.tier,
+      idea: topic,
+    }).toString()}`,
+  };
+}

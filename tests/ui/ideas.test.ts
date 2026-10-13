@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { THEMES } from '@/config/themes';
-import { THEME_LOOKS, createHref, dailyIdeas, dayKey, lookFor } from '@/components/ideas';
+import {
+  THEME_LOOKS,
+  createHref,
+  dailyIdeas,
+  dayKey,
+  lookFor,
+  tomorrowIdea,
+} from '@/components/ideas';
 
 describe('theme looks', () => {
   it('has a look with at least three ideas for every theme', () => {
@@ -49,5 +56,33 @@ describe('createHref', () => {
     expect(createHref({ themeId: 'fun-facts', topic: 'Why honey & bees?' })).toBe(
       '/create?theme=fun-facts&idea=Why+honey+%26+bees%3F',
     );
+  });
+});
+
+describe("tomorrow's video", () => {
+  const card = {
+    themeId: 'fun-facts',
+    topic: 'Why honey never spoils',
+    durationSec: 30,
+    tier: 'standard',
+  };
+  const now = new Date('2026-10-13T20:00:00Z');
+
+  it("offers tomorrow's idea in the same theme, length and quality", () => {
+    const next = tomorrowIdea(card, now);
+    expect(lookFor('fun-facts').ideas).toContain(next.topic);
+    const q = new URLSearchParams(next.href.split('?')[1]);
+    expect(next.href.startsWith('/create?')).toBe(true);
+    expect(q.get('theme')).toBe('fun-facts');
+    expect(q.get('len')).toBe('30');
+    expect(q.get('tier')).toBe('standard');
+    expect(q.get('idea')).toBe(next.topic);
+  });
+
+  it('never repeats the video just made, and is stable for the day', () => {
+    for (const topic of lookFor('fun-facts').ideas) {
+      expect(tomorrowIdea({ ...card, topic }, now).topic).not.toBe(topic);
+    }
+    expect(tomorrowIdea(card, now)).toEqual(tomorrowIdea(card, new Date('2026-10-13T01:00:00Z')));
   });
 });
