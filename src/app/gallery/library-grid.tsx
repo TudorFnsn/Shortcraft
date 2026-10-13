@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { anotherLikeHref } from '@/components/ideas';
@@ -14,7 +14,6 @@ import {
   type LibraryCard,
 } from './library';
 import { postingStats, streakLine } from './posting';
-import { TomorrowNudge } from './tomorrow';
 import { usePostedLog } from './use-posted-log';
 import { VideoThumb } from './video-thumb';
 
@@ -28,14 +27,20 @@ const FILTERS: { id: Filter; label: string }[] = [
 const fmt = (n: number) => n.toLocaleString('en-US');
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+/** Filter chips only once there is something to filter (DesignPlan §4 S, Q4). */
+const FILTERS_FROM = 12;
+
 export function LibraryGrid({
   cards,
   balance,
   freeTrial,
+  hero,
 }: {
   cards: LibraryCard[];
   balance: number;
   freeTrial: boolean;
+  /** Today's idea, shown beside the latest video. */
+  hero?: ReactNode;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>('all');
@@ -59,7 +64,12 @@ export function LibraryGrid({
   );
   const hasReady = cards.some((c) => c.kind === 'ready');
   const counts = countByFilter(cards);
-  const shown = cards.filter((c) => filter === 'all' || c.kind === filter);
+  const showFilters = cards.length >= FILTERS_FROM;
+  // The newest video is shown large beside Today's idea, so the row starts after it.
+  const featured = cards[0]?.kind === 'failed' ? null : (cards[0] ?? null);
+  const shown = cards.filter(
+    (c) => (filter === 'all' || c.kind === filter) && !(filter === 'all' && c === featured),
+  );
   const open = cards.find((c) => c.id === openId) ?? null;
 
   function flash(text: string) {
@@ -101,286 +111,336 @@ export function LibraryGrid({
   }
 
   return (
-    <section aria-labelledby="videos-h" className="flex flex-col gap-5">
-      <h2 id="videos-h" className="sr-only">
-        All videos
-      </h2>
-      {hasReady && posted.today && (
-        <p className="text-ink-muted flex items-center gap-2 text-[15px]">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="text-ember-ink shrink-0"
-          >
-            <path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-2 1-3 2-4 0 1.5 1 2.5 2 2.5 0-2.5-1-4.5 0-7z" />
-          </svg>
-          {streakLine(postingStats(posted.log, posted.today))}
-        </p>
-      )}
-      <div
-        role="radiogroup"
-        aria-label="Show"
-        onKeyDown={(e) =>
-          onRadioKeyDown(
-            e,
-            FILTERS.map((f) => f.id),
-            filter,
-            setFilter,
-          )
-        }
-        className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
-      >
-        {FILTERS.map((f) => {
-          const checked = f.id === filter;
-          return (
-            <button
-              key={f.id}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              tabIndex={checked ? 0 : -1}
-              onClick={() => setFilter(f.id)}
-              className={`text-ink inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm whitespace-nowrap transition-colors md:min-h-10 ${
-                checked
-                  ? 'bg-raised border-ink font-semibold'
-                  : 'border-line-strong hover:bg-raised font-medium'
-              }`}
-            >
-              {f.label}
-              <span className="text-ink-muted text-xs font-semibold tabular-nums">
-                {counts[f.id]}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {shown.length === 0 ? (
-        <p className="text-ink-muted border-line-strong rounded-card border border-dashed p-8 text-center">
-          {filter === 'failed' ? 'No failed videos. Nice.' : 'Nothing here right now.'}
-        </p>
-      ) : (
-        <ul className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {shown.map((c) => (
-            <li key={c.id} className="flex min-w-0 flex-col gap-2.5">
-              {c.kind === 'ready' && (
-                <button
-                  type="button"
-                  onClick={() => setOpenId(c.id)}
-                  aria-label={`Play ${c.title}`}
-                  className="rounded-card group relative block w-full overflow-hidden text-left"
-                >
-                  <VideoThumb id={c.id} themeId={c.themeId} hasThumb={c.hasThumb} />
-                  <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                    <span className="flex size-12 items-center justify-center rounded-full bg-white/90">
-                      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-                        <path d="M6 3.5v11l9-5.5z" fill="#221c17" />
-                      </svg>
-                    </span>
+    <div className="flex flex-col gap-14">
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {hero}
+        {featured && (
+          <figure className="mx-auto flex w-full max-w-[200px] flex-col gap-3 sm:max-w-[300px] lg:max-w-none">
+            {featured.kind === 'ready' ? (
+              <button
+                type="button"
+                onClick={() => setOpenId(featured.id)}
+                aria-label={`Play ${featured.title}`}
+                className="group relative block w-full overflow-hidden rounded-[24px] text-left"
+              >
+                <VideoThumb
+                  id={featured.id}
+                  themeId={featured.themeId}
+                  hasThumb={featured.hasThumb}
+                />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="flex size-16 items-center justify-center rounded-full bg-white/90 transition-transform group-hover:scale-105">
+                    <svg width="22" height="22" viewBox="0 0 18 18" aria-hidden="true">
+                      <path d="M6 3.5v11l9-5.5z" fill="#0e0f11" />
+                    </svg>
                   </span>
-                  <span className="absolute right-2 bottom-2 rounded-lg bg-[rgb(20_16_13/0.62)] px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
-                    {clock(c.durationSec)}
+                </span>
+              </button>
+            ) : (
+              <div className="bg-raised relative overflow-hidden rounded-[24px]">
+                <VideoThumb
+                  id={featured.id}
+                  themeId={featured.themeId}
+                  hasThumb={featured.hasThumb}
+                  className={featured.hasThumb ? 'opacity-35' : 'opacity-0'}
+                />
+                <div className="absolute inset-x-4 bottom-4 flex flex-col gap-2">
+                  <span className="text-[17px] font-semibold">{featured.stepLabel}</span>
+                  <span className="text-ink-muted text-sm">
+                    Step {featured.step} of {STEP_COUNT}
                   </span>
-                  {c.isNew && (
-                    <span className="bg-ember-soft text-ember-ink absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-semibold">
-                      New
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {c.kind === 'working' && (
-                <div className="rounded-card bg-raised relative overflow-hidden">
-                  <VideoThumb
-                    id={c.id}
-                    themeId={c.themeId}
-                    hasThumb={c.hasThumb}
-                    className={c.hasThumb ? 'opacity-35' : 'opacity-0'}
-                  />
-                  <div className="bg-surface absolute inset-x-3 bottom-3 flex flex-col gap-2 rounded-xl p-3">
-                    <span className="bg-ember-soft text-ember-ink self-start rounded-full px-2 py-0.5 text-xs font-semibold">
-                      Step {c.step} of {STEP_COUNT}
-                    </span>
-                    <span className="text-[15px] leading-5 font-semibold">{c.stepLabel}</span>
+                  <div
+                    role="progressbar"
+                    aria-label={`${featured.title}: ${featured.stepLabel}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={featured.percent}
+                    className="bg-paper h-1.5 overflow-hidden rounded-full"
+                  >
                     <div
-                      role="progressbar"
-                      aria-label={`${c.title}: ${c.stepLabel}`}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={c.percent}
-                      className="bg-raised h-1.5 overflow-hidden rounded-full"
-                    >
-                      <div
-                        className="bg-ember h-full rounded-full transition-[width] duration-500"
-                        style={{ width: `${c.percent}%` }}
-                      />
-                    </div>
+                      className="bg-ember h-full rounded-full transition-[width] duration-500"
+                      style={{ width: `${featured.percent}%` }}
+                    />
                   </div>
                 </div>
+              </div>
+            )}
+            <figcaption className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="truncate font-semibold">
+                {featured.kind === 'ready' ? 'Latest · ' : 'Making · '}
+                {featured.title}
+              </span>
+              {featured.kind === 'ready' && posted.log[featured.id] && (
+                <span className="text-ink-muted shrink-0">Posted</span>
               )}
+            </figcaption>
+          </figure>
+        )}
+      </div>
 
-              {c.kind === 'failed' && c.blocked && (
-                <div className="rounded-card bg-raised flex aspect-[9/16] flex-col items-center justify-center gap-2.5 p-4 text-center">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className="text-ink-muted"
-                  >
-                    <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />
-                    <path d="M12 8v4" />
-                    <path d="M12 15.5h.01" />
-                  </svg>
-                  <span className="text-[15px] leading-5 font-semibold">
-                    We didn&apos;t make this one
+      <section aria-labelledby="videos-h" className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="videos-h" className="text-[17px] font-semibold">
+            Your videos
+          </h2>
+          {hasReady && posted.today && (
+            <p className="text-ink-muted text-sm">
+              {streakLine(postingStats(posted.log, posted.today))}
+            </p>
+          )}
+        </div>
+        {showFilters && (
+          <div
+            role="radiogroup"
+            aria-label="Show"
+            onKeyDown={(e) =>
+              onRadioKeyDown(
+                e,
+                FILTERS.map((f) => f.id),
+                filter,
+                setFilter,
+              )
+            }
+            className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+          >
+            {FILTERS.map((f) => {
+              const checked = f.id === filter;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={checked}
+                  tabIndex={checked ? 0 : -1}
+                  onClick={() => setFilter(f.id)}
+                  className={`text-ink inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm whitespace-nowrap transition-colors md:min-h-10 ${
+                    checked
+                      ? 'bg-raised border-ink font-semibold'
+                      : 'border-line-strong hover:bg-raised font-medium'
+                  }`}
+                >
+                  {f.label}
+                  <span className="text-ink-muted text-xs font-semibold tabular-nums">
+                    {counts[f.id]}
                   </span>
-                  <span className="text-ink-muted text-[13px] leading-[18px]">
-                    The script asked for images Shortcraft doesn&apos;t make, so we stopped before
-                    drawing anything. Your credits were refunded.
-                  </span>
-                  <Link
-                    href={anotherLikeHref(c)}
-                    aria-label={`Try a different idea instead of ${c.title}`}
-                    className={buttonClasses({
-                      variant: 'secondary',
-                      size: 'sm',
-                      className: 'mt-1 min-h-11',
-                    })}
-                  >
-                    Try a different idea
-                  </Link>
-                  <Link
-                    href="/terms#acceptable-use"
-                    className="text-ember-ink inline-flex min-h-11 items-center text-[13px] font-medium underline underline-offset-2 md:min-h-6"
-                  >
-                    What we don&apos;t make
-                  </Link>
-                </div>
-              )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-              {c.kind === 'failed' && !c.blocked && (
-                <div className="rounded-card bg-raised flex aspect-[9/16] flex-col items-center justify-center gap-2.5 p-4 text-center">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className="text-ink-muted"
+        {shown.length === 0 ? (
+          <p className="text-ink-muted border-line-strong rounded-card border border-dashed p-8 text-center">
+            {filter === 'failed'
+              ? 'No failed videos. Nice.'
+              : 'Your next videos will line up here.'}
+          </p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+            {shown.map((c) => (
+              <li key={c.id} className="flex min-w-0 flex-col gap-2.5">
+                {c.kind === 'ready' && (
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(c.id)}
+                    aria-label={`Play ${c.title}`}
+                    className="rounded-card group relative block w-full overflow-hidden text-left"
                   >
-                    <path d="M20 11a8 8 0 1 0-2.3 5.7" />
-                    <path d="M20 4v7h-7" />
-                  </svg>
-                  <span className="text-[15px] leading-5 font-semibold">Didn&apos;t finish</span>
-                  <span className="text-ink-muted text-[13px] leading-[18px]">
-                    Your credits were refunded.
-                  </span>
-                  {c.retryCredits <= balance ? (
-                    <button
-                      type="button"
-                      onClick={() => void retry(c)}
-                      disabled={retrying === c.id}
-                      aria-label={`Try again: ${c.title}, about ${fmt(c.retryCredits)} credits`}
+                    <VideoThumb id={c.id} themeId={c.themeId} hasThumb={c.hasThumb} />
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      <span className="flex size-12 items-center justify-center rounded-full bg-white/90">
+                        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                          <path d="M6 3.5v11l9-5.5z" fill="#221c17" />
+                        </svg>
+                      </span>
+                    </span>
+                    <span className="absolute right-2 bottom-2 rounded-lg bg-[rgb(20_16_13/0.62)] px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
+                      {clock(c.durationSec)}
+                    </span>
+                    {c.isNew && (
+                      <span className="bg-ember-soft text-ember-ink absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-semibold">
+                        New
+                      </span>
+                    )}
+                    {posted.log[c.id] && (
+                      <span className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M4 10.5l4 4 8-9" />
+                        </svg>
+                        <span className="sr-only">Posted</span>
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {c.kind === 'working' && (
+                  <div className="rounded-card bg-raised relative overflow-hidden">
+                    <VideoThumb
+                      id={c.id}
+                      themeId={c.themeId}
+                      hasThumb={c.hasThumb}
+                      className={c.hasThumb ? 'opacity-35' : 'opacity-0'}
+                    />
+                    <div className="bg-surface absolute inset-x-3 bottom-3 flex flex-col gap-2 rounded-xl p-3">
+                      <span className="bg-ember-soft text-ember-ink self-start rounded-full px-2 py-0.5 text-xs font-semibold">
+                        Step {c.step} of {STEP_COUNT}
+                      </span>
+                      <span className="text-[15px] leading-5 font-semibold">{c.stepLabel}</span>
+                      <div
+                        role="progressbar"
+                        aria-label={`${c.title}: ${c.stepLabel}`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={c.percent}
+                        className="bg-raised h-1.5 overflow-hidden rounded-full"
+                      >
+                        <div
+                          className="bg-ember h-full rounded-full transition-[width] duration-500"
+                          style={{ width: `${c.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {c.kind === 'failed' && c.blocked && (
+                  <div className="rounded-card bg-raised flex aspect-[9/16] flex-col items-center justify-center gap-2.5 p-4 text-center">
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                      className="text-ink-muted"
+                    >
+                      <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />
+                      <path d="M12 8v4" />
+                      <path d="M12 15.5h.01" />
+                    </svg>
+                    <span className="text-[15px] leading-5 font-semibold">
+                      We didn&apos;t make this one
+                    </span>
+                    <span className="text-ink-muted text-[13px] leading-[18px]">
+                      The script asked for images Shortcraft doesn&apos;t make, so we stopped before
+                      drawing anything. Your credits were refunded.
+                    </span>
+                    <Link
+                      href={anotherLikeHref(c)}
+                      aria-label={`Try a different idea instead of ${c.title}`}
                       className={buttonClasses({
                         variant: 'secondary',
                         size: 'sm',
                         className: 'mt-1 min-h-11',
                       })}
                     >
-                      {retrying === c.id ? 'Starting…' : `Try again · ~${fmt(c.retryCredits)}`}
-                    </button>
-                  ) : (
-                    <Link
-                      href="/pricing"
-                      className="text-ember-ink mt-1 inline-flex min-h-6 items-center text-sm font-semibold underline underline-offset-2"
-                    >
-                      Get credits to try again
+                      Try a different idea
                     </Link>
-                  )}
-                </div>
-              )}
+                    <Link
+                      href="/terms#acceptable-use"
+                      className="text-ember-ink inline-flex min-h-11 items-center text-[13px] font-medium underline underline-offset-2 md:min-h-6"
+                    >
+                      What we don&apos;t make
+                    </Link>
+                  </div>
+                )}
 
-              <div className="flex flex-col gap-0.5 px-0.5">
-                <span className="line-clamp-2 text-[15px] leading-5 font-semibold">{c.title}</span>
-                <span className="text-ink-muted text-[13px] leading-[18px]">{c.meta}</span>
-              </div>
-              {c.kind === 'ready' && (
-                <button
-                  type="button"
-                  aria-pressed={Boolean(posted.log[c.id])}
-                  aria-label={`Posted: ${c.title}`}
-                  onClick={() => posted.toggle(c.id)}
-                  className={`inline-flex min-h-11 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] font-semibold transition-colors md:min-h-8 ${
-                    posted.log[c.id]
-                      ? 'bg-ember-soft text-ember-ink border-transparent'
-                      : 'border-line-strong text-ink-muted hover:bg-raised'
-                  }`}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    {posted.log[c.id] ? (
-                      <path d="M4 10.5l4 4 8-9" />
+                {c.kind === 'failed' && !c.blocked && (
+                  <div className="rounded-card bg-raised flex aspect-[9/16] flex-col items-center justify-center gap-2.5 p-4 text-center">
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                      className="text-ink-muted"
+                    >
+                      <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+                      <path d="M20 4v7h-7" />
+                    </svg>
+                    <span className="text-[15px] leading-5 font-semibold">Didn&apos;t finish</span>
+                    <span className="text-ink-muted text-[13px] leading-[18px]">
+                      Your credits were refunded.
+                    </span>
+                    {c.retryCredits <= balance ? (
+                      <button
+                        type="button"
+                        onClick={() => void retry(c)}
+                        disabled={retrying === c.id}
+                        aria-label={`Try again: ${c.title}, about ${fmt(c.retryCredits)} credits`}
+                        className={buttonClasses({
+                          variant: 'secondary',
+                          size: 'sm',
+                          className: 'mt-1 min-h-11',
+                        })}
+                      >
+                        {retrying === c.id ? 'Starting…' : `Try again · ~${fmt(c.retryCredits)}`}
+                      </button>
                     ) : (
-                      <path d="M10 4v12M4 10h12" />
+                      <Link
+                        href="/pricing"
+                        className="text-ember-ink mt-1 inline-flex min-h-6 items-center text-sm font-semibold underline underline-offset-2"
+                      >
+                        Get credits to try again
+                      </Link>
                     )}
-                  </svg>
-                  {posted.log[c.id] ? 'Posted' : 'Mark posted'}
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                  </div>
+                )}
 
-      {open && (
-        <PlayerSheet
-          card={open}
-          freeTrial={freeTrial}
-          onClose={() => setOpenId(null)}
-          onCopied={() => flash('Title copied')}
-        />
-      )}
+                <div className="flex flex-col gap-0.5 px-0.5">
+                  <span className="line-clamp-2 text-[15px] leading-5 font-semibold">
+                    {c.title}
+                  </span>
+                  <span className="text-ink-muted text-[13px] leading-[18px]">{c.meta}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      <p role="status" className="sr-only">
-        {finished}
-      </p>
+        {open && (
+          <PlayerSheet
+            card={open}
+            freeTrial={freeTrial}
+            posted={Boolean(posted.log[open.id])}
+            onTogglePosted={() => posted.toggle(open.id)}
+            onClose={() => setOpenId(null)}
+            onCopied={() => flash('Title copied')}
+          />
+        )}
 
-      <div
-        role="status"
-        aria-live="polite"
-        className={`bg-ink text-paper shadow-sheet fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[14px] px-4 py-3 text-sm transition-opacity ${
-          toast ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-      >
-        {toast}
-      </div>
-    </section>
+        <p role="status" className="sr-only">
+          {finished}
+        </p>
+
+        <div
+          role="status"
+          aria-live="polite"
+          className={`bg-ink text-paper shadow-sheet fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[14px] px-4 py-3 text-sm transition-opacity ${
+            toast ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+        >
+          {toast}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -388,11 +448,15 @@ export function LibraryGrid({
 function PlayerSheet({
   card,
   freeTrial,
+  posted,
+  onTogglePosted,
   onClose,
   onCopied,
 }: {
   card: LibraryCard;
   freeTrial: boolean;
+  posted: boolean;
+  onTogglePosted: () => void;
   onClose: () => void;
   onCopied: () => void;
 }) {
@@ -544,15 +608,29 @@ function PlayerSheet({
             </div>
           </div>
 
-          <div className="bg-paper rounded-card flex flex-col gap-1.5 p-4">
-            <span className="text-sm font-semibold">Ready to post</span>
-            <span className="text-ink-muted text-sm">
-              Vertical 9:16 MP4 with captions and an AI-generated label, sized for TikTok, Reels and
-              Shorts. It stays in your Library, so you can download it again any time.
-            </span>
-          </div>
-
-          <TomorrowNudge card={card} now={new Date()} compact />
+          <button
+            type="button"
+            aria-pressed={posted}
+            onClick={onTogglePosted}
+            className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full text-[15px] font-semibold transition-colors ${
+              posted ? 'bg-ember-soft text-ember-ink' : 'bg-raised text-ink hover:bg-line'
+            }`}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {posted ? <path d="M4 10.5l4 4 8-9" /> : <path d="M10 4v12M4 10h12" />}
+            </svg>
+            {posted ? 'Posted' : 'Mark as posted'}
+          </button>
 
           {freeTrial && (
             <p className="text-ink-muted text-[13px] leading-[18px]">
