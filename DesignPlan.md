@@ -134,6 +134,38 @@ Approved straight to code, without a canvas, in this order:
 - [x] **Pricing page redesign** (PR #58, merged 2026-10-13): layout only; plans, checkout and waiver unchanged. Screenshots in `docs/design/pricing/`.
 - [x] **Login and sign-up screens** (PR #59, merged 2026-10-13): labelled fields, autocomplete, show-password, visible focus, announced errors, a page title. axe found 0 violations. Screenshots in `docs/design/auth/`.
 
+### S: Calm & Clear (owner brief 2026-10-13: "more intuitive, less crowded, easier on the eye, a straightforward journey")
+
+The app works, but every screen asks for attention at once. This journey keeps Paper & Ember and the content-first layout, and takes things away.
+
+**Audit (2026-10-13, from the shipped code):**
+
+- **Create** shows four sections expanded together (idea box with helper line, keyboard hint and 3 idea chips; 8 look cards; 5 length chips; 2 quality cards). It also has a side panel with a preview, a summary, a cost meter, a balance line and two notes. That is about 20 decisions or texts before Generate.
+- **Library** stacks five competing actions above the grid: New video, Tomorrow's video, 3 daily ideas, the streak line, and filter chips with counts. Each card adds a Posted toggle.
+- **Visual noise:** a hairline border on almost every card and input, several 13–15px grey helper lines, and ember appearing several times on one screen.
+
+**Journey (one question and one ember action per screen):** Idea → Make → Watch → Post.
+
+1. **Idea:** one big idea box, a "Surprise me" link and three setting pills (look · length · quality) that remember the last choice. The look picker opens as a sheet of 8 tiles only when asked.
+2. **Make:** one button, "Make video", with the cost under it ("About 2,024 credits · you have 12,480"). Locked options and short balances keep today's behaviour (principle 3), shown inline under the button.
+3. **Watch:** Home ("Your videos") shows the video being made as the first card, and the player opens when it is ready.
+4. **Post:** in the player, Download (ember), Copy title and Posted. Tomorrow's idea moves to Home as a single "Today's idea" card (replacing the Tomorrow block and the 3-idea row).
+
+**Visual rules:**
+
+- No hairline borders on cards; separate them with surface fills and space.
+- Two text sizes per block.
+- Helper text only where a person can get stuck.
+- Ember once per screen.
+- Content width 680px (Create) and 1120px (Home).
+- Navigation: "Your videos" + credits + avatar on desktop. On phones, a single floating "+" replaces the 3-tab bar.
+
+- [ ] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG): journey map; Create (light, plus dark with the look sheet open); Home light + dark; phone Create and Home. **Waiting on Tudor** (§8 open questions).
+- [ ] **S1 Create, simplified** (after approval): `create-form.tsx` becomes a single column with pills and sheets. Same API, entitlement, moderation and keyboard behaviour.
+- [ ] **S2 Home, simplified:** one "Today's idea" card; in-progress first; filters only once there are 12+ videos; Posted moves into the player and a corner check.
+- [ ] **S3 Shell + visual pass:** header and phone navigation; remove card borders; tidy the type scale across Create, Home, pricing and login.
+- [ ] **S4 Check:** axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted). Count clicks before and after.
+
 ### Later (out of the current charter, needs owner sign-off)
 
 Home dashboard · fuller onboarding (beyond the one-tap first video).
@@ -160,12 +192,14 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - D3 Mobile canvas: https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7: 6 phone artboards (Create and Library light/dark, player sheet, Account sheet). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - D2.1 blocked-card canvas: https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ: 4 artboards (Library 1440 + 390, light/dark) showing the new card next to the shipped ready, in-progress and failed cards. Private to Tudor.
+- Calm & Clear canvas (journey S): https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG: 7 artboards (journey map, Create light, look picker dark, Home light/dark, phone Create and Home), on the Paper & Ember tokens. Private to Tudor.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-13** — New journey **S: Calm & Clear** from Tudor's brief. Audited the shipped Create and Library and published a proposal canvas (one path: idea → make → watch → post; one ember action per screen). Waiting on Tudor's approval and the open questions in §8. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the four follow-ups plus real landing videos, straight to code. All five shipped the same day (PRs #55–#59). (Design CEO, interactive)
 - **2026-10-13** — D2.1 shipped (PR #51). Every roadmap item in the charter is now shipped. The Design CEO routine is to be paused (decision 4) until Tudor picks one of the Later items. (Design CEO, interactive)
 - **2026-10-12** — Tudor approved the D2.1 canvas. The code is in review on `ceo-design/d2-blocked-card`. Once it ships, the routine pauses (decision 4). (Design CEO, interactive)
@@ -187,6 +221,14 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **Open for Tudor: S Calm & Clear** (2026-10-13). My recommendation is in brackets:
+  1. Collapse look, length and quality into three pills that open small sheets, instead of showing every option at once? [yes; the last choices are remembered, so most days nobody opens them]
+  2. Drop the big phone preview on desktop Create (the look sheet shows each look instead)? [yes]
+  3. Merge Tomorrow's video and the 3-idea row into one "Today's idea" card with an "Another idea" link? [yes]
+  4. Hide the filter chips until a creator has 12 or more videos? [yes]
+  5. On phones, replace the 3-tab bar with Home plus one floating "+" button (Account moves to the avatar)? [yes]
+  6. Rename "Library" to "Your videos" everywhere? [yes]
 
 - **D2.1 blocked-video card approved** (2026-10-12, owner: "D2.1 approved"), with the recommended answers:
   1. Blocked cards offer **"Try a different idea"** instead of "Try again" (the same topic would very likely be blocked again).
