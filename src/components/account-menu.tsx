@@ -41,7 +41,7 @@ export function AccountMenu({ email }: { email: string | null }) {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((o) => !o)}
-        className="border-line bg-raised flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold"
+        className="bg-raised hover:bg-line flex size-11 items-center justify-center rounded-full text-sm font-semibold transition-colors md:size-10"
       >
         {initial}
       </button>
