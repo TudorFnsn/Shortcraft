@@ -124,9 +124,19 @@ Each item flows **canvas → owner approval → PR**. Status: `[ ]` todo · `[~]
 - [x] **Accessibility audit, desktop core loop** (PR #42, merged 2026-10-11): axe (WCAG 2.2 A/AA) found 0 violations on Create (4 states), Library, landing, login and pricing in both themes. The manual pass fixed 8 smaller issues: page titles, a skip link, arrow keys in the theme picker, focus return from the account menu, reliable status messages (cost/plan changes, "video is ready"), reduced-motion spinners and 24px text targets. Report: `docs/design/d4-a11y-audit.md`. No visual change, so it needs no canvas.
 - [x] **Audit, phones + landing** (PR #45, merged 2026-10-11): axe found 0 violations at 390px in both themes (landing, login, Create, plan-locked Create, Library). Five touch-target fixes bring the header, footer, idea chips, the "Use … instead" link and the filter chips to 44px on phones. The tab bar and Account sheet keyboard check passed. The login form stays with the auth-screens item in Later. Report: `docs/design/d4-a11y-audit.md` (part 2).
 
+### F: Owner-approved follow-ups (2026-10-13, owner: "take them all in order and start implementing")
+
+Approved straight to code, without a canvas, in this order:
+
+- [~] **Landing hero plays real videos** (PR #55): the three phones play videos from Supabase, configured through `LANDING_SHOWCASE_JOB_IDS`. Drawn frames remain the fallback.
+- [~] **"Posted?" check-off + weekly streak** (PR #56): stored in the browser for now. A `posted_at` column would make it work across devices (main CEO track, migration).
+- [~] **Queue tomorrow's video** (PR #57): tomorrow's idea in the same theme, length and quality, shown in the Library and the player sheet.
+- [~] **Pricing page redesign** (PR #58): layout only; plans, checkout and waiver unchanged. Screenshots in `docs/design/pricing/`.
+- [~] **Login and sign-up screens** (`ceo-design/auth-screens`): labelled fields, autocomplete, show-password, visible focus, announced errors, a page title. axe found 0 violations. Screenshots in `docs/design/auth/`.
+
 ### Later (out of the current charter, needs owner sign-off)
 
-Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing page redesign · auth screens.
+Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ---
 
@@ -156,6 +166,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · pricing 
 
 ## 7. Changelog
 
+- **2026-10-13** — Tudor approved the four follow-ups plus real landing videos, straight to code. All five are in review (PRs #55–#58 and `ceo-design/auth-screens`). (Design CEO, interactive)
 - **2026-10-13** — D2.1 shipped (PR #51). Every roadmap item in the charter is now shipped. The Design CEO routine is to be paused (decision 4) until Tudor picks one of the Later items. (Design CEO, interactive)
 - **2026-10-12** — Tudor approved the D2.1 canvas. The code is in review on `ceo-design/d2-blocked-card`. Once it ships, the routine pauses (decision 4). (Design CEO, interactive)
 - **2026-10-12** — D4 part 2 marked shipped (PR #45). D0–D4 are now all shipped; what is left needs a person (screen-reader run) or a paid image run (theme stills). Picked up the one design item TheMasterPlan still assigns to this track, a friendly Library card for videos the safety check stopped: canvas published for review (D2.1). (Design CEO, routine)
