@@ -3,15 +3,9 @@
  * which are too long, what the new version costs and what to send to
  * `POST /api/jobs/:id/revoice`. Unit-tested (tests/ui/voiceover.test.ts).
  */
-import {
-  DEFAULT_VOICE_SETTINGS,
-  defaultVoiceFor,
-  isVoiceId,
-  type VoiceId,
-  type VoiceSettings,
-} from '@/config/voices';
+import { DEFAULT_VOICE_SETTINGS, defaultVoiceFor, type VoiceSettings } from '@/config/voices';
 import { estimateRevoiceCredits } from '@/features/render/pricing';
-import type { VoicePick } from '@/components/voice/voice-choice';
+import { isPickable, type MyVoice, type VoicePick } from '@/components/voice/voice-choice';
 
 export interface EditScene {
   idx: number;
@@ -34,10 +28,11 @@ export function sourcePick(
   themeId: string,
   voiceId: string | null,
   settings: VoiceSettings | null,
-): VoicePick & { voiceId: VoiceId } {
+  mine: readonly MyVoice[] = [],
+): VoicePick & { voiceId: string } {
   const s = settings ?? DEFAULT_VOICE_SETTINGS;
   return {
-    voiceId: voiceId && isVoiceId(voiceId) ? voiceId : defaultVoiceFor(themeId),
+    voiceId: voiceId && isPickable(voiceId, mine) ? voiceId : defaultVoiceFor(themeId),
     speed: s.speed,
     delivery: s.delivery,
   };

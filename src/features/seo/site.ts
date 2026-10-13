@@ -47,4 +47,4 @@ export function sitemapEntries(base: string): SitemapEntry[] {
 }
 
 /** Paths crawlers should skip: private screens, auth, and the API. */
-export const DISALLOWED_PATHS = ['/api/', '/create', '/gallery', '/login'] as const;
+export const DISALLOWED_PATHS = ['/api/', '/create', '/gallery', '/login', '/voices'] as const;

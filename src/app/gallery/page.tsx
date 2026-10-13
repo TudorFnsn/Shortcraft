@@ -8,6 +8,8 @@ import { TodayHero } from './today-hero';
 import { LibraryGrid } from './library-grid';
 import { anyWorking, toCard, versionsOf } from './library';
 import { dailyIdeas, dayKey } from '@/components/ideas';
+import { publicVoice } from '@/features/voice/my-voices';
+import { getUserVoiceStore } from '@/features/voice/store';
 
 export const metadata: Metadata = { title: `Your videos — ${siteConfig.name}` };
 
@@ -16,10 +18,14 @@ export default async function LibraryPage() {
   if (!user) redirect('/login');
 
   const store = getStore();
-  const [jobs, balance, hasPaid] = await Promise.all([
+  const [jobs, balance, hasPaid, saved] = await Promise.all([
     store.listJobs(user.id),
     store.balance(user.id),
     store.hasPaid(user.id),
+    // Before migration 0012 the table is missing: the editor works with catalog voices only.
+    getUserVoiceStore()
+      .listVoices(user.id)
+      .catch(() => []),
   ]);
   const now = new Date();
   const versions = versionsOf(jobs);
@@ -55,7 +61,13 @@ export default async function LibraryPage() {
           </div>
         </div>
       ) : (
-        <LibraryGrid cards={cards} balance={balance} freeTrial={!hasPaid} hero={hero} />
+        <LibraryGrid
+          cards={cards}
+          balance={balance}
+          myVoices={saved.map(publicVoice)}
+          freeTrial={!hasPaid}
+          hero={hero}
+        />
       )}
     </main>
   );

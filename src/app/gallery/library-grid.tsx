@@ -17,6 +17,7 @@ import { postingStats, streakLine } from './posting';
 import { usePostedLog } from './use-posted-log';
 import { VideoThumb } from './video-thumb';
 import { VoiceoverEditor } from './voiceover-editor';
+import type { MyVoice } from '@/components/voice/voice-choice';
 
 /** "v2" beside a re-voiced video's title. */
 function VersionBadge({ version }: { version: number }) {
@@ -44,11 +45,14 @@ const FILTERS_FROM = 12;
 export function LibraryGrid({
   cards,
   balance,
+  myVoices = [],
   freeTrial,
   hero,
 }: {
   cards: LibraryCard[];
   balance: number;
+  /** The creator's saved voices, for the voiceover editor. */
+  myVoices?: MyVoice[];
   freeTrial: boolean;
   /** Today's idea, shown beside the latest video. */
   hero?: ReactNode;
@@ -449,6 +453,7 @@ export function LibraryGrid({
           <VoiceoverEditor
             card={editing}
             balance={balance}
+            myVoices={myVoices}
             onClose={() => setEditingId(null)}
             onStarted={() => {
               setEditingId(null);

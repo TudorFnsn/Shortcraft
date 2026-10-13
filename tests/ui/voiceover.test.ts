@@ -27,6 +27,13 @@ describe('sourcePick', () => {
     expect(source).toEqual({ voiceId: 'will', speed: 'normal', delivery: 'natural' });
   });
 
+  it('starts from a saved voice the creator still has, else the look default', () => {
+    const own = 'u_0f8e1c2a-1b2c-4d3e-8f90-123456789abc';
+    const mine = [{ id: own, name: 'Radio', description: 'Low' }];
+    expect(sourcePick('fun-facts', own, null, mine).voiceId).toBe(own);
+    expect(sourcePick('fun-facts', own, null, []).voiceId).toBe('will');
+  });
+
   it('starts from the voice and settings the video was made with', () => {
     expect(sourcePick('fun-facts', 'george', { speed: 'slower', delivery: 'calm' })).toEqual({
       voiceId: 'george',
