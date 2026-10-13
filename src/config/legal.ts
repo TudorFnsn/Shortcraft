@@ -13,7 +13,7 @@ import { siteConfig } from './site';
 
 /** Bump when the Terms change materially; recorded with every checkout consent. */
 export const TERMS_VERSION = '2026-10-10';
-export const PRIVACY_VERSION = '2026-10-11';
+export const PRIVACY_VERSION = '2026-10-13';
 
 /** True until the operator fields below are real and the text has been reviewed. */
 export const LEGAL_DRAFT = true;
@@ -62,6 +62,10 @@ export const SUBPROCESSORS = [
   { name: 'Anthropic', purpose: 'writing video scripts from your topic' },
   { name: 'ElevenLabs', purpose: 'generating voiceovers from the script' },
   { name: 'fal.ai', purpose: 'generating scene images and AI video clips' },
+  {
+    name: 'Sentry',
+    purpose: 'error reports when something breaks (no cookies, no screen recording)',
+  },
 ] as const;
 
 export const TERMS: LegalDocument = {
