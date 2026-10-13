@@ -6,12 +6,14 @@ import { getStore } from '@/features/render/store';
 import { PLANS } from '@/config/plans';
 import { CreateForm } from './create-form';
 import { initialSelection } from './composer';
+import { loginHrefFor } from '@/features/auth/carry';
 
 export const metadata: Metadata = { title: `Create a video — ${siteConfig.name}` };
 
 export default async function CreatePage({ searchParams }: PageProps<'/create'>) {
   const user = await getCurrentUser();
-  if (!user) redirect('/login');
+  // Keep the idea + theme a signed-out visitor picked (e.g. on /ideas/<theme>).
+  if (!user) redirect(loginHrefFor(await searchParams));
 
   const store = getStore();
   const [balance, planId, hasPaid, jobs, params] = await Promise.all([
