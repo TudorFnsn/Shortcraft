@@ -19,7 +19,13 @@
 import { siteConfig } from '@/config/site';
 import { MODELS, type ModelKind, type ModelSpec, type ModelTier } from '@/config/models';
 import { PLANS, TOPUP_PACKS, type Plan } from '@/config/plans';
-import { estimateSceneCount, MAX_SCENE_SEC, revoiceBill } from '@/features/render/pricing';
+import {
+  estimateSceneCount,
+  MAX_SCENE_SEC,
+  revoiceBill,
+  VOICE_DESIGN_COST_USD_ESTIMATE,
+  VOICE_DESIGN_ROUND_CREDITS,
+} from '@/features/render/pricing';
 import { FREE_PLAN_ID } from './entitlements';
 
 /** Revenue must be at least this multiple of worst-case API cost. */
@@ -53,6 +59,8 @@ export interface JobShape {
   modelTier: ModelTier;
   /** A re-voiced copy (Voice Studio): only voice + final cut run and are billed. */
   revoice?: true;
+  /** One Voice Design round (3 samples), not a video. */
+  voiceDesign?: true;
 }
 
 export interface JobBill {
@@ -74,6 +82,9 @@ export function jobBill(shape: JobShape, models: readonly ModelSpec[] = MODELS):
   const scenes = estimateSceneCount(shape.targetDurationSec);
   // Narration is at most every scene at full length (the re-voice editor caps growth).
   if (shape.revoice) return revoiceBill(scenes * MAX_SCENE_SEC, models);
+  if (shape.voiceDesign) {
+    return { credits: VOICE_DESIGN_ROUND_CREDITS, costUsd: VOICE_DESIGN_COST_USD_ESTIMATE };
+  }
   const script = pick(models, 'script', 'standard');
   const image = pick(models, 'image', shape.modelTier);
   const video = pick(models, 'video', shape.modelTier);
@@ -100,6 +111,8 @@ export function allowedShapes(plan: Plan): JobShape[] {
   for (let sec = MIN_VIDEO_SEC; sec <= plan.limits.maxVideoDurationSec; sec++) {
     shapes.push({ targetDurationSec: sec, modelTier: 'standard', revoice: true });
   }
+  // Every plan can design voices (saving one is a slot price, not an API cost).
+  shapes.push({ targetDurationSec: 0, modelTier: 'standard', voiceDesign: true });
   return shapes;
 }
 

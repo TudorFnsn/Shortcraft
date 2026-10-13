@@ -16,6 +16,8 @@ import { getPromptModerator } from '@/features/moderation/prompt-check';
 import { advanceJob, driveJob } from '@/features/render/orchestrator';
 import { createRevoiceJob, planNarration } from '@/features/render/revoice';
 import { getStore } from '@/features/render/store';
+import { canUseVoice } from '@/features/voice/my-voices';
+import { getUserVoiceStore } from '@/features/voice/store';
 import { VoiceFields, voiceChoice } from '@/features/render/voice';
 import { logger } from '@/lib/logger';
 
@@ -49,6 +51,11 @@ export async function POST(request: Request, { params }: RouteContext<'/api/jobs
     );
   }
 
+  const voices = getUserVoiceStore();
+  if (!(await canUseVoice(voices, user.id, parsed.data.voiceId))) {
+    return Response.json({ error: 'invalid_input', message: 'Unknown voice.' }, { status: 400 });
+  }
+
   const sourceScenes = await store.listScenes(source.id);
   const plan = planNarration(sourceScenes, parsed.data.scenes);
   if (!plan.ok) {
@@ -79,7 +86,7 @@ export async function POST(request: Request, { params }: RouteContext<'/api/jobs
   }
 
   const job = await createRevoiceJob(store, source, sourceScenes, plan.value.narrations, voice);
-  const deps = { repo: store, credits: store, plans: store };
+  const deps = { repo: store, credits: store, plans: store, voices };
   const held = await advanceJob(deps, job.id); // draft → voiceover: holds the re-voice price
   if (!held.ok) {
     return Response.json({ error: held.error.code, jobId: job.id }, { status: 400 });

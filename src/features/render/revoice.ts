@@ -8,7 +8,7 @@
  * re-voice price (`estimateRevoiceCredits`). The original video is untouched.
  */
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
-import { DEFAULT_VOICE_SETTINGS, type VoiceSettings } from '@/config/voices';
+import { DEFAULT_VOICE_SETTINGS, isUserVoiceId, type VoiceSettings } from '@/config/voices';
 import { estimateRevoiceCredits } from './pricing';
 import type { RenderJobRecord, RenderRepository, SceneRecord } from './repository';
 import { resolveVoice } from './voice';
@@ -130,7 +130,8 @@ export function editorView(job: RenderJobRecord, scenes: readonly SceneRecord[])
     jobId: job.id,
     title: job.title,
     editable: job.status === 'done',
-    voiceId: resolveVoice(job).voiceId,
+    // A saved voice stays selected (its row is checked when the new version renders).
+    voiceId: job.voiceId && isUserVoiceId(job.voiceId) ? job.voiceId : resolveVoice(job).voiceId,
     voiceSettings: job.voiceSettings ?? DEFAULT_VOICE_SETTINGS,
     scenes: ordered.map((s) => ({
       idx: s.idx,

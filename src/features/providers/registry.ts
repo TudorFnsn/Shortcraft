@@ -25,6 +25,8 @@ import { resolveFfmpegPath } from './local/ffmpeg-binary';
 import { createKenBurnsProvider } from './local/ken-burns';
 import { createAnthropicScriptProvider } from './live/anthropic-script';
 import { createElevenLabsVoiceProvider } from './live/elevenlabs-voice';
+import { createElevenLabsVoiceDesigner } from './live/elevenlabs-voice-design';
+import { createMockVoiceDesigner, type VoiceDesigner } from '@/features/voice/designer';
 import { createFalImageProvider, FAL_IMAGE_MODELS } from './live/fal-image';
 import { createFalVideoProvider } from './live/fal-video';
 import { createInhouseRenderProvider } from './live/inhouse-render';
@@ -126,3 +128,10 @@ export const getVoiceProvider = (modelId = 'voice-default'): VoiceProvider =>
 
 export const getRenderProvider = (modelId = 'render-default'): RenderProvider =>
   resolve(modelId, createMockRenderProvider) as RenderProvider;
+
+/** Voice Design (Voice Studio V4): the mock in mock mode, ElevenLabs live (behind the margin gate). */
+export function getVoiceDesigner(): VoiceDesigner {
+  if (env.MOCK_PROVIDERS) return createMockVoiceDesigner();
+  assertMarginGate();
+  return createElevenLabsVoiceDesigner({ apiKey: () => requireEnv('ELEVENLABS_API_KEY') });
+}

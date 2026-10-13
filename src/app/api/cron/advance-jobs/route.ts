@@ -15,6 +15,7 @@
 import { after } from 'next/server';
 import { env } from '@/lib/env';
 import { getStore } from '@/features/render/store';
+import { getUserVoiceStore } from '@/features/voice/store';
 import { advanceJobs, findStalledJobs } from '@/features/render/sweep';
 
 export async function GET(request: Request) {
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
   const store = getStore();
   const jobs = await findStalledJobs(store);
   if (jobs.length > 0) {
-    const deps = { repo: store, credits: store, plans: store };
+    const deps = { repo: store, credits: store, plans: store, voices: getUserVoiceStore() };
     // Leave headroom to release the leases cleanly before the platform kills us.
     after(() => advanceJobs(deps, jobs, (maxDuration - 30) * 1000));
   }

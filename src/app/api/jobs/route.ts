@@ -12,6 +12,8 @@ import { z } from 'zod';
 import { getCurrentUser } from '@/features/auth/session';
 import { advanceJob, driveJob } from '@/features/render/orchestrator';
 import { getStore } from '@/features/render/store';
+import { canUseVoice } from '@/features/voice/my-voices';
+import { getUserVoiceStore } from '@/features/voice/store';
 import { isThemeId } from '@/config/themes';
 import { VoiceFields, voiceChoice } from '@/features/render/voice';
 import { PLANS } from '@/config/plans';
@@ -24,7 +26,8 @@ const Body = z.object({
   themeId: z.string().refine(isThemeId, 'unknown theme'),
   targetDurationSec: z.number().int().min(6).max(120),
   modelTier: z.enum(['standard', 'premium']).default('standard'),
-  // Voice Studio: catalog voices only, never a raw provider id. Omitted = the look's default.
+  // Voice Studio: a catalog voice or the caller's saved voice, never a raw provider id.
+  // Omitted = the look's default.
   ...VoiceFields.shape,
 });
 
@@ -49,6 +52,11 @@ export async function POST(request: Request) {
   }
 
   const store = getStore();
+  // A saved voice must be the caller's own (someone else's id reads as unknown).
+  const voices = getUserVoiceStore();
+  if (!(await canUseVoice(voices, user.id, parsed.data.voiceId))) {
+    return Response.json({ error: 'invalid_input', message: 'Unknown voice.' }, { status: 400 });
+  }
 
   // Plan gate before any job row or credit hold exists.
   const plan = PLANS[await store.planOf(user.id)];
@@ -70,7 +78,7 @@ export async function POST(request: Request) {
     ...voiceChoice(parsed.data),
   });
 
-  const deps = { repo: store, credits: store, plans: store };
+  const deps = { repo: store, credits: store, plans: store, voices };
   const held = await advanceJob(deps, job.id); // draft → scripting: reserves the credits
   if (!held.ok) {
     return Response.json({ error: held.error.code, jobId: job.id }, { status: 400 });
