@@ -76,6 +76,13 @@ export type VoiceId = (typeof VOICES)[number]['id'];
 
 export const isVoiceId = (id: string): id is VoiceId => VOICES.some((v) => v.id === id);
 
+/**
+ * A creator's own designed voice (Voice Studio V4): `u_<uuid>`. Who owns it
+ * is checked on the server (features/voice/my-voices.ts `canUseVoice`).
+ */
+const USER_VOICE_ID = /^u_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const isUserVoiceId = (id: string): boolean => USER_VOICE_ID.test(id);
+
 export function getVoice(id: VoiceId): CatalogVoice {
   return VOICES.find((v) => v.id === id)!;
 }

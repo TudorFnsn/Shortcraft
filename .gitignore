@@ -43,3 +43,6 @@ next-env.d.ts
 
 # live provider smoke output
 /live-smoke/
+
+# Voice Design smoke output (scripts/voice-design-smoke.mts)
+/tmp/

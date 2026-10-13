@@ -24,6 +24,8 @@ export interface Plan {
     maxCharacters: number;
     /** Model tiers unlocked (see models.ts `tier`). */
     modelTiers: ReadonlyArray<'standard' | 'premium'>;
+    /** Designed voices a creator can keep at once (Voice Studio V4). */
+    savedVoices: number;
     studio: boolean;
     series: boolean;
     agent: boolean;
@@ -41,6 +43,7 @@ export const PLANS: Record<PlanId, Plan> = {
     limits: {
       maxVideoDurationSec: 30,
       maxCharacters: 10,
+      savedVoices: 1,
       modelTiers: ['standard'],
       studio: false,
       series: false,
@@ -57,6 +60,7 @@ export const PLANS: Record<PlanId, Plan> = {
     limits: {
       maxVideoDurationSec: 90,
       maxCharacters: 50,
+      savedVoices: 3,
       modelTiers: ['standard', 'premium'],
       studio: true,
       series: true,
@@ -73,6 +77,7 @@ export const PLANS: Record<PlanId, Plan> = {
     limits: {
       maxVideoDurationSec: 120,
       maxCharacters: Number.POSITIVE_INFINITY,
+      savedVoices: 10,
       modelTiers: ['standard', 'premium'],
       studio: true,
       series: true,

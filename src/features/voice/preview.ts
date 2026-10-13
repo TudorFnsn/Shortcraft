@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { DEFAULT_VOICE_SETTINGS, type VoiceSettings } from '@/config/voices';
 import { getVoiceProvider } from '@/features/providers/registry';
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
-import { resolveVoice } from '@/features/render/voice';
+import { resolveVoice, type OwnVoice } from '@/features/render/voice';
 
 export const PREVIEWS_PER_DAY = 20;
 /** Longest line a preview speaks (a scene's narration fits comfortably). */
@@ -27,8 +27,10 @@ export interface PreviewLog {
 
 export interface PreviewRequest {
   text: string;
-  /** Catalog slug; omitted = the look's default for `themeId`. */
+  /** Catalog slug or saved-voice id; omitted = the look's default for `themeId`. */
   voiceId?: string;
+  /** The caller's saved voice for a `u_` voiceId, looked up (and owner-checked) by the route. */
+  own?: OwnVoice | null;
   themeId: string;
   settings?: VoiceSettings;
 }
@@ -51,11 +53,14 @@ export async function previewLine(
     return err(appError('invalid_input', `A preview is at most ${PREVIEW_MAX_CHARS} characters.`));
   }
   const settings = req.settings ?? DEFAULT_VOICE_SETTINGS;
-  const voice = resolveVoice({
-    themeId: req.themeId,
-    voiceId: req.voiceId ?? null,
-    voiceSettings: settings,
-  });
+  const voice = resolveVoice(
+    {
+      themeId: req.themeId,
+      voiceId: req.voiceId ?? null,
+      voiceSettings: settings,
+    },
+    req.own ?? null,
+  );
   const key = previewCacheKey(text, voice.voiceId, settings);
 
   const cached = await log.findCached(key, new Date(now.getTime() - PREVIEW_CACHE_MS));

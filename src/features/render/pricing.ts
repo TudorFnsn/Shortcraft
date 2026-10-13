@@ -97,3 +97,18 @@ export function revoiceBill(
 export function estimateRevoiceCredits(narrations: readonly string[]): number {
   return revoiceBill(estimateSpeechSeconds(narrations.join(' '))).credits;
 }
+
+/**
+ * Designed voices (Voice Studio V4). A design round asks ElevenLabs Voice
+ * Design for 3 samples; it is billed by the characters of the sample text, so
+ * its cost is an estimate until measured (`scripts/voice-design-smoke.mts`).
+ * Priced on the same fixed scale as re-voice, so it can never break the margin
+ * gate. Saving a voice costs us nothing per use but takes one of our
+ * ElevenLabs custom-voice slots, a scarce plan resource: that price is a
+ * product decision (owner, 2026-10-13), not cost-plus.
+ */
+export const VOICE_DESIGN_COST_USD_ESTIMATE = 0.025;
+export const VOICE_DESIGN_ROUND_CREDITS = Math.ceil(
+  VOICE_DESIGN_COST_USD_ESTIMATE * REVOICE_CREDITS_PER_USD,
+);
+export const SAVE_VOICE_CREDITS = 1_500;

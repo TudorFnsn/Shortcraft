@@ -52,12 +52,23 @@ import type {
   RenderRepository,
   SceneRecord,
 } from './repository';
-import { resolveVoice } from './voice';
+import { isUserVoiceId } from '@/config/voices';
+import type { UserVoiceStore } from '@/features/voice/my-voices';
+import { resolveVoice, type OwnVoice } from './voice';
 
 export interface OrchestratorDeps {
   repo: RenderRepository;
   credits: CreditRepository;
   plans: PlanRepository;
+  /** Saved voices (Voice Studio V4). Without it a `u_` voice narrates with the look default. */
+  voices?: Pick<UserVoiceStore, 'getVoice'>;
+}
+
+/** The job's saved voice, if it still exists and its owner made the job. */
+async function ownVoiceOf(deps: OrchestratorDeps, job: RenderJobRecord): Promise<OwnVoice | null> {
+  if (!deps.voices || !job.voiceId || !isUserVoiceId(job.voiceId)) return null;
+  const v = await deps.voices.getVoice(job.voiceId);
+  return v && v.userId === job.userId ? v : null;
 }
 
 /** Long enough for the slowest single step (a 60s render), short enough to recover fast. */
@@ -270,7 +281,7 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
     case 'voiceover': {
       const voice = getVoiceProvider();
       const scenes = await repo.listScenes(job.id);
-      const narrator = resolveVoice(job);
+      const narrator = resolveVoice(job, await ownVoiceOf(deps, job));
       const input = {
         text: scenes.map((s) => s.narration).join(' '),
         voiceId: narrator.providerVoiceId,
