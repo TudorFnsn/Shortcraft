@@ -13,6 +13,8 @@ import {
   type Filter,
   type LibraryCard,
 } from './library';
+import { postingStats, streakLine } from './posting';
+import { usePostedLog } from './use-posted-log';
 import { VideoThumb } from './video-thumb';
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -51,6 +53,8 @@ export function LibraryGrid({
     if (message) setFinished(message);
   }
 
+  const posted = usePostedLog();
+  const hasReady = cards.some((c) => c.kind === 'ready');
   const counts = countByFilter(cards);
   const shown = cards.filter((c) => filter === 'all' || c.kind === filter);
   const open = cards.find((c) => c.id === openId) ?? null;
@@ -98,6 +102,25 @@ export function LibraryGrid({
       <h2 id="videos-h" className="sr-only">
         All videos
       </h2>
+      {hasReady && posted.today && (
+        <p className="text-ink-muted flex items-center gap-2 text-[15px]">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="text-ember-ink shrink-0"
+          >
+            <path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-2 1-3 2-4 0 1.5 1 2.5 2 2.5 0-2.5-1-4.5 0-7z" />
+          </svg>
+          {streakLine(postingStats(posted.log, posted.today))}
+        </p>
+      )}
       <div
         role="radiogroup"
         aria-label="Show"
@@ -295,6 +318,38 @@ export function LibraryGrid({
                 <span className="line-clamp-2 text-[15px] leading-5 font-semibold">{c.title}</span>
                 <span className="text-ink-muted text-[13px] leading-[18px]">{c.meta}</span>
               </div>
+              {c.kind === 'ready' && (
+                <button
+                  type="button"
+                  aria-pressed={Boolean(posted.log[c.id])}
+                  aria-label={`Posted: ${c.title}`}
+                  onClick={() => posted.toggle(c.id)}
+                  className={`inline-flex min-h-11 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] font-semibold transition-colors md:min-h-8 ${
+                    posted.log[c.id]
+                      ? 'bg-ember-soft text-ember-ink border-transparent'
+                      : 'border-line-strong text-ink-muted hover:bg-raised'
+                  }`}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    {posted.log[c.id] ? (
+                      <path d="M4 10.5l4 4 8-9" />
+                    ) : (
+                      <path d="M10 4v12M4 10h12" />
+                    )}
+                  </svg>
+                  {posted.log[c.id] ? 'Posted' : 'Mark posted'}
+                </button>
+              )}
             </li>
           ))}
         </ul>
