@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { siteConfig } from '@/config/site';
 import { getCurrentUser } from '@/features/auth/session';
 import { getStore } from '@/features/render/store';
-import { buttonClasses } from '@/components/ui/button';
 import { AutoRefresh } from './auto-refresh';
-import { DailyIdeas } from './daily-ideas';
+import { TodayHero } from './today-hero';
 import { LibraryGrid } from './library-grid';
-import { TomorrowNudge } from './tomorrow';
-import { anyWorking, librarySummary, toCard } from './library';
+import { anyWorking, toCard } from './library';
+import { dailyIdeas, dayKey } from '@/components/ideas';
 
 export const metadata: Metadata = { title: `Your videos — ${siteConfig.name}` };
 
@@ -25,76 +23,39 @@ export default async function LibraryPage() {
   ]);
   const now = new Date();
   const cards = jobs.map((j) => toCard(j, now));
-  const latest = cards[0];
   const empty = jobs.length === 0;
 
+  const ideas = dailyIdeas(dayKey(now), jobs[0]?.themeId ?? null);
+  const hero = <TodayHero ideas={ideas} />;
+
   return (
-    <main className="mx-auto flex max-w-[1344px] flex-col gap-8 px-4 py-8 sm:px-8 lg:py-10 xl:px-12">
+    <main className="mx-auto flex max-w-[1280px] flex-col gap-12 px-4 py-8 sm:px-8 lg:py-12 xl:px-12">
       {/* Re-render every few seconds while a video is being made. */}
       <AutoRefresh active={anyWorking(jobs)} />
+      <h1 className="sr-only">Your videos</h1>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="font-display text-[36px] leading-10 font-bold tracking-[-0.02em]">
-            Your videos
-          </h1>
-          <p className="text-ink-muted text-[15px]">{librarySummary(jobs, now)}</p>
-        </div>
-        <Link href="/create" className={buttonClasses({ size: 'lg' })}>
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <path d="M10 4v12M4 10h12" />
-          </svg>
-          New video
-        </Link>
-      </div>
-
-      {empty && (
-        <section
-          aria-labelledby="empty-h"
-          className="flex flex-col items-center gap-4 px-6 pt-8 text-center"
-        >
-          <div aria-hidden="true" className="relative h-[170px] w-[220px]">
-            <span className="absolute top-[22px] left-[22px] h-[140px] w-[84px] -rotate-[9deg] rounded-[14px] bg-[#34495c]" />
-            <span className="absolute top-[22px] right-[22px] h-[140px] w-[84px] rotate-[9deg] rounded-[14px] bg-[#563258]" />
-            <span className="absolute top-1.5 left-[66px] flex h-[156px] w-[88px] items-center justify-center rounded-[14px] bg-[#2c5a4c] shadow-[0_0_0_4px_var(--paper)]">
-              <svg width="34" height="34" viewBox="0 0 34 34">
-                <circle cx="17" cy="17" r="17" fill="rgb(255 255 255 / 0.9)" />
-                <path d="M13.5 10.5v13l10.5-6.5z" fill="#2c5a4c" />
+      {empty ? (
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-16">
+          {hero}
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div
+              aria-hidden="true"
+              className="bg-surface flex aspect-[9/16] w-[200px] items-center justify-center rounded-[24px]"
+            >
+              <svg width="40" height="40" viewBox="0 0 34 34">
+                <circle cx="17" cy="17" r="17" fill="var(--raised)" />
+                <path d="M13.5 10.5v13l10.5-6.5z" fill="var(--ink-muted)" />
               </svg>
-            </span>
+            </div>
+            <p className="text-ink-muted max-w-[260px] text-sm">
+              Your videos will live here.
+              {hasPaid ? '' : ' Your first one comes with the trial credits.'}
+            </p>
           </div>
-          <h2
-            id="empty-h"
-            className="font-display text-[28px] leading-8 font-bold tracking-[-0.015em]"
-          >
-            Your videos will live here
-          </h2>
-          <p className="text-ink-muted max-w-[460px]">
-            Pick an idea below and press Generate
-            {hasPaid ? '.' : '. Your first video comes with the trial credits.'}
-          </p>
-        </section>
+        </div>
+      ) : (
+        <LibraryGrid cards={cards} balance={balance} freeTrial={!hasPaid} hero={hero} />
       )}
-
-      {latest?.kind === 'ready' && latest.isNew && !anyWorking(jobs) && (
-        <TomorrowNudge card={latest} now={now} />
-      )}
-
-      <DailyIdeas
-        preferThemeId={jobs[0]?.themeId ?? null}
-        heading={empty ? 'Start with one of these' : undefined}
-      />
-
-      {!empty && <LibraryGrid cards={cards} balance={balance} freeTrial={!hasPaid} />}
     </main>
   );
 }
