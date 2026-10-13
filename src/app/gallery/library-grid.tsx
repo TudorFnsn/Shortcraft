@@ -13,6 +13,7 @@ import {
   type Filter,
   type LibraryCard,
 } from './library';
+import { TomorrowNudge } from './tomorrow';
 import { VideoThumb } from './video-thumb';
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -493,6 +494,8 @@ function PlayerSheet({
               Shorts. It stays in your Library, so you can download it again any time.
             </span>
           </div>
+
+          <TomorrowNudge card={card} now={new Date()} compact />
 
           {freeTrial && (
             <p className="text-ink-muted text-[13px] leading-[18px]">
