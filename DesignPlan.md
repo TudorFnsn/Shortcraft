@@ -183,7 +183,7 @@ Three new surfaces, drawn in the Studio look. They follow the S rules: one viole
     - Unlike the other sheets, picking does not close this one, because speed and delivery follow; Done or Escape closes it.
     - The voice is remembered with the other settings. Until the creator picks one, the voice follows the look's default; after that it stays put.
     - `POST /api/jobs` already takes `voiceId`, `speed` and `delivery`.
-  - [~] **V3 Voiceover editor** (in review on `ceo-design/v3-voiceover-editor`). It counts characters, matching the server's limit of 130% + 20, rather than words. Scenes load from a small read-only `GET /api/jobs/:id/scenes`. The voice opens inline in the editor instead of as a second sheet. Two parts are not built yet: **"▶ Hear this line"** waits on `POST /api/voice/preview`, and **scene thumbnails** need a signed per-scene image route, so both come with a follow-up:
+  - [~] **V3 Voiceover editor** (in review on `ceo-design/v3-voiceover-editor`). It is built on the CEO track's API contract (TheMasterPlan §5): `GET /api/jobs/:id/scenes` for the lines and their limits, `?scene=<idx>` thumbnails, `POST /api/voice/preview` for **"Hear this line"**, and `POST /api/jobs/:id/revoice`. It counts characters (the server's 130% + 20 limit), not words, and the voice opens inline in the editor instead of as a second sheet:
     - "Edit voiceover" sits in the player sheet next to Download, only for finished videos you own.
     - The editor is a `Sheet` with a new `size="wide"` variant (full screen on phones).
     - It needs a read-only helper that loads a job's scene narration and thumbnails.

@@ -20,6 +20,12 @@ export interface EditScene {
   maxLength: number;
 }
 
+/**
+ * Longest line "Hear this line" sends. Mirrors `PREVIEW_MAX_CHARS` in the
+ * server-only `features/voice/preview.ts` (a test keeps them equal).
+ */
+export const PREVIEW_MAX_CHARS = 300;
+
 /** The same clean-up the server applies before comparing and measuring. */
 export const cleanLine = (text: string): string => text.replace(/\s+/g, ' ').trim();
 

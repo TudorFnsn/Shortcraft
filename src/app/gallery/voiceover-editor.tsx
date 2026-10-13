@@ -9,9 +9,38 @@ import { VoicePicker } from '@/components/voice/voice-picker';
 import { useVoicePreview } from '@/components/voice/use-voice-preview';
 import { DELIVERY_LABEL, SPEED_LABEL, type VoicePick } from '@/components/voice/voice-choice';
 import type { LibraryCard } from './library';
-import { editorState, revoiceBody, sourcePick, type EditScene } from './voiceover';
+import {
+  PREVIEW_MAX_CHARS,
+  cleanLine,
+  editorState,
+  revoiceBody,
+  sourcePick,
+  type EditScene,
+} from './voiceover';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
+
+/** The scene's picture, or a quiet tile when it can't load (mock mode, old renders). */
+function SceneThumb({ jobId, idx }: { jobId: string; idx: number }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span
+      aria-hidden="true"
+      className="bg-raised block h-[71px] w-10 shrink-0 overflow-hidden rounded-[8px] sm:h-[92px] sm:w-[52px]"
+    >
+      {!failed && (
+        // eslint-disable-next-line @next/next/no-img-element -- a signed redirect, not a static asset
+        <img
+          src={`/api/jobs/${jobId}/thumbnail?scene=${idx}`}
+          alt=""
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="size-full object-cover"
+        />
+      )}
+    </span>
+  );
+}
 
 type Load = { state: 'loading' } | { state: 'error' } | { state: 'ready'; scenes: EditScene[] };
 
@@ -42,14 +71,17 @@ export function VoiceoverEditor({
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [hearing, setHearing] = useState<number | null>(null);
+  const [lineNote, setLineNote] = useState<{ idx: number; text: string } | null>(null);
   const preview = useVoicePreview();
 
   useEffect(() => {
     let live = true;
     fetch(`/api/jobs/${card.id}/scenes`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((data: { scenes: EditScene[] }) => {
-        if (live) setLoad({ state: 'ready', scenes: data.scenes });
+      .then((data: { editable: boolean; scenes: EditScene[] }) => {
+        if (live)
+          setLoad(data.editable ? { state: 'ready', scenes: data.scenes } : { state: 'error' });
       })
       .catch(() => {
         if (live) setLoad({ state: 'error' });
@@ -62,6 +94,39 @@ export function VoiceoverEditor({
   const scenes = load.state === 'ready' ? load.scenes : [];
   const st = editorState(scenes, texts, pick, source, balance);
   const voiceId = pick.voiceId ?? source.voiceId;
+
+  // "Hear this line": the line as it is now, in the voice as it is now. Free,
+  // cached and capped per day by the server.
+  async function hear(idx: number, text: string) {
+    const key = `line-${idx}`;
+    if (preview.playing === key) {
+      preview.stop();
+      return;
+    }
+    setHearing(idx);
+    setLineNote(null);
+    const res = await fetch('/api/voice/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: cleanLine(text).slice(0, PREVIEW_MAX_CHARS),
+        themeId: card.themeId,
+        voiceId,
+        speed: pick.speed,
+        delivery: pick.delivery,
+      }),
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    setHearing(null);
+    if (!res?.ok || typeof data.audioUrl !== 'string') {
+      setLineNote({
+        idx,
+        text: data.message ?? "Couldn't play this line. Try again in a moment.",
+      });
+      return;
+    }
+    preview.toggle(key, data.audioUrl);
+  }
 
   function close() {
     preview.stop();
@@ -199,50 +264,87 @@ export function VoiceoverEditor({
             return (
               <li
                 key={s.idx}
-                className={`flex flex-col gap-2 rounded-[16px] p-3 transition-colors sm:p-4 ${
+                className={`flex gap-3 rounded-[16px] p-3 transition-colors sm:gap-4 sm:p-4 ${
                   edited ? 'bg-ember-soft' : ''
                 }`}
               >
-                <label
-                  htmlFor={`scene-${s.idx}`}
-                  className="text-ink-muted text-[13px] font-semibold"
-                >
-                  Scene {s.idx + 1}
-                  {edited && <span className="text-ember-ink ml-2">Edited</span>}
-                </label>
-                <textarea
-                  id={`scene-${s.idx}`}
-                  rows={2}
-                  value={value}
-                  onChange={(e) => setTexts((t) => ({ ...t, [s.idx]: e.target.value }))}
-                  aria-invalid={tooLong || st.empty.has(s.idx) ? true : undefined}
-                  aria-describedby={countId}
-                  className="bg-raised text-ink w-full resize-y rounded-[12px] px-3 py-2.5 text-base leading-[22px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ember)]"
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <span
-                    id={countId}
-                    className={`text-[13px] tabular-nums ${
-                      tooLong ? 'text-warning font-semibold' : 'text-ink-muted'
-                    }`}
+                <SceneThumb jobId={card.id} idx={s.idx} />
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <label
+                    htmlFor={`scene-${s.idx}`}
+                    className="text-ink-muted text-[13px] font-semibold"
                   >
-                    {tooLong ? 'Too long for this scene: ' : ''}
-                    {length} / {s.maxLength} characters
-                  </span>
-                  {edited && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTexts((t) => {
-                          const next = { ...t };
-                          delete next[s.idx];
-                          return next;
-                        })
-                      }
-                      className="text-ember-ink min-h-11 text-[13px] font-semibold"
+                    Scene {s.idx + 1}
+                    {edited && <span className="text-ember-ink ml-2">Edited</span>}
+                  </label>
+                  <textarea
+                    id={`scene-${s.idx}`}
+                    rows={2}
+                    value={value}
+                    onChange={(e) => setTexts((t) => ({ ...t, [s.idx]: e.target.value }))}
+                    aria-invalid={tooLong || st.empty.has(s.idx) ? true : undefined}
+                    aria-describedby={countId}
+                    className="bg-raised text-ink w-full resize-y rounded-[12px] px-3 py-2.5 text-base leading-[22px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ember)]"
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <span
+                      id={countId}
+                      className={`text-[13px] tabular-nums ${
+                        tooLong ? 'text-warning font-semibold' : 'text-ink-muted'
+                      }`}
                     >
-                      Undo
-                    </button>
+                      {tooLong ? 'Too long for this scene: ' : ''}
+                      {length} / {s.maxLength} characters
+                    </span>
+                    <span className="flex items-center gap-1">
+                      {edited && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTexts((t) => {
+                              const next = { ...t };
+                              delete next[s.idx];
+                              return next;
+                            })
+                          }
+                          className="text-ember-ink min-h-11 px-2 text-[13px] font-semibold"
+                        >
+                          Undo
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void hear(s.idx, value)}
+                        disabled={hearing !== null || !cleanLine(value)}
+                        aria-pressed={preview.playing === `line-${s.idx}`}
+                        aria-label={`Hear scene ${s.idx + 1}`}
+                        className="text-ink hover:bg-raised inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold whitespace-nowrap disabled:opacity-60"
+                      >
+                        {preview.playing === `line-${s.idx}` ? (
+                          <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true">
+                            <rect x="5" y="5" width="10" height="10" rx="2" fill="currentColor" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M7 4.5l9 5.5-9 5.5z" fill="currentColor" />
+                          </svg>
+                        )}
+                        {hearing === s.idx ? (
+                          'Loading…'
+                        ) : preview.playing === `line-${s.idx}` ? (
+                          'Stop'
+                        ) : (
+                          <>
+                            Hear<span className="hidden sm:inline"> this line</span>
+                          </>
+                        )}
+                      </button>
+                    </span>
+                  </div>
+                  {lineNote?.idx === s.idx && (
+                    <p role="status" className="text-ink-muted text-[13px]">
+                      {lineNote.text}
+                    </p>
                   )}
                 </div>
               </li>

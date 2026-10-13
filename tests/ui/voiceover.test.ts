@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { estimateRevoiceCredits } from '@/features/render/pricing';
 import { maxNarrationLength } from '@/features/render/revoice';
 import { versionsOf } from '@/app/gallery/library';
-import { cleanLine, editorState, revoiceBody, sourcePick } from '@/app/gallery/voiceover';
+import { PREVIEW_MAX_CHARS as SERVER_PREVIEW_MAX } from '@/features/voice/preview';
+import {
+  PREVIEW_MAX_CHARS,
+  cleanLine,
+  editorState,
+  revoiceBody,
+  sourcePick,
+} from '@/app/gallery/voiceover';
 
 const line = (idx: number, narration: string) => ({
   idx,
@@ -96,5 +103,11 @@ describe('versionsOf', () => {
       { id: 'orphan', parentJobId: 'deleted', createdAt: '2026-10-02T00:00:00Z' },
     ]);
     expect(Object.fromEntries(v)).toEqual({ a: 1, a2: 2, a3: 3, b: 1, orphan: 1 });
+  });
+});
+
+describe('Hear this line', () => {
+  it('sends no more than the preview API accepts', () => {
+    expect(PREVIEW_MAX_CHARS).toBe(SERVER_PREVIEW_MAX);
   });
 });

@@ -1,12 +1,13 @@
 /**
- * GET /api/jobs/:id/scenes — the narration of the caller's finished video,
- * scene by scene, for the voiceover editor (Voice Studio V3). Read-only.
- * Each line carries the longest length `POST /api/jobs/:id/revoice` accepts,
- * so the editor never offers what the server refuses.
+ * GET /api/jobs/:id/scenes — what the voiceover editor needs to open a finished
+ * video (Voice Studio V3): each scene's narration with the longest line the
+ * re-voice API accepts, the voice in use, and the re-voice quote for the
+ * current text. Pictures come from /api/jobs/:id/thumbnail?scene=<idx>.
+ * Owner-only; someone else's job is a 404.
  */
 import { getCurrentUser } from '@/features/auth/session';
-import { maxNarrationLength } from '@/features/render/revoice';
 import { getStore } from '@/features/render/store';
+import { editorView } from '@/features/render/revoice';
 
 export async function GET(_request: Request, { params }: RouteContext<'/api/jobs/[id]/scenes'>) {
   const user = await getCurrentUser();
@@ -15,16 +16,6 @@ export async function GET(_request: Request, { params }: RouteContext<'/api/jobs
   const { id } = await params;
   const store = getStore();
   const job = await store.getJob(id);
-  // Someone else's video is "not found", never "forbidden": no existence leak.
   if (!job || job.userId !== user.id) return Response.json({ error: 'not_found' }, { status: 404 });
-  if (job.status !== 'done') return Response.json({ error: 'not_ready' }, { status: 409 });
-
-  const scenes = (await store.listScenes(job.id))
-    .sort((a, b) => a.idx - b.idx)
-    .map((s) => ({
-      idx: s.idx,
-      narration: s.narration,
-      maxLength: maxNarrationLength(s.narration),
-    }));
-  return Response.json({ scenes });
+  return Response.json(editorView(job, await store.listScenes(job.id)));
 }

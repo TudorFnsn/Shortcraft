@@ -8,8 +8,10 @@
  * re-voice price (`estimateRevoiceCredits`). The original video is untouched.
  */
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
-import type { VoiceSettings } from '@/config/voices';
+import { DEFAULT_VOICE_SETTINGS, type VoiceSettings } from '@/config/voices';
+import { estimateRevoiceCredits } from './pricing';
 import type { RenderJobRecord, RenderRepository, SceneRecord } from './repository';
+import { resolveVoice } from './voice';
 
 /** A scene's narration may grow by this much (so the voice and the hold stay bounded)… */
 export const NARRATION_GROWTH = 1.3;
@@ -106,4 +108,35 @@ export async function createRevoiceJob(
     }),
   );
   return { ...job, title: source.title };
+}
+
+export interface EditorView {
+  jobId: string;
+  title: string | null;
+  /** Only finished videos can be re-voiced. */
+  editable: boolean;
+  /** The voice the video uses now (the look's default when none was picked). */
+  voiceId: string;
+  voiceSettings: VoiceSettings;
+  scenes: { idx: number; narration: string; maxLength: number }[];
+  /** Re-voice price for the text as it is; the editor recomputes it as lines change. */
+  revoiceCredits: number;
+}
+
+/** The voiceover editor's starting point for a job (GET /api/jobs/:id/scenes). Pure. */
+export function editorView(job: RenderJobRecord, scenes: readonly SceneRecord[]): EditorView {
+  const ordered = [...scenes].sort((a, b) => a.idx - b.idx);
+  return {
+    jobId: job.id,
+    title: job.title,
+    editable: job.status === 'done',
+    voiceId: resolveVoice(job).voiceId,
+    voiceSettings: job.voiceSettings ?? DEFAULT_VOICE_SETTINGS,
+    scenes: ordered.map((s) => ({
+      idx: s.idx,
+      narration: s.narration,
+      maxLength: maxNarrationLength(s.narration),
+    })),
+    revoiceCredits: estimateRevoiceCredits(ordered.map((s) => s.narration)),
+  };
 }
