@@ -8,6 +8,7 @@ import { buttonClasses } from '@/components/ui/button';
 import { AutoRefresh } from './auto-refresh';
 import { DailyIdeas } from './daily-ideas';
 import { LibraryGrid } from './library-grid';
+import { TomorrowNudge } from './tomorrow';
 import { anyWorking, librarySummary, toCard } from './library';
 
 export const metadata: Metadata = { title: `Your videos — ${siteConfig.name}` };
@@ -24,6 +25,7 @@ export default async function LibraryPage() {
   ]);
   const now = new Date();
   const cards = jobs.map((j) => toCard(j, now));
+  const latest = cards[0];
   const empty = jobs.length === 0;
 
   return (
@@ -81,6 +83,10 @@ export default async function LibraryPage() {
             {hasPaid ? '.' : '. Your first video comes with the trial credits.'}
           </p>
         </section>
+      )}
+
+      {latest?.kind === 'ready' && latest.isNew && !anyWorking(jobs) && (
+        <TomorrowNudge card={latest} now={now} />
       )}
 
       <DailyIdeas

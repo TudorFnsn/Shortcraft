@@ -14,6 +14,7 @@ import {
   type LibraryCard,
 } from './library';
 import { postingStats, streakLine } from './posting';
+import { TomorrowNudge } from './tomorrow';
 import { usePostedLog } from './use-posted-log';
 import { VideoThumb } from './video-thumb';
 
@@ -548,6 +549,8 @@ function PlayerSheet({
               Shorts. It stays in your Library, so you can download it again any time.
             </span>
           </div>
+
+          <TomorrowNudge card={card} now={new Date()} compact />
 
           {freeTrial && (
             <p className="text-ink-muted text-[13px] leading-[18px]">
