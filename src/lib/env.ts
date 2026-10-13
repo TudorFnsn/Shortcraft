@@ -58,6 +58,13 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
+  // Lifecycle email (features/email). All three set = send; otherwise the cron is a dry run.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /** Verified sender, e.g. "Shortcraft <hello@mail.example.com>". */
+  EMAIL_FROM: z.string().min(1).optional(),
+  /** Signs unsubscribe links (any long random string, e.g. `openssl rand -hex 32`). */
+  EMAIL_LINK_SECRET: z.string().min(16).optional(),
+
   /** Vercel Cron sends it as a Bearer token; required for /api/cron/* outside development. */
   CRON_SECRET: z.string().min(1).optional(),
 
@@ -78,6 +85,7 @@ const LIVE_STRIPE_KEY = /^(sk|rk)_live_/;
  *  - Preview runs on mock providers unless ALLOW_LIVE_PROVIDERS_IN_PREVIEW=true.
  *  - A live Stripe key is ignored anywhere but Production (checkout then fails
  *    with "Stripe not configured" instead of taking a real payment).
+ *  - Preview never sends lifecycle email (its database may hold real users).
  * Returns the guarded env plus a warning per override. Pure, for tests.
  */
 export function applyDeploymentGuards(raw: Env): { env: Env; warnings: string[] } {
@@ -88,6 +96,10 @@ export function applyDeploymentGuards(raw: Env): { env: Env; warnings: string[] 
     warnings.push(
       'MOCK_PROVIDERS forced to true on a Preview deployment (set ALLOW_LIVE_PROVIDERS_IN_PREVIEW=true to override)',
     );
+  }
+  if (env.VERCEL_ENV === 'preview' && env.RESEND_API_KEY) {
+    env.RESEND_API_KEY = undefined;
+    warnings.push('RESEND_API_KEY ignored on a Preview deployment (no emails to real users)');
   }
   const isProduction =
     env.VERCEL_ENV === 'production' || (!env.VERCEL_ENV && env.NODE_ENV === 'production');
