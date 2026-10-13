@@ -150,7 +150,7 @@ Owned by the **Design CEO** routine; full plan, charter and screen status in **`
 - [x] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code shipped (PR #34)
 - [x] D1 Create redesign + one-tap first video + Library "Today's ideas" (PR #37) · [x] D2 Library redesign (PR #39) · [x] Landing redesign (PR #43) · [x] D3 Mobile pass (PR #44) · [x] D4 A11y/QA: desktop (#42) + phones/landing (#45); screen-reader run by a person still open
 - [x] D2.1 Library card for moderation-blocked videos (the "friendly Library message" from Moderation above): shipped in PR #51 (2026-10-12)
-- [ ] S Calm & Clear (owner brief 2026-10-13: more intuitive, less crowded, easier on the eye, a straightforward idea → make → watch → post journey). Canvas waiting on Tudor: https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG; then S1 Create, S2 Home, S3 shell and visual pass, S4 check (DesignPlan §4 S).
+- [ ] S Calm & Clear (owner brief 2026-10-13: more intuitive, less crowded, easier on the eye, a straightforward idea → make → watch → post journey; plus a more natural palette). Canvas waiting on Tudor: https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG; then S1 Create, S2 Home, S3 shell and visual pass, S4 check (DesignPlan §4 S).
 - [x] Follow-ups (owner-approved 2026-10-13), all shipped: real landing videos (#55), Posted check-off + streak (#56), queue tomorrow's video (#57), pricing page (#58), login/sign-up screens (#59)
 
 ### LATER — Phase 4: Retention & ARPU

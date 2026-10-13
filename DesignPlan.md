@@ -160,7 +160,7 @@ The app works, but every screen asks for attention at once. This journey keeps P
 - Content width 680px (Create) and 1120px (Home).
 - Navigation: "Your videos" + credits + avatar on desktop. On phones, a single floating "+" replaces the 3-tab bar.
 
-- [ ] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG): journey map; Create (light, plus dark with the look sheet open); Home light + dark; phone Create and Home. **Waiting on Tudor** (§8 open questions).
+- [ ] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG): journey map; Create (light, plus dark with the look sheet open); Home light + dark; phone Create and Home; three natural palettes (board 8). **Waiting on Tudor** (§8 open questions).
 - [ ] **S1 Create, simplified** (after approval): `create-form.tsx` becomes a single column with pills and sheets. Same API, entitlement, moderation and keyboard behaviour.
 - [ ] **S2 Home, simplified:** one "Today's idea" card; in-progress first; filters only once there are 12+ videos; Posted moves into the player and a corner check.
 - [ ] **S3 Shell + visual pass:** header and phone navigation; remove card borders; tidy the type scale across Create, Home, pricing and login.
@@ -192,13 +192,14 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - D3 Mobile canvas: https://claude.ai/artifact/JSKAz555Rkng6FqWR1HbA7: 6 phone artboards (Create and Library light/dark, player sheet, Account sheet). Private to Tudor.
 - Design system (Paper & Ember): https://claude.ai/artifact/VZML2hgEyRes35PbWopudn: tokens (light + dark), type, spacing, radii, shadows, brand book, mark, and Button / ChoiceCard / Segmented / Chip / Progress / VideoCard. The source of truth for every design and for the D0 code tokens.
 - D2.1 blocked-card canvas: https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ: 4 artboards (Library 1440 + 390, light/dark) showing the new card next to the shipped ready, in-progress and failed cards. Private to Tudor.
-- Calm & Clear canvas (journey S): https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG: 7 artboards (journey map, Create light, look picker dark, Home light/dark, phone Create and Home), on the Paper & Ember tokens. Private to Tudor.
+- Calm & Clear canvas (journey S): https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG: 8 artboards (journey map, Create light, look picker dark, Home light/dark, phone Create and Home, three natural palettes), on the Paper & Ember tokens. Private to Tudor.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-13** — Tudor asked for a more natural palette ("seems a bit vibe coded"). Three options (Linen & Moss, Stone & Clay, Paper & Slate) added to the Calm & Clear canvas as board 8, contrast-checked in both themes. Recommended: Linen & Moss. (Design CEO, interactive)
 - **2026-10-13** — New journey **S: Calm & Clear** from Tudor's brief. Audited the shipped Create and Library and published a proposal canvas (one path: idea → make → watch → post; one ember action per screen). Waiting on Tudor's approval and the open questions in §8. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the four follow-ups plus real landing videos, straight to code. All five shipped the same day (PRs #55–#59). (Design CEO, interactive)
 - **2026-10-13** — D2.1 shipped (PR #51). Every roadmap item in the charter is now shipped. The Design CEO routine is to be paused (decision 4) until Tudor picks one of the Later items. (Design CEO, interactive)
@@ -229,6 +230,12 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
   4. Hide the filter chips until a creator has 12 or more videos? [yes]
   5. On phones, replace the 3-tab bar with Home plus one floating "+" button (Account moves to the avatar)? [yes]
   6. Rename "Library" to "Your videos" everywhere? [yes]
+  7. **Palette** (Tudor: "seems a bit vibe coded, I need a natural feel"). Three options on canvas board 8, each passing 4.5:1 in light and dark:
+     - **Linen & Moss:** linen ground, moss-green accent. [recommended: it reads as natural, keeps the warmth, and gets away from the generic orange]
+     - **Stone & Clay:** stone ground, muted clay accent. Closest to today.
+     - **Paper & Slate:** neutral paper, slate-blue accent. The quietest.
+
+     The chosen palette replaces the Paper & Ember colour tokens in `globals.css` and the design system. The mark and favicon take the new accent.
 
 - **D2.1 blocked-video card approved** (2026-10-12, owner: "D2.1 approved"), with the recommended answers:
   1. Blocked cards offer **"Try a different idea"** instead of "Try again" (the same topic would very likely be blocked again).
