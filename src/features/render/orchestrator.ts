@@ -47,6 +47,7 @@ import type {
   RenderRepository,
   SceneRecord,
 } from './repository';
+import { resolveVoice } from './voice';
 
 export interface OrchestratorDeps {
   repo: RenderRepository;
@@ -261,10 +262,12 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
     case 'voiceover': {
       const voice = getVoiceProvider();
       const scenes = await repo.listScenes(job.id);
+      const narrator = resolveVoice(job);
       const input = {
         text: scenes.map((s) => s.narration).join(' '),
-        voiceId: 'default',
+        voiceId: narrator.providerVoiceId,
         language: job.language,
+        settings: narrator.tuning,
       };
       const res = inline(await voice.run(input, ctx('voiceover')));
       await repo.updateJob(job.id, {

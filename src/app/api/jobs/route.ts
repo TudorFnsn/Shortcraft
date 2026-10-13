@@ -13,6 +13,7 @@ import { getCurrentUser } from '@/features/auth/session';
 import { advanceJob, driveJob } from '@/features/render/orchestrator';
 import { getStore } from '@/features/render/store';
 import { isThemeId } from '@/config/themes';
+import { VoiceFields, voiceChoice } from '@/features/render/voice';
 import { PLANS } from '@/config/plans';
 import { checkPlanLimits } from '@/features/billing/entitlements';
 import { getPromptModerator } from '@/features/moderation/prompt-check';
@@ -23,6 +24,8 @@ const Body = z.object({
   themeId: z.string().refine(isThemeId, 'unknown theme'),
   targetDurationSec: z.number().int().min(6).max(120),
   modelTier: z.enum(['standard', 'premium']).default('standard'),
+  // Voice Studio: catalog voices only, never a raw provider id. Omitted = the look's default.
+  ...VoiceFields.shape,
 });
 
 export async function POST(request: Request) {
@@ -64,6 +67,7 @@ export async function POST(request: Request) {
     targetDurationSec: parsed.data.targetDurationSec,
     language: 'en',
     modelTier: parsed.data.modelTier,
+    ...voiceChoice(parsed.data),
   });
 
   const deps = { repo: store, credits: store, plans: store };

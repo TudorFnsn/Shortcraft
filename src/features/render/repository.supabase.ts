@@ -15,6 +15,7 @@ import {
   PAID_GRANT_REASONS,
   type PlanRepository,
 } from '@/features/billing/entitlements';
+import type { VoiceSettings } from '@/config/voices';
 import type { RenderStatus } from './machine';
 import type {
   AssetKind,
@@ -45,6 +46,9 @@ interface JobRow {
   api_cost_usd: number;
   error: string | null;
   posted_at?: string | null; // 0008
+  voice_id?: string | null; // 0010
+  voice_settings?: VoiceSettings | null; // 0010
+  parent_job_id?: string | null; // 0010
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +87,9 @@ const toJob = (r: JobRow): RenderJobRecord => ({
   apiCostUsd: Number(r.api_cost_usd),
   error: r.error,
   postedAt: r.posted_at ?? null,
+  voiceId: r.voice_id ?? null,
+  voiceSettings: r.voice_settings ?? null,
+  parentJobId: r.parent_job_id ?? null,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
@@ -138,6 +145,10 @@ export class SupabaseStore implements RenderRepository, CreditRepository, PlanRe
         language: input.language,
         model_tier: input.modelTier,
         status: 'draft',
+        // Only when chosen: until migration 0010 is applied, jobs without a
+        // voice choice must still insert (expand → deploy → contract).
+        ...(input.voiceId ? { voice_id: input.voiceId } : {}),
+        ...(input.voiceSettings ? { voice_settings: input.voiceSettings } : {}),
       })
       .select()
       .single();

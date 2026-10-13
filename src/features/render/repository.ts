@@ -9,6 +9,7 @@ import type { ModelTier } from '@/config/models';
 import type { AppError } from '@/lib/result';
 import type { Result } from '@/lib/result';
 import type { WordTiming } from '@/features/providers/types';
+import type { VoiceSettings } from '@/config/voices';
 import type { RenderStatus } from './machine';
 
 export interface RenderJobRecord {
@@ -32,6 +33,12 @@ export interface RenderJobRecord {
   error: string | null;
   /** When the creator marked the finished video as posted (Library streak). */
   postedAt: string | null;
+  /** Chosen narrator (catalog slug); null = the look's default voice (0010). */
+  voiceId: string | null;
+  /** Chosen speed/delivery; null = defaults (0010). */
+  voiceSettings: VoiceSettings | null;
+  /** The video this one was re-voiced from (Voice Studio V3); null for originals (0010). */
+  parentJobId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +67,9 @@ export interface CreateJobInput {
   targetDurationSec: number;
   language: string;
   modelTier: ModelTier;
+  /** Omitted = the look's default voice and default settings. */
+  voiceId?: string;
+  voiceSettings?: VoiceSettings;
 }
 
 export interface NewScene {
