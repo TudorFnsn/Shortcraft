@@ -16,6 +16,17 @@ import {
 import { postingStats, streakLine } from './posting';
 import { usePostedLog } from './use-posted-log';
 import { VideoThumb } from './video-thumb';
+import { VoiceoverEditor } from './voiceover-editor';
+
+/** "v2" beside a re-voiced video's title. */
+function VersionBadge({ version }: { version: number }) {
+  if (version < 2) return null;
+  return (
+    <span className="bg-raised text-ink-muted ml-1.5 inline-block rounded-full px-1.5 py-px align-[1px] text-xs font-semibold">
+      v{version}
+    </span>
+  );
+}
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -45,6 +56,7 @@ export function LibraryGrid({
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -71,6 +83,7 @@ export function LibraryGrid({
     (c) => (filter === 'all' || c.kind === filter) && !(filter === 'all' && c === featured),
   );
   const open = cards.find((c) => c.id === openId) ?? null;
+  const editing = cards.find((c) => c.id === editingId) ?? null;
 
   function flash(text: string) {
     clearTimeout(toastTimer.current);
@@ -169,6 +182,7 @@ export function LibraryGrid({
               <span className="truncate font-semibold">
                 {featured.kind === 'ready' ? 'Latest · ' : 'Making · '}
                 {featured.title}
+                <VersionBadge version={featured.version} />
               </span>
               {featured.kind === 'ready' && posted.log[featured.id] && (
                 <span className="text-ink-muted shrink-0">Posted</span>
@@ -407,6 +421,7 @@ export function LibraryGrid({
                 <div className="flex flex-col gap-0.5 px-0.5">
                   <span className="line-clamp-2 text-[15px] leading-5 font-semibold">
                     {c.title}
+                    <VersionBadge version={c.version} />
                   </span>
                   <span className="text-ink-muted text-[13px] leading-[18px]">{c.meta}</span>
                 </div>
@@ -423,6 +438,24 @@ export function LibraryGrid({
             onTogglePosted={() => posted.toggle(open.id)}
             onClose={() => setOpenId(null)}
             onCopied={() => flash('Title copied')}
+            onEditVoiceover={() => {
+              setOpenId(null);
+              setEditingId(open.id);
+            }}
+          />
+        )}
+
+        {editing && (
+          <VoiceoverEditor
+            card={editing}
+            balance={balance}
+            onClose={() => setEditingId(null)}
+            onStarted={() => {
+              setEditingId(null);
+              setFilter('all');
+              flash('Making the new version. It’s at the top of Your videos.');
+              router.refresh();
+            }}
           />
         )}
 
@@ -452,6 +485,7 @@ function PlayerSheet({
   onTogglePosted,
   onClose,
   onCopied,
+  onEditVoiceover,
 }: {
   card: LibraryCard;
   freeTrial: boolean;
@@ -459,6 +493,7 @@ function PlayerSheet({
   onTogglePosted: () => void;
   onClose: () => void;
   onCopied: () => void;
+  onEditVoiceover: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -566,6 +601,7 @@ function PlayerSheet({
               className="font-display text-[28px] leading-8 font-bold tracking-[-0.015em]"
             >
               {card.title}
+              <VersionBadge version={card.version} />
             </h2>
             <span className="text-ink-muted text-sm">
               {card.meta}
@@ -606,6 +642,26 @@ function PlayerSheet({
                 Make another like this
               </Link>
             </div>
+            <button
+              type="button"
+              onClick={onEditVoiceover}
+              className={buttonClasses({ variant: 'secondary', className: 'gap-2' })}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M13.5 3.5l3 3L7 16H4v-3z" />
+              </svg>
+              Edit voiceover
+            </button>
           </div>
 
           <button

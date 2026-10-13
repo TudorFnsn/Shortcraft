@@ -5,6 +5,7 @@
  */
 import { THEMES } from '@/config/themes';
 import type { ModelTier } from '@/config/models';
+import type { VoiceSettings } from '@/config/voices';
 import { RENDER_STEPS, isTerminal, progress, type RenderStatus } from '@/features/render/machine';
 import type { RenderJobRecord } from '@/features/render/repository';
 import { estimateJobCredits } from '@/features/render/pricing';
@@ -60,6 +61,11 @@ export interface LibraryCard {
   /** What the same video costs to make again (current pricing). */
   retryCredits: number;
   creditsUsed: number;
+  /** 1 for an original; 2, 3… for new versions made with Edit voiceover. */
+  version: number;
+  /** The voice the video was made with (null = its look's default). */
+  voiceId: string | null;
+  voiceSettings: VoiceSettings | null;
   /** When the creator marked it posted (Library streak), or null. */
   postedAt: string | null;
   createdAt: string;
@@ -87,7 +93,7 @@ export const isModerationBlock = (error: string | null): boolean =>
 
 const themeLabel = (id: string) => THEMES.find((t) => t.id === id)?.label ?? id;
 
-export function toCard(job: RenderJobRecord, now: Date): LibraryCard {
+export function toCard(job: RenderJobRecord, now: Date, version = 1): LibraryCard {
   const status = job.status as RenderStatus;
   const kind: CardKind = status === 'done' ? 'ready' : status === 'failed' ? 'failed' : 'working';
   const { step, label } = stepOf(status);
@@ -125,9 +131,46 @@ export function toCard(job: RenderJobRecord, now: Date): LibraryCard {
       modelTier: job.modelTier,
     }),
     creditsUsed: job.actualCredits,
+    version,
+    voiceId: job.voiceId,
+    voiceSettings: job.voiceSettings,
     postedAt: kind === 'ready' ? job.postedAt : null,
     createdAt: job.createdAt,
   };
+}
+
+/**
+ * Version numbers for re-voiced videos: each original is 1 and the new
+ * versions made from it (or from one of its versions) count up by creation
+ * time, so the Library can label them "v2", "v3"…
+ */
+export function versionsOf(
+  jobs: readonly Pick<RenderJobRecord, 'id' | 'parentJobId' | 'createdAt'>[],
+): Map<string, number> {
+  const byId = new Map(jobs.map((j) => [j.id, j]));
+  const rootOf = (id: string): string => {
+    let at = byId.get(id);
+    const seen = new Set<string>();
+    while (at?.parentJobId && byId.has(at.parentJobId) && !seen.has(at.id)) {
+      seen.add(at.id);
+      at = byId.get(at.parentJobId);
+    }
+    return at?.id ?? id;
+  };
+  const families = new Map<string, Pick<RenderJobRecord, 'id' | 'createdAt'>[]>();
+  for (const j of jobs) {
+    const root = rootOf(j.id);
+    families.set(root, [...(families.get(root) ?? []), j]);
+  }
+  const versions = new Map<string, number>();
+  for (const [root, members] of families) {
+    versions.set(root, 1);
+    members
+      .filter((m) => m.id !== root)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .forEach((m, i) => versions.set(m.id, i + 2));
+  }
+  return versions;
 }
 
 export function countByFilter(cards: readonly LibraryCard[]): Record<Filter, number> {

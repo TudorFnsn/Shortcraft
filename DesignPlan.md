@@ -183,7 +183,7 @@ Three new surfaces, drawn in the Studio look. They follow the S rules: one viole
     - Unlike the other sheets, picking does not close this one, because speed and delivery follow; Done or Escape closes it.
     - The voice is remembered with the other settings. Until the creator picks one, the voice follows the look's default; after that it stays put.
     - `POST /api/jobs` already takes `voiceId`, `speed` and `delivery`.
-  - [ ] **V3 Voiceover editor** (needs `POST /api/jobs/:id/revoice`, `POST /api/voice/preview` and `estimateRevoiceCredits` from the CEO track first):
+  - [~] **V3 Voiceover editor** (in review on `ceo-design/v3-voiceover-editor`). It counts characters, matching the server's limit of 130% + 20, rather than words. Scenes load from a small read-only `GET /api/jobs/:id/scenes`. The voice opens inline in the editor instead of as a second sheet. Two parts are not built yet: **"▶ Hear this line"** waits on `POST /api/voice/preview`, and **scene thumbnails** need a signed per-scene image route, so both come with a follow-up:
     - "Edit voiceover" sits in the player sheet next to Download, only for finished videos you own.
     - The editor is a `Sheet` with a new `size="wide"` variant (full screen on phones).
     - It needs a read-only helper that loads a job's scene narration and thumbnails.
@@ -234,7 +234,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
-- **2026-10-13** — Tudor approved the V0 Voice Studio canvas and the four recommendations. V2 (Voice pill + sheet on Create) is in review; V3, the editor, is next. (Design CEO, interactive)
+- **2026-10-13** — Tudor approved the V0 Voice Studio canvas and the four recommendations. V2 (Voice pill + sheet on Create) and V3 (Edit voiceover + v2 badges) are in review. (Design CEO, interactive)
 - **2026-10-13** — V0 Voice Studio canvas published (10 artboards, Studio look) with a design-side implementation plan for V2–V4 and four open questions. Waiting on Tudor. (Design CEO, interactive)
 - **2026-10-13** — Voice Studio added to the design scope (owner request): §4 V lists the Voice sheet, the voiceover editor and Create a voice. Canvas next. (CEO, interactive)
 
