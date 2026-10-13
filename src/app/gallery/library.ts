@@ -60,6 +60,8 @@ export interface LibraryCard {
   /** What the same video costs to make again (current pricing). */
   retryCredits: number;
   creditsUsed: number;
+  /** When the creator marked it posted (Library streak), or null. */
+  postedAt: string | null;
   createdAt: string;
 }
 
@@ -123,6 +125,7 @@ export function toCard(job: RenderJobRecord, now: Date): LibraryCard {
       modelTier: job.modelTier,
     }),
     creditsUsed: job.actualCredits,
+    postedAt: kind === 'ready' ? job.postedAt : null,
     createdAt: job.createdAt,
   };
 }

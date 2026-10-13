@@ -3,8 +3,8 @@
  *
  * Faceless creators post every day, so the Library lets them tick off what
  * they've uploaded and shows the streak that builds. The log maps a job id to
- * the local calendar day it was marked posted ("2026-10-13"). It lives in the
- * browser (see usePostedLog), so it is per device until it moves to the database.
+ * the local calendar day it was marked posted ("2026-10-13"). The times are
+ * saved on the account (render_jobs.posted_at, see usePostedLog).
  */
 
 export type PostedLog = Readonly<Record<string, string>>;
@@ -32,14 +32,6 @@ export function shiftDay(day: string, delta: number): string {
   return localDay(new Date(y, m - 1, d + delta));
 }
 
-/** Mark or unmark a video as posted today. Returns a new log. */
-export function togglePosted(log: PostedLog, id: string, today: string): PostedLog {
-  const next = { ...log };
-  if (next[id]) delete next[id];
-  else next[id] = today;
-  return next;
-}
-
 export function postingStats(log: PostedLog, today: string): PostingStats {
   const days = new Set(Object.values(log).filter((d) => DAY.test(d)));
   let thisWeek = 0;
@@ -60,4 +52,42 @@ export function streakLine({ thisWeek, streak, atRisk }: PostingStats): string {
   if (streak === 0) return `${week}. Post today to start a new streak.`;
   const run = `${streak}-day streak`;
   return atRisk ? `${run}. Post today to keep it going. ${week}.` : `${run} · ${week}`;
+}
+
+interface PostableCard {
+  id: string;
+  kind: string;
+  postedAt: string | null;
+}
+
+/**
+ * The log the streak reads, from the server's `postedAt` per video plus any
+ * optimistic changes not saved yet (`pending`: id → time, or null = unmarked).
+ */
+export function logFromCards(
+  cards: readonly PostableCard[],
+  pending: Readonly<Record<string, string | null>>,
+): PostedLog {
+  const log: Record<string, string> = {};
+  for (const c of cards) {
+    const at = c.id in pending ? pending[c.id] : c.postedAt;
+    if (at) log[c.id] = localDay(new Date(at));
+  }
+  return log;
+}
+
+/**
+ * Days ticked in this browser before the streak moved to the account, for
+ * videos the server doesn't have as posted yet. Sent as local noon of that day.
+ */
+export function legacyImports(
+  legacy: PostedLog,
+  cards: readonly PostableCard[],
+): { id: string; postedAt: string }[] {
+  return cards
+    .filter((c) => c.kind === 'ready' && !c.postedAt && DAY.test(legacy[c.id] ?? ''))
+    .map((c) => {
+      const [y, m, d] = legacy[c.id]!.split('-').map(Number) as [number, number, number];
+      return { id: c.id, postedAt: new Date(y, m - 1, d, 12).toISOString() };
+    });
 }

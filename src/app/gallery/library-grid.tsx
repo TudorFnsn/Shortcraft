@@ -54,7 +54,9 @@ export function LibraryGrid({
     if (message) setFinished(message);
   }
 
-  const posted = usePostedLog();
+  const posted = usePostedLog(cards, () =>
+    flash("Couldn't save that. Check your connection and try again."),
+  );
   const hasReady = cards.some((c) => c.kind === 'ready');
   const counts = countByFilter(cards);
   const shown = cards.filter((c) => filter === 'all' || c.kind === filter);

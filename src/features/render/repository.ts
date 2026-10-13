@@ -30,6 +30,8 @@ export interface RenderJobRecord {
   actualCredits: number;
   apiCostUsd: number;
   error: string | null;
+  /** When the creator marked the finished video as posted (Library streak). */
+  postedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +76,8 @@ export interface RenderRepository {
   createJob(input: CreateJobInput): Promise<RenderJobRecord>;
   getJob(id: string): Promise<RenderJobRecord | null>;
   updateJob(id: string, patch: Partial<RenderJobRecord>): Promise<void>;
+  /** Mark (or clear) a video as posted. Leaves updated_at alone: it's not a render change. */
+  setJobPosted(id: string, postedAt: string | null): Promise<void>;
   listJobs(userId: string): Promise<RenderJobRecord[]>;
   addScenes(jobId: string, scenes: NewScene[]): Promise<SceneRecord[]>;
   listScenes(jobId: string): Promise<SceneRecord[]>;

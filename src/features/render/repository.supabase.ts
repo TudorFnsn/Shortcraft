@@ -44,6 +44,7 @@ interface JobRow {
   actual_credits: number;
   api_cost_usd: number;
   error: string | null;
+  posted_at?: string | null; // 0008
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +82,7 @@ const toJob = (r: JobRow): RenderJobRecord => ({
   actualCredits: Number(r.actual_credits),
   apiCostUsd: Number(r.api_cost_usd),
   error: r.error,
+  postedAt: r.posted_at ?? null,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
 });
@@ -152,6 +154,14 @@ export class SupabaseStore implements RenderRepository, CreditRepository, PlanRe
   async updateJob(id: string, patch: Partial<RenderJobRecord>): Promise<void> {
     const { error } = await this.db.from('render_jobs').update(jobPatchToRow(patch)).eq('id', id);
     if (error) throw new Error(`updateJob: ${error.message}`);
+  }
+
+  async setJobPosted(id: string, postedAt: string | null): Promise<void> {
+    const { error } = await this.db
+      .from('render_jobs')
+      .update({ posted_at: postedAt })
+      .eq('id', id);
+    if (error) throw new Error(`setJobPosted: ${error.message}`);
   }
 
   async listJobs(userId: string): Promise<RenderJobRecord[]> {

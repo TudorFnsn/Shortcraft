@@ -38,6 +38,7 @@ function job(patch: Partial<RenderJobRecord> = {}): RenderJobRecord {
     actualCredits: 1990,
     apiCostUsd: 0.2,
     error: null,
+    postedAt: null,
     createdAt: ago(2 * 60 * MIN),
     updatedAt: ago(90 * MIN),
     ...patch,
