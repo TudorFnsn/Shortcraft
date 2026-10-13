@@ -160,10 +160,11 @@ The app works, but every screen asks for attention at once. This journey keeps P
 - Content width 680px (Create) and 1120px (Home).
 - Navigation: "Your videos" + credits + avatar on desktop. On phones, a single floating "+" replaces the 3-tab bar.
 
-- [ ] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG): journey map; Create (light, plus dark with the look sheet open); Home light + dark; phone Create and Home; three complete looks (boards 8–10). **Waiting on Tudor** (§8 open questions).
-- [ ] **S1 Create, simplified** (after approval): `create-form.tsx` becomes a single column with pills and sheets. Same API, entitlement, moderation and keyboard behaviour.
-- [ ] **S2 Home, simplified:** one "Today's idea" card; in-progress first; filters only once there are 12+ videos; Posted moves into the player and a corner check.
-- [ ] **S3 Shell + visual pass:** header and phone navigation; remove card borders; tidy the type scale across Create, Home, pricing and login.
+- [✓] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG). **Approved by Tudor 2026-10-13: Look B "Studio" (dark, violet), "all screens adapt to the new look, start implementing".** The layout recommendations (Q1–Q6) are taken as accepted with it.
+- [~] **Studio tokens** (PR #66): dark-first palette (`#0e0f11` ground, `#f5f5f4` ink, violet `#a78bfa`) plus an opt-in light partner. Geist-only type. Every screen adopts it through the existing token names.
+- [~] **S1 Create** (PR #67, stacked on #66): one idea box with Surprise me, three setting pills that open sheets, and one Make video button with the cost underneath.
+- [~] **S2 Home** (PR #68, stacked on #67): Today's idea as the headline with Make it, the latest video large, and one row of videos. Filters show only from 12 videos; Posted lives in the player.
+- [~] **S3 Shell** (PR #69, stacked on #68): a quiet header (Your videos · credits · New video · avatar) and one floating + on phones instead of the tab bar.
 - [ ] **S4 Check:** axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted). Count clicks before and after.
 
 ### Later (out of the current charter, needs owner sign-off)
@@ -199,6 +200,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
+- **2026-10-13** — Tudor picked **Look B, Studio** and asked for every screen to adapt. Shipped as four stacked PRs: tokens (#66), Create (#67), Home (#68), shell (#69). axe found 0 violations on every screen in dark, light and at 390px. (Design CEO, interactive)
 - **2026-10-13** — Pastels rejected too. Boards 8–10 replaced with three complete looks (Gallery, Studio, Soft contrast). The layout is more dynamic and less crowded: a big idea headline, the latest video large and one row of videos. (Design CEO, interactive)
 - **2026-10-13** — Tudor rejected the first palette set (too similar, too crowded) and picked a soft pastel direction. Boards 8–10 now show Rose, Mint and Lavender, one sparse screen each. (Design CEO, interactive)
 - **2026-10-13** — Tudor asked for a more natural palette ("seems a bit vibe coded"). Three options (Linen & Moss, Stone & Clay, Paper & Slate) added to the Calm & Clear canvas as board 8, contrast-checked in both themes. Recommended: Linen & Moss. (Design CEO, interactive)
@@ -225,17 +227,14 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 8. Decision log
 
-- **Open for Tudor: S Calm & Clear** (2026-10-13). My recommendation is in brackets:
+- **S Calm & Clear decided** (2026-10-13, owner: "lets go with look B studio dark, violet. i need all screens to adapt to the new look. start implementing"). The questions below were answered with that decision; my recommendations are in brackets:
   1. Collapse look, length and quality into three pills that open small sheets, instead of showing every option at once? [yes; the last choices are remembered, so most days nobody opens them]
   2. Drop the big phone preview on desktop Create (the look sheet shows each look instead)? [yes]
   3. Merge Tomorrow's video and the 3-idea row into one "Today's idea" card with an "Another idea" link? [yes]
   4. Hide the filter chips until a creator has 12 or more videos? [yes]
   5. On phones, replace the 3-tab bar with Home plus one floating "+" button (Account moves to the avatar)? [yes]
   6. Rename "Library" to "Your videos" everywhere? [yes]
-  7. **Look and palette** (Tudor: "vibe coded", then "dynamic, less crowded, easy on the eyes, modern yet never outdated"). Two palette sets were rejected (earthy naturals; soft pastels). Canvas boards 8–10 now show three complete looks in which the layout changes as well as the colour:
-     - one huge "Today's idea" headline with one "Make it" button;
-     - the latest video large on the right;
-     - one row of past videos.
+  7. **Look and palette.** Decided 2026-10-13: **Look B, Studio** (charcoal, off-white, soft violet; Geist only). Earlier rejected: earthy naturals (too similar), soft pastels, and the Gallery and Soft-contrast looks.
 
      The looks are:
      - **Gallery:** white, near-black text, cobalt `#2F54EB`.
