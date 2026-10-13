@@ -70,6 +70,8 @@ export interface CreateJobInput {
   /** Omitted = the look's default voice and default settings. */
   voiceId?: string;
   voiceSettings?: VoiceSettings;
+  /** Set for a re-voiced copy: the video it was made from. */
+  parentJobId?: string;
 }
 
 export interface NewScene {

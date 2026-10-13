@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/jobs': FFMPEG,
     '/api/cron/advance-jobs': FFMPEG,
+    '/api/jobs/[id]/revoice': FFMPEG,
   },
 };
 

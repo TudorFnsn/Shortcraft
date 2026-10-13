@@ -88,7 +88,7 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
       postedAt: null,
       voiceId: input.voiceId ?? null,
       voiceSettings: input.voiceSettings ?? null,
-      parentJobId: null,
+      parentJobId: input.parentJobId ?? null,
       createdAt: now,
       updatedAt: now,
     };

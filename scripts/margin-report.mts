@@ -18,7 +18,7 @@ console.table(
     credits: r.credits,
     netRevenue: usd(r.netRevenueUsd),
     worstCaseCost: usd(r.worstCaseCostUsd),
-    worstShape: `${r.worstShape.targetDurationSec}s ${r.worstShape.modelTier}`,
+    worstShape: `${r.worstShape.targetDurationSec}s ${r.worstShape.revoice ? 're-voice' : r.worstShape.modelTier}`,
     multiple: `${r.multiple.toFixed(2)}x`,
     maxCreditsAtTarget: r.maxCreditsAtTarget,
     passes: r.passes ? 'yes' : 'NO',

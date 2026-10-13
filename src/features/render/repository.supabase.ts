@@ -149,6 +149,7 @@ export class SupabaseStore implements RenderRepository, CreditRepository, PlanRe
         // voice choice must still insert (expand → deploy → contract).
         ...(input.voiceId ? { voice_id: input.voiceId } : {}),
         ...(input.voiceSettings ? { voice_settings: input.voiceSettings } : {}),
+        ...(input.parentJobId ? { parent_job_id: input.parentJobId } : {}),
       })
       .select()
       .single();

@@ -38,7 +38,12 @@ import type {
 import { refundJob, reserveForJob, settleJob } from '@/features/credits/service';
 import { screenScenePrompts } from '@/features/moderation/prompt-check';
 import { advance, isTerminal, type RenderStatus } from './machine';
-import { billableCredits, estimateJobCredits, fitScenesToBudget } from './pricing';
+import {
+  billableCredits,
+  estimateJobCredits,
+  estimateRevoiceCredits,
+  fitScenesToBudget,
+} from './pricing';
 import { fitSlotsToVoice } from './timeline';
 import type { PlanRepository } from '@/features/billing/entitlements';
 import type {
@@ -124,17 +129,20 @@ async function step(
   if (isTerminal(job.status)) return ok({ job, waiting: false });
 
   if (job.status === 'draft') {
-    const estimate = estimateJobCredits({
-      targetDurationSec: job.targetDurationSec,
-      modelTier: job.modelTier,
-    });
+    // A re-voiced copy already has its scenes (pictures and clips reused): it
+    // holds the fixed re-voice price and starts at the voiceover.
+    const revoice = job.parentJobId !== null;
+    const estimate = revoice
+      ? estimateRevoiceCredits((await repo.listScenes(job.id)).map((s) => s.narration))
+      : estimateJobCredits({ targetDurationSec: job.targetDurationSec, modelTier: job.modelTier });
+    const firstStep: RenderStatus = revoice ? 'voiceover' : 'scripting';
     const reserved = await reserveForJob(credits, job.userId, job.id, estimate);
     if (!reserved.ok) {
       await repo.updateJob(job.id, { status: 'failed', error: reserved.error.code });
       return reserved;
     }
-    await repo.updateJob(job.id, { estimatedCredits: estimate, status: 'scripting' });
-    return ok({ job: { ...job, estimatedCredits: estimate, status: 'scripting' }, waiting: false });
+    await repo.updateJob(job.id, { estimatedCredits: estimate, status: firstStep });
+    return ok({ job: { ...job, estimatedCredits: estimate, status: firstStep }, waiting: false });
   }
 
   try {
@@ -307,8 +315,12 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
       });
 
       // The hold is the ceiling: an overrun is our margin leak, never the user's debt.
-      const billed = billableCredits(job.estimatedCredits, job.chargedCredits);
-      if (billed < job.chargedCredits) {
+      // A re-voice is a fixed quote (its text was known up front): it bills the hold.
+      const billed =
+        job.parentJobId !== null
+          ? job.estimatedCredits
+          : billableCredits(job.estimatedCredits, job.chargedCredits);
+      if (job.parentJobId === null && billed < job.chargedCredits) {
         logger.warn('metered credits exceeded the hold; capped', {
           jobId: job.id,
           charged: job.chargedCredits,
