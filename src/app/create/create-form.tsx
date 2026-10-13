@@ -12,6 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { onRadioKeyDown } from '@/components/ui/radio-keys';
 import { Sheet } from '@/components/ui/sheet';
+import { defaultVoiceFor } from '@/config/voices';
+import { VoicePicker } from '@/components/voice/voice-picker';
+import { useVoicePreview } from '@/components/voice/use-voice-preview';
+import {
+  effectiveVoice,
+  voiceName,
+  voiceRequest,
+  type VoicePick,
+} from '@/components/voice/voice-choice';
 import {
   DURATIONS,
   TIERS,
@@ -87,6 +96,7 @@ function AlertIcon() {
 
 export function CreateForm({
   initial,
+  initialVoice,
   firstRun,
   lastThemeId,
   balance,
@@ -95,6 +105,8 @@ export function CreateForm({
   freeTrial,
 }: {
   initial: Selection;
+  /** The voice of the creator's last video (or the look's default). */
+  initialVoice: VoicePick;
   /** Brand-new account: the composer is prefilled so the first video is one tap away. */
   firstRun: boolean;
   /** Theme of the creator's latest video ("Last used" badge). */
@@ -110,7 +122,13 @@ export function CreateForm({
   const [sel, setSel] = useState<Selection>(initial);
   const [failure, setFailure] = useState<Failure>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [sheet, setSheet] = useState<'look' | 'length' | 'quality' | null>(null);
+  const [sheet, setSheet] = useState<'look' | 'length' | 'quality' | 'voice' | null>(null);
+  const [voice, setVoice] = useState<VoicePick>(initialVoice);
+  const preview = useVoicePreview();
+  const closeSheet = () => {
+    preview.stop();
+    setSheet(null);
+  };
 
   const update = (patch: Partial<Selection>) => setSel((s) => ({ ...s, ...patch }));
 
@@ -146,6 +164,7 @@ export function CreateForm({
         themeId: sel.themeId,
         targetDurationSec: sel.durationSec,
         modelTier: sel.tier,
+        ...voiceRequest(voice),
       }),
     }).catch(() => null);
     const data = res ? await res.json().catch(() => ({})) : {};
@@ -364,6 +383,30 @@ export function CreateForm({
             {TIER_COPY[sel.tier].title}
           </span>
           {state.tierLocked && <LockIcon />}
+          {chevron}
+        </button>
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          onClick={() => setSheet('voice')}
+          className={pill}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 8v4M7.5 5.5v9M11 7v6M14.5 4v12M18 8.5v3" />
+          </svg>
+          <span>
+            <span className="sr-only">Voice: </span>
+            {voiceName(voice, sel.themeId)}
+          </span>
           {chevron}
         </button>
       </div>
@@ -639,6 +682,27 @@ export function CreateForm({
               </button>
             );
           })}
+        </div>
+      </Sheet>
+      <Sheet open={sheet === 'voice'} onClose={closeSheet} title="Pick a voice">
+        <VoicePicker
+          voiceId={effectiveVoice(voice, sel.themeId)}
+          lookPick={defaultVoiceFor(sel.themeId)}
+          speed={voice.speed}
+          delivery={voice.delivery}
+          playing={preview.playing}
+          onPlay={preview.toggle}
+          onVoice={(voiceId) => setVoice((v) => ({ ...v, voiceId }))}
+          onSpeed={(speed) => setVoice((v) => ({ ...v, speed }))}
+          onDelivery={(delivery) => setVoice((v) => ({ ...v, delivery }))}
+        />
+        <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-ink-muted text-center text-sm sm:text-left">
+            Included in every video. No extra credits.
+          </span>
+          <Button type="button" size="lg" onClick={closeSheet} className="rounded-full sm:px-8">
+            Done
+          </Button>
         </div>
       </Sheet>
     </form>
