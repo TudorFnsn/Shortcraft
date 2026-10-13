@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { siteConfig } from '@/config/site';
@@ -20,13 +20,6 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-// Display face for headings and the wordmark (Paper & Ember).
-const bricolage = Bricolage_Grotesque({
-  variable: '--font-bricolage',
-  subsets: ['latin'],
-  weight: ['700'],
-});
-
 export const metadata: Metadata = {
   // Canonical/OG URLs resolve against the production domain, never localhost.
   metadataBase: new URL(resolveSiteUrl(process.env)),
@@ -40,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         <InlineScript html={themeInitScript} />

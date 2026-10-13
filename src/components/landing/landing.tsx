@@ -122,7 +122,7 @@ export function Landing({
               return (
                 <div
                   key={f.themeId}
-                  className={`shadow-sheet absolute overflow-hidden rounded-[26px] border-[6px] border-[#221c17] dark:border-[#0d0b09] ${f.className}`}
+                  className={`shadow-sheet absolute overflow-hidden rounded-[26px] border-[6px] border-[#050506] ${f.className}`}
                 >
                   {clip ? (
                     <ShowcaseVideo src={clip.url} />

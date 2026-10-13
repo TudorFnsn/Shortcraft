@@ -28,13 +28,13 @@ const getSnapshot = (): ThemeChoice => readThemeChoice(window.localStorage);
 // The server can't know the stored choice; "system" matches the server HTML.
 const getServerSnapshot = (): ThemeChoice => 'system';
 
+// Studio is dark by default ("system" = the default, no data-theme); Light is
+// the opt-in partner. A stored "dark" from before still resolves to the default.
 const OPTIONS: { id: ThemeChoice; label: string; icon: React.ReactNode }[] = [
   {
     id: 'system',
-    label: 'System',
-    icon: (
-      <path d="M2.5 3.5h11v7h-11zM6 13.5h4M8 10.5v3" strokeLinecap="round" strokeLinejoin="round" />
-    ),
+    label: 'Dark',
+    icon: <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" strokeLinejoin="round" />,
   },
   {
     id: 'light',
@@ -49,14 +49,9 @@ const OPTIONS: { id: ThemeChoice; label: string; icon: React.ReactNode }[] = [
       </>
     ),
   },
-  {
-    id: 'dark',
-    label: 'Dark',
-    icon: <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" strokeLinejoin="round" />,
-  },
 ];
 
-/** System / Light / Dark picker. Applies instantly and remembers the choice. */
+/** Dark / Light picker. Applies instantly and remembers the choice. */
 export function ThemeToggle() {
   const choice = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 

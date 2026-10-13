@@ -1,6 +1,7 @@
 /**
- * Light / dark theme choice. "system" (the default) sets nothing and lets
- * `prefers-color-scheme` decide; "light" / "dark" pin `data-theme` on <html>.
+ * Theme choice. "system" (the default) sets nothing: the Studio look is dark by
+ * default. "light" pins the light partner via `data-theme` on <html>; a stored
+ * "dark" (older choice) pins the same dark default.
  * The choice lives in localStorage and is applied before first paint by
  * `themeInitScript` (see layout.tsx), so there is no flash on load.
  */
