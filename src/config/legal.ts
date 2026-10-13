@@ -190,7 +190,7 @@ export const PRIVACY: LegalDocument = {
       id: 'data',
       heading: '2. What we collect',
       paragraphs: [
-        'Account: your email address and a password (stored only as a secure hash by our authentication provider).',
+        'Account: your email address and a password (stored only as a secure hash by our authentication provider). If you continue with Google instead, Google shares your name, email address and profile picture with us; we use only the email address, and never get your Google password.',
         'Content: the topics you enter, the scripts, images, clips, voiceovers and videos generated for you, and their settings.',
         'Billing: your plan, payments and credit history. Card details are entered on Stripe’s checkout page and never reach our servers.',
         'Technical: logs needed to run and secure the service (for example request times, errors and IP addresses). When a prompt is blocked by our safety screen we log only the category, not the prompt.',
