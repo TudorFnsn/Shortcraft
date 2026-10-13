@@ -7,7 +7,8 @@
  * the final charge at the hold (`billableCredits`), so a settle can only ever
  * refund — never push a balance below zero.
  */
-import { defaultModelFor, type ModelTier } from '@/config/models';
+import { MODELS, defaultModelFor, type ModelSpec, type ModelTier } from '@/config/models';
+import { estimateSpeechSeconds } from '@/features/providers/mocks';
 
 export interface JobEstimateInput {
   targetDurationSec: number;
@@ -63,4 +64,36 @@ export function fitScenesToBudget<S extends { durationSec: number; index?: numbe
 /** What the user is actually billed: the metered cost, never more than the hold. */
 export function billableCredits(estimate: number, metered: number): number {
   return Math.min(estimate, metered);
+}
+
+/**
+ * Re-voice pricing (Voice Studio V3): a re-voiced copy only runs the voice and
+ * the final cut, so it is priced from their API cost at a fixed credit scale
+ * instead of per-step credits. Voice and render are the steps with the most
+ * API cost per credit, so standard rates would fail the 3x margin gate on Pro;
+ * 13,000 credits per $ clears it on every plan (margin.ts checks re-voice as
+ * its own job shape). The price is known up front (the text is known), so it
+ * is a fixed quote: the hold is what the creator pays.
+ */
+export const REVOICE_CREDITS_PER_USD = 13_000;
+
+export interface RevoiceBill {
+  credits: number;
+  costUsd: number;
+}
+
+export function revoiceBill(
+  speechSeconds: number,
+  models: readonly ModelSpec[] = MODELS,
+): RevoiceBill {
+  const voice = models.find((m) => m.kind === 'voice');
+  const render = models.find((m) => m.kind === 'render');
+  if (!voice || !render) throw new Error('re-voice needs a voice and a render model');
+  const costUsd = speechSeconds * voice.costUsdPerUnit + render.costUsdPerUnit;
+  return { credits: Math.ceil(costUsd * REVOICE_CREDITS_PER_USD), costUsd };
+}
+
+/** Credits to re-voice a video whose scenes will say `narrations`. */
+export function estimateRevoiceCredits(narrations: readonly string[]): number {
+  return revoiceBill(estimateSpeechSeconds(narrations.join(' '))).credits;
 }

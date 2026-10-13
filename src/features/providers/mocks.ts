@@ -161,7 +161,8 @@ export function createMockRenderProvider(model: ModelSpec): RenderProvider {
       const durationSec = lastClip ? Math.ceil((lastClip.startMs + lastClip.durationMs) / 1000) : 0;
       const sources = input.clips.map((c) => (c.kind === 'video' ? c.videoUrl : c.imageUrl));
       const output: RenderOutput = {
-        videoUrl: `mock://render/${hash(sources.join(','))}.mp4`,
+        // Different audio over the same pictures is a different video (re-voice).
+        videoUrl: `mock://render/${hash(sources.join(',') + input.voiceoverUrl)}.mp4`,
         durationSec,
       };
       return { kind: 'completed', output, costUsd: model.costUsdPerUnit };

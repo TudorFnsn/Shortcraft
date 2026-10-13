@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 433 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 444 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -159,7 +159,7 @@ Owned by the **Design CEO** routine; full plan, charter and screen status in **`
 
 **Why:** owner: "I am not satisfied with the voice over. I want to be able to change the voice and even edit it, and have multiple options." Today every video uses one hard-coded ElevenLabs stock voice (`voiceId: 'default'` in the orchestrator's voiceover step); there is no choice, no tuning and no way to fix a line after the video is made. The adapter already accepts a `voiceId`, so this is a catalog + storage + UI job, not a new pipeline. Voice is cheap (~$0.00075/s), so better voices barely move margins and make every video feel less generic: a retention and an upgrade lever.
 
-Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design track rule (canvas → owner approval → code); the backend steps don't wait for it. Status: **plan approved 2026-10-13 with all recommendations; V1 built (2026-10-13), V0 canvas with the Design track, V2–V4 next.**
+Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design track rule (canvas → owner approval → code); the backend steps don't wait for it. Status: **plan approved 2026-10-13 with all recommendations; V1 built and verified live (8/8 voices, previews committed); V3 backend built (2026-10-13); V0 canvas with the Design track; V2 + V3 UI, the line preview and V4 next.**
 
 - [ ] **V0 Canvas** (Design track, `DesignPlan.md` §4 V): the Voice sheet on Create, the voiceover editor in the player, and "Create a voice" + My voices, at 1440 and 390, Studio look, dark + light.
 - [x] **V1 Voice catalog + pipeline** _(2026-10-13)_: `config/voices.ts` (8 ElevenLabs premade voices: Brian, George, Sarah, Jessica, Will, Callum, Daniel, Charlie; a default per look; speed 0.9/1.0/1.1; delivery = stability 0.75/0.5/0.3), `features/render/voice.ts` (`resolveVoice`: slug → provider id + tuning, unknown slug → look default; `VoiceFields` zod, catalog slugs only; `voiceChoice`), migration `0010_voice_studio.sql` (`voice_id`, `voice_settings`, `parent_job_id` + FK index), `POST /api/jobs` accepts `voiceId`/`speed`/`delivery`, the orchestrator narrates with the job's voice, the ElevenLabs adapter sends `voice_settings`, `scripts/voice-previews.mts` (checks each id exists, records `public/voices/<slug>.mp3`). Jobs only write the new columns when a voice is chosen, so production keeps working until 0010 is applied. **Behaviour change:** jobs without a choice now use their look's default voice instead of the single stock voice (and `ELEVENLABS_VOICE_ID` no longer applies to them). Voice ids not checked live (ElevenLabs is unreachable from the cloud session); the preview script checks them. +10 tests. Original plan:
@@ -170,6 +170,7 @@ Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design 
   - The orchestrator passes them to the voice step; the ElevenLabs adapter sends `voice_settings`. Mocks stay deterministic.
   - `scripts/voice-previews.mts`: one ~5s sample per catalog voice into `public/voices/*.mp3` (one owner run, ~$0.02), so browsing voices never calls the API.
 - [ ] **V2 Create UI:** a 4th setting pill ("Voice · Adam") next to look · length · quality, opening a sheet with ▶ previews, speed and delivery. It remembers the last voice like the other settings.
+- [~] **V3 backend built** _(2026-10-13, PR `ceo/voice-revoice`)_: `POST /api/jobs/:id/revoice` (owner-only, source must be `done`; body `scenes[{idx, narration}]` + voice fields; edited lines go through the prompt screen; each line may grow to 130% + 20 chars; "nothing_to_change" if neither text nor voice changed). It creates a child job (`parent_job_id`) with copies of the source scenes (images, clips, durations reused, status done) that holds the fixed re-voice price and starts at `voiceover`, so only the voice and the final cut run; the original is untouched. `features/render/revoice.ts` (`planNarration`, `createRevoiceJob`), pricing `revoiceBill`/`estimateRevoiceCredits`, re-voice added to the margin gate as its own job shape. **Price changed from the plan's ~340 to ~423 credits for 30s** (see decision log). No migration (0010 already has `parent_job_id`). Still to do: the free one-line preview (`POST /api/voice/preview`, needs a small migration for its daily cap; ships with the editor UI) and the editor UI itself (after the V0 canvas). Original plan:
 - [ ] **V3 Edit the voiceover after the video is made ("re-voice"):**
   - "Edit voiceover" in the player: per-scene narration as editable text next to the scene thumbnail, voice/speed/delivery, "▶ Hear this line", then "Make new version".
   - `POST /api/jobs/:id/revoice`: owner-only, source job `done`. Edited narration goes through the prompt screen (it will be spoken). Each scene's text may grow by at most ~30%, so the video and the hold stay bounded.
@@ -308,6 +309,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-13** — Voice Studio V3 backend: re-voice a finished video (`POST /api/jobs/:id/revoice`) as a child job that reuses its pictures/clips and only re-runs voice + final cut at a fixed quote; re-voice is now a margin-gate job shape (Starter's worst case becomes a re-voice at 5.6x; Pro 3.00x and Ultra 3.23x unchanged; trial burn $0.23 if a trial were spent entirely on re-voices). V1 verified live: all 8 catalog voices recorded by the owner. +11 tests (444). (CEO, interactive)
 - **2026-10-13** — Voice Studio V1 (catalog + pipeline): 8 curated voices with a default per look, speed/delivery presets, migration 0010, `POST /api/jobs` voice fields (catalog slugs only), orchestrator + ElevenLabs `voice_settings`, preview-recording script. No UI yet (waits for the V0 canvas). +10 tests (433). (CEO, interactive)
 - **2026-10-13** — Voice Studio planned (owner request: change, tune and edit the voiceover, plus "create your own voice for credits"): roadmap item §5 (V0 canvas, V1 catalog + pipeline, V2 Create pill, V3 re-voice editor, V4 designed voices), two new risks, decision-log entries. Owner approved every recommendation. Plan only, no code yet. (CEO, interactive)
 
@@ -375,6 +377,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **Re-voice is priced from its own API cost at 13,000 credits per $, not at per-step credit rates** (2026-10-13, adjusts decision 3 of the Voice Studio entry) → a re-voice bills only voice + final cut, the two steps with the most API cost per credit (voice 8 cr/s for $0.00075/s, render 100 cr for $0.01). At those rates a re-voice costs $0.0000956 per credit, above Pro's 3x limit of $0.000083, so a Pro creator re-voicing all month would put Pro at ~2.6x. Pricing it at 13,000 cr/$ (the plan's option-C scale plus headroom) keeps every plan ≥3x: ~423 credits for a 30s video instead of ~340, still ~7.7× cheaper than a remake (3,240). It is a fixed quote, since the text is known before the run: the hold is what the creator pays. Revisit with measured costs.
 - **Voice Studio: curated voices for everyone, re-voice for credits, designed voices before cloned ones** (2026-10-13, owner approved all recommendations):
   1. **Model:** ElevenLabs Flash v2.5 stays the default. Eleven v3 "Expressive" is a later Premium-only toggle, once its word timestamps are confirmed (captions depend on them).
   2. **Who gets what:** every voice, speed, delivery and the editor on every plan. Voice is the cheapest step, and a generic voice is the complaint.

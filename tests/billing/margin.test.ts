@@ -11,7 +11,12 @@ import {
   TARGET_MARGIN_MULTIPLE,
   worstCase,
 } from '@/features/billing/margin';
-import { estimateJobCredits } from '@/features/render/pricing';
+import {
+  estimateJobCredits,
+  estimateSceneCount,
+  MAX_SCENE_SEC,
+  revoiceBill,
+} from '@/features/render/pricing';
 import { assertMarginGate } from '@/features/providers/registry';
 
 /** Catalog where every model earns 20,000 credits per API dollar. */
@@ -25,7 +30,10 @@ const noFees = { vatRate: 0, stripePercentFee: 0, stripeFixedFeeEur: 0, usdPerEu
 describe('jobBill', () => {
   it('charges exactly the reserve estimate for every allowed shape', () => {
     for (const shape of allowedShapes(PLANS.ultra)) {
-      expect(jobBill(shape).credits).toBe(estimateJobCredits(shape));
+      const expected = shape.revoice
+        ? revoiceBill(estimateSceneCount(shape.targetDurationSec) * MAX_SCENE_SEC).credits
+        : estimateJobCredits(shape);
+      expect(jobBill(shape).credits).toBe(expected);
     }
   });
 
@@ -41,10 +49,12 @@ describe('jobBill', () => {
 });
 
 describe('allowedShapes', () => {
-  it('covers every length and tier a plan unlocks', () => {
+  it('covers every length and tier a plan unlocks, plus a re-voice of each length', () => {
     const shapes = allowedShapes(PLANS.starter);
+    const lengths = PLANS.starter.limits.maxVideoDurationSec - MIN_VIDEO_SEC + 1;
     expect(shapes.every((s) => s.modelTier === 'standard')).toBe(true);
-    expect(shapes).toHaveLength(PLANS.starter.limits.maxVideoDurationSec - MIN_VIDEO_SEC + 1);
+    expect(shapes.filter((s) => !s.revoice)).toHaveLength(lengths);
+    expect(shapes.filter((s) => s.revoice)).toHaveLength(lengths);
     expect(allowedShapes(PLANS.pro).some((s) => s.modelTier === 'premium')).toBe(true);
   });
 });
@@ -77,9 +87,12 @@ describe('assessMargins', () => {
     const report = assessMargins({ models: cheapModels, assumptions: noFees });
     expect(report.ok).toBe(true);
     expect(describeFailures(report)).toBe('');
-    // Starter: €14.99 for 30k credits at $0.00005/credit = $1.50 cost → ~10x.
+    // Starter: €14.99 for 30k credits at its worst shape's cost per credit (a
+    // re-voice: its fixed credit scale is below these models' 20k credits per $).
+    const worst = worstCase(allowedShapes(PLANS.starter), cheapModels);
+    expect(worst.shape.revoice).toBe(true);
     const starter = report.plans.find((p) => p.id === 'starter');
-    expect(starter?.multiple).toBeCloseTo(14.99 / 1.5);
+    expect(starter?.multiple).toBeCloseTo(14.99 / (30_000 * worst.usdPerCredit));
   });
 
   it('fails and suggests a credit ceiling when a product loses money', () => {
@@ -91,9 +104,9 @@ describe('assessMargins', () => {
     expect(report.ok).toBe(false);
     const [starter] = report.plans;
     expect(starter?.passes).toBe(false);
-    // Max credits at 3x: 14.99 / (3 × 0.00005) ≈ 99,933.
+    const worst = worstCase(allowedShapes(PLANS.starter), cheapModels);
     expect(starter?.maxCreditsAtTarget).toBe(
-      Math.floor(14.99 / (TARGET_MARGIN_MULTIPLE * 0.00005)),
+      Math.floor(14.99 / (TARGET_MARGIN_MULTIPLE * worst.usdPerCredit)),
     );
     expect(describeFailures(report)).toContain('Starter');
   });
@@ -108,7 +121,8 @@ describe('assessMargins', () => {
 
   it('reports the trial burn cost', () => {
     const report = assessMargins({ models: cheapModels, trialCredits: 3000 });
-    expect(report.trialCostUsd).toBeCloseTo(0.15);
+    const worst = worstCase(allowedShapes(PLANS.starter), cheapModels);
+    expect(report.trialCostUsd).toBeCloseTo(3000 * worst.usdPerCredit);
   });
 });
 
