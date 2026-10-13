@@ -8,6 +8,7 @@ import { themeInitScript } from '@/components/theme/theme';
 import { Footer } from '@/components/footer';
 import { MobileNav } from '@/components/mobile-nav';
 import { InlineScript } from '@/components/inline-script';
+import { resolveSiteUrl } from '@/features/seo/site';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -27,6 +28,8 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
+  // Canonical/OG URLs resolve against the production domain, never localhost.
+  metadataBase: new URL(resolveSiteUrl(process.env)),
   title: `${siteConfig.name} — ${siteConfig.tagline}`,
   description: siteConfig.description,
 };

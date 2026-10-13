@@ -3,6 +3,7 @@ import { siteConfig } from '@/config/site';
 import { THEMES } from '@/config/themes';
 import { ThemeFrame } from '@/components/theme-frame';
 import { buttonClasses } from '@/components/ui/button';
+import { ideaPagePath } from '@/features/seo/site';
 import { planTeasers, topUpLine } from './plan-teaser';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -205,12 +206,16 @@ export function Landing({ signedIn }: { signedIn: boolean }) {
         </div>
         <ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {THEMES.map((t) => (
-            <li key={t.id} className="flex flex-col gap-2.5">
-              <ThemeFrame themeId={t.id} variant="card" className="rounded-card" />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-[15px] leading-5 font-semibold">{t.label}</span>
-                <span className="text-ink-muted text-[13px] leading-[18px]">{t.blurb}</span>
-              </span>
+            <li key={t.id}>
+              <Link href={ideaPagePath(t.id)} className="group flex flex-col gap-2.5">
+                <ThemeFrame themeId={t.id} variant="card" className="rounded-card" />
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-[15px] leading-5 font-semibold group-hover:underline">
+                    {t.label}
+                  </span>
+                  <span className="text-ink-muted text-[13px] leading-[18px]">{t.blurb}</span>
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

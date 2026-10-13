@@ -4,12 +4,14 @@ import { use, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/utils/supabase/client';
+import { createHrefAfterLogin, readCarried } from '@/features/auth/carry';
 
 export default function LoginPage({ searchParams }: PageProps<'/login'>) {
   const router = useRouter();
-  // An idea typed on the landing page rides through sign-up into Create.
-  const rawIdea = use(searchParams).idea;
-  const idea = (Array.isArray(rawIdea) ? rawIdea[0] : rawIdea)?.trim().slice(0, 300) || null;
+  // An idea typed on the landing page (or picked on an /ideas page, with its
+  // theme) rides through sign-up into Create.
+  const carried = readCarried(use(searchParams));
+  const { idea } = carried;
   const [mode, setMode] = useState<'signin' | 'signup'>(idea ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +42,7 @@ export default function LoginPage({ searchParams }: PageProps<'/login'>) {
       setMode('signin');
       return;
     }
-    router.push(idea ? `/create?${new URLSearchParams({ idea }).toString()}` : '/create');
+    router.push(createHrefAfterLogin(carried));
     router.refresh();
   }
 
