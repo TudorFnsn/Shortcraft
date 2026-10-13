@@ -167,6 +167,18 @@ The app works, but every screen asks for attention at once. This journey keeps P
 - [~] **S3 Shell** (PR #69, stacked on #68): a quiet header (Your videos · credits · New video · avatar) and one floating + on phones instead of the tab bar.
 - [ ] **S4 Check:** axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted). Count clicks before and after.
 
+### V: Voice Studio (owner request 2026-10-13; product scope and backend in TheMasterPlan §5 "Voice Studio")
+
+Three new surfaces, drawn in the Studio look. They follow the S rules: one violet action per screen, sheets instead of expanded sections, and helper text only where people get stuck.
+
+- [ ] **V0 Canvas:** at 1440 and 390, dark + light:
+  1. **Voice sheet on Create:** a 4th pill "Voice · <name>" after look · length · quality. The sheet shows My voices first, then about 8 catalog voices (name, two-word character, ▶ preview), with speed (Slower / Normal / Faster) and delivery (Calm / Natural / Lively) as segmented rows.
+  2. **Voiceover editor:** opened from "Edit voiceover" in the player. It lists scene thumbnails with editable narration, the voice pill, "▶ Hear this line" per scene, the re-voice cost, and one "Make new version" action. The original video is kept; the result shows as "v2".
+  3. **Create a voice:** a description box with example chips, then 3 generated samples to play and pick, a name field and "Save voice" (cost + saved-voice limit shown). Covers My voices management (rename, delete) and the limit-reached state.
+- [ ] **V2 Code** (after approval): the Create pill + sheet.
+- [ ] **V3 Code** (after approval): the voiceover editor in the player sheet.
+- [ ] **V4 Code** (after approval): Create a voice + My voices.
+
 ### Later (out of the current charter, needs owner sign-off)
 
 Home dashboard · fuller onboarding (beyond the one-tap first video).
@@ -200,6 +212,8 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
+- **2026-10-13** — Voice Studio added to the design scope (owner request): §4 V lists the Voice sheet, the voiceover editor and Create a voice. Canvas next. (CEO, interactive)
+
 - **2026-10-13** — Tudor picked **Look B, Studio** and asked for every screen to adapt. Shipped as four stacked PRs: tokens (#66), Create (#67), Home (#68), shell (#69). axe found 0 violations on every screen in dark, light and at 390px. (Design CEO, interactive)
 - **2026-10-13** — Pastels rejected too. Boards 8–10 replaced with three complete looks (Gallery, Studio, Soft contrast). The layout is more dynamic and less crowded: a big idea headline, the latest video large and one row of videos. (Design CEO, interactive)
 - **2026-10-13** — Tudor rejected the first palette set (too similar, too crowded) and picked a soft pastel direction. Boards 8–10 now show Rose, Mint and Lavender, one sparse screen each. (Design CEO, interactive)
@@ -226,6 +240,8 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **Voice Studio in the design scope** (2026-10-13, owner: "add to the plan as recommended") → voice becomes a 4th setting pill, so it fits the S journey (pills that remember the last choice) instead of adding a new section to Create. Editing happens after the video exists, inside the player, where the creator notices the problem. Product and pricing decisions are in TheMasterPlan §11.
 
 - **S Calm & Clear decided** (2026-10-13, owner: "lets go with look B studio dark, violet. i need all screens to adapt to the new look. start implementing"). The questions below were answered with that decision; my recommendations are in brackets:
   1. Collapse look, length and quality into three pills that open small sheets, instead of showing every option at once? [yes; the last choices are remembered, so most days nobody opens them]

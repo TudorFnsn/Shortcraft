@@ -151,13 +151,49 @@ Owned by the **Design CEO** routine; full plan, charter and screen status in **`
 - [x] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code shipped (PR #34)
 - [x] D1 Create redesign + one-tap first video + Library "Today's ideas" (PR #37) · [x] D2 Library redesign (PR #39) · [x] Landing redesign (PR #43) · [x] D3 Mobile pass (PR #44) · [x] D4 A11y/QA: desktop (#42) + phones/landing (#45); screen-reader run by a person still open
 - [x] D2.1 Library card for moderation-blocked videos (the "friendly Library message" from Moderation above): shipped in PR #51 (2026-10-12)
+- [ ] V Voice Studio screens (Voice sheet on Create, voiceover editor, Create a voice / My voices): canvas first, see the Voice Studio item below and DesignPlan §4 V
 - [~] S Calm & Clear (owner brief 2026-10-13: more intuitive, less crowded, easier on the eye, a straightforward idea → make → watch → post journey; plus a more natural palette). Look B "Studio" (dark, violet) approved 2026-10-13. In review: tokens #66, Create #67, Home #68, shell #69; then S4 check (DesignPlan §4 S).
 - [x] Follow-ups (owner-approved 2026-10-13), all shipped: real landing videos (#55), Posted check-off + streak (#56), queue tomorrow's video (#57), pricing page (#58), login/sign-up screens (#59)
+
+### NEXT — Voice Studio: pick, tune, edit and own the voiceover (owner-requested 2026-10-13)
+
+**Why:** owner: "I am not satisfied with the voice over. I want to be able to change the voice and even edit it, and have multiple options." Today every video uses one hard-coded ElevenLabs stock voice (`voiceId: 'default'` in the orchestrator's voiceover step); there is no choice, no tuning and no way to fix a line after the video is made. The adapter already accepts a `voiceId`, so this is a catalog + storage + UI job, not a new pipeline. Voice is cheap (~$0.00075/s), so better voices barely move margins and make every video feel less generic: a retention and an upgrade lever.
+
+Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design track rule (canvas → owner approval → code); the backend steps don't wait for it. Status: **plan approved 2026-10-13 with all recommendations; not started.**
+
+- [ ] **V0 Canvas** (Design track, `DesignPlan.md` §4 V): the Voice sheet on Create, the voiceover editor in the player, and "Create a voice" + My voices, at 1440 and 390, Studio look, dark + light.
+- [ ] **V1 Voice catalog + pipeline:**
+  - `src/config/voices.ts`: ~8 curated ElevenLabs premade voices (id, name, two-word character, preview file), plus a default voice per look (theme), e.g. horror = deep and slow, fun facts = upbeat.
+  - Speed **Slower / Normal / Faster** (ElevenLabs `speed` 0.9 / 1.0 / 1.1) and delivery **Calm / Natural / Lively** (stability/style presets).
+  - Migration **0010**: `render_jobs.voice_id`, `voice_settings jsonb`, `parent_job_id` (additive; existing RLS covers them).
+  - `POST /api/jobs` takes `voiceId`/`speed`/`delivery` (zod). The voice must be a catalog voice or one of the caller's own saved voices (V4); never an arbitrary provider id.
+  - The orchestrator passes them to the voice step; the ElevenLabs adapter sends `voice_settings`. Mocks stay deterministic.
+  - `scripts/voice-previews.mts`: one ~5s sample per catalog voice into `public/voices/*.mp3` (one owner run, ~$0.02), so browsing voices never calls the API.
+- [ ] **V2 Create UI:** a 4th setting pill ("Voice · Adam") next to look · length · quality, opening a sheet with ▶ previews, speed and delivery. It remembers the last voice like the other settings.
+- [ ] **V3 Edit the voiceover after the video is made ("re-voice"):**
+  - "Edit voiceover" in the player: per-scene narration as editable text next to the scene thumbnail, voice/speed/delivery, "▶ Hear this line", then "Make new version".
+  - `POST /api/jobs/:id/revoice`: owner-only, source job `done`. Edited narration goes through the prompt screen (it will be spoken). Each scene's text may grow by at most ~30%, so the video and the hold stay bounded.
+  - It creates a child job (`parent_job_id`) with copied scenes (images/clips reused) that starts at `voiceover`, so only voice + final cut run and are billed.
+  - The original stays; the new one shows as "v2" in Your videos. Captions update by themselves (they come from the new voice timings).
+  - `POST /api/voice/preview`: one-line TTS, free, cached by (text, voice, settings), capped at ~20/day per user (~$0.001 each).
+  - Pricing: `estimateRevoiceCredits` (~340 credits for a 30s video vs ~3,240 for a remake) plus a re-voice shape in the margin gate.
+- [ ] **V4 Design your own voice ("My voices"):**
+  - The creator describes a voice ("warm, older British storyteller, slow, a bit gravelly"); ElevenLabs Voice Design returns 3 samples of synthetic voices; they pick one, name it, and it is saved to **My voices**. It then sits at the top of the Voice sheet and the editor, for every future video, at no extra cost per video.
+  - Prices: **~100 credits per round of 3 samples** (stops free rerolls) and **1,500 credits to save a voice**, through the same hold → settle/refund flow as videos (a failed creation refunds).
+  - Saved-voice limits **Starter 1 · Pro 3 · Ultra 10**. Each saved voice uses a custom-voice slot on our ElevenLabs account, whose plan caps the total; deleting a voice frees its slot. Check the slot count against expected users before launch.
+  - New `user_voices` table (owner-only RLS): provider voice id, name, description, how it was made, created_at. Deleting a voice (or the account) also deletes it at ElevenLabs.
+  - Confirm prices against the margin gate before shipping.
+- **Owner actions after merge:** apply migration 0010 (+ the V4 migration); run `scripts/voice-previews.mts` once (needs `ELEVENLABS_API_KEY`); one live re-voice and one designed voice to confirm timing and cost.
+- **Quality bar:** unit tests for the catalog, validation, the adapter's `voice_settings`, re-voice ownership and limits, voice ownership in `POST /api/jobs`, pricing and the margin shapes; format, lint, typecheck, test and `next build` green in mock mode.
+- **Follow-ups (not in this PR):**
+  - "Expressive" voice model (Eleven v3, ~2× voice cost, `[whispers]`/`[laughs]` tags) as a Premium-only toggle, once v3's word timestamps are confirmed.
+  - Edit the script before the video is made (pause after scripting). It changes the state machine and the 202 flow, so it comes after V1–V4.
+  - **Clone your own voice** as its own item (see decision log), after the legal work: consent recording + "this is my voice" checkbox, explicit GDPR consent for voice data, Privacy Policy + Terms updates, a deletion path, Pro/Ultra only, ~3,000 credits.
 
 ### LATER — Phase 4: Retention & ARPU
 
 - [ ] Characters (consistent reference across scenes).
-- [ ] Studio (edit/regenerate one scene).
+- [ ] Studio (edit/regenerate one scene). The re-voice child job (Voice Studio V3) is the first slice of it: same copy-scenes-and-resume-at-a-step mechanism.
 - [ ] Series (recurring cast + story bible).
 - [ ] AI Agent (chat that calls the existing pipeline — no second pipeline).
 - [ ] Direct posting to TikTok/YouTube/IG (apply for TikTok Content Posting API early — weeks of lead time).
@@ -246,6 +282,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Platform rules tighten on AI content** → AI-label everything; no follower-buying.
 - **Competitor head start (TrendStory, 750k+ creators)** → pick an angle (niche, language market, price, character consistency) rather than a generic clone.
 - **Webhook double-grant** → `stripe_events` idempotency (0002 applied) + ledger-level grant keys (0003 applied).
+- **Voice misuse (deepfakes, cloned real people)** → voices come only from our catalog or a voice the user designed (synthetic, owned by no one); the API rejects any other provider voice id; no voice cloning until consent checks and the legal updates are in place. Edited narration goes through the prompt screen like a topic.
+- **ElevenLabs custom-voice slots run out** → per-plan saved-voice limits, deleting frees a slot; watch the count and upgrade the ElevenLabs plan before it caps sign-ups.
 - **Privileged DB functions exposed as RPCs** → every `SECURITY DEFINER` function must be revoked from `anon`/`authenticated` (enforced by `tests/billing/migrations-security.test.ts`).
 
 ---
@@ -269,6 +307,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-13** — Voice Studio planned (owner request: change, tune and edit the voiceover, plus "create your own voice for credits"): roadmap item §5 (V0 canvas, V1 catalog + pipeline, V2 Create pill, V3 re-voice editor, V4 designed voices), two new risks, decision-log entries. Owner approved every recommendation. Plan only, no code yet. (CEO, interactive)
 
 - **2026-10-13** — Google sign-in (owner request): "Continue with Google" on `/login`, `/auth/callback` (PKCE code exchange, same-site `next` only, friendly cancel/failure), behind `GOOGLE_AUTH_ENABLED`; Privacy Policy covers the data Google shares. +15 tests (423). (CEO, interactive)
 - **2026-10-13** — Sentry error tracking: server (`instrumentation.ts`, `onRequestError`), logger errors + `alert` warnings, browser (lazy SDK + `global-error.tsx`), PII scrubbing in `beforeSend`; off without a DSN. Verified locally that a failing route sends envelopes to a stub DSN. Privacy Policy lists Sentry. +6 tests (408 with the lifecycle email). (CEO, interactive)
@@ -333,6 +373,15 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Voice Studio: curated voices for everyone, re-voice for credits, designed voices before cloned ones** (2026-10-13, owner approved all recommendations):
+  1. **Model:** ElevenLabs Flash v2.5 stays the default. Eleven v3 "Expressive" is a later Premium-only toggle, once its word timestamps are confirmed (captions depend on them).
+  2. **Who gets what:** every voice, speed, delivery and the editor on every plan. Voice is the cheapest step, and a generic voice is the complaint.
+  3. **Re-voice costs credits** (~340 for 30s): still ~10× cheaper than a remake, and keeping it paid keeps the margin gate honest.
+  4. **Editing before the render waits:** a pause after scripting changes the state machine and the 202 flow. Editing after the render reuses the existing resumable steps (copy scenes, start at `voiceover`).
+  5. **Designed voices (Voice Design) ship first; cloning waits.** A designed voice is synthetic and belongs to no real person, so there is no consent, deepfake or biometric-data problem. A clone of the user's own voice is wanted later, but voice data used to identify someone is special-category data under GDPR, and a clone of someone else is a deepfake. It needs a consent recording, explicit consent, Privacy/Terms updates and a deletion path first.
+  6. **One PR** on `ceo/voice-studio`, commits in step order; UI only after the canvas is approved.
+  7. **Prices:** 1,500 credits to save a voice, ~100 per round of samples, saved-voice limits 1 / 3 / 10 on Starter / Pro / Ultra. They are capped by our ElevenLabs slot count and must pass the margin gate before shipping.
 
 - **Google sign-in through Supabase OAuth, behind a flag** (2026-10-13, owner) → one tap removes the password step from sign-up, the biggest drop-off point before the first video. Supabase's built-in provider keeps one auth system (same users table, same trial-credit trigger, same session cookies) instead of a second identity layer. The server-side PKCE callback keeps tokens out of the URL. The flag keeps the button hidden until the provider is configured, because an unconfigured provider sends users to a raw error page.
 - **Sentry for errors only, loaded lazily in the browser** (2026-10-13) → errors are what we need now that real users hit production; tracing costs quota and Replay records screens (consent + privacy burden), so both stay off. The browser SDK loads after the page, so it never slows first load (+1 KB gz), at the price of missing errors in the first moment of a page's life. The logger, not each call site, forwards alerts, so existing `alert` tags became pageable with no code churn.
