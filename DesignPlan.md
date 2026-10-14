@@ -5,7 +5,7 @@
 > priority; this file wins on how the app looks and feels. Every design PR
 > updates this file (screen status + changelog) in the same change.
 >
-> Last updated: 2026-10-13
+> Last updated: 2026-10-14
 
 ---
 
@@ -200,6 +200,32 @@ Three new surfaces, drawn in the Studio look. They follow the S rules: one viole
   3. Is the voice changed for the whole video only, not per scene? [whole video only: one voice per video sounds right and keeps the editor simple]
   4. Is My voices its own page, reached from the Voice sheet and the avatar menu, rather than a header link? [yes, to keep the header quiet]
 
+### B: Boxes (owner request 2026-10-14: "redesign the app to be similar to lil-boxes.com … imitate the animations, sizes, fonts, colors")
+
+A full look-and-motion change for every screen, measured from lil-boxes.com (Firecrawl scrape of its HTML, inline CSS and GSAP timeline config). The S journey's layout rules stay (one question and one action per screen, sheets instead of expanded sections); what changes is the skin and the motion.
+
+**What lil-boxes does (measured):**
+
+- **Colour:** `#F5F5F5` ground, `#212121` ink and dark boxes, blush `#F0E2DD` for buttons and boxes, red `#F0354D`, orange `#F07142`, sky `#35B5F0`, navy `#042839` on sky, `#5F151F` poster shadow, `#F0E835` on dark. Sections are full-bleed radial gradients: ember `at 10% 10%, #F07142 → #F0354D`, blush `at 10% 90%, #DBBDC0 → #F0E2DD`, sky `at 90% 10%, #70CBF5 → #35B5F0`.
+- **Type:** Humane 600 (ultra-condensed poster, `clamp(3rem, 60vw, 55rem)`, lh .6), Fraunces 300/400 (headings `clamp(1.2rem, 12vw, 12rem)`, lh .75, −5px), Inter 600 eyebrows (`clamp(1rem, 2vw, 1.5rem)`, +3px, uppercase) and Inter 300 leads (`clamp(1.75rem, 1.75vw, 3rem)`, lh 1.2), Urbanist uppercase labels, Shadows Into Light Two handwritten notes (3rem, ±23°, blur .5px) with drawn arrows.
+- **Shape:** 8px radius on everything (30px only while a box enters), 50px pills. Buttons have no fill border: a 1px under-line plus `0 1px 0 0` shadow, pressing in 2px on hover (all .3s). Inputs are under-lines only, Fraunces 300. Hero media casts `40px 40px 80px rgba(0,0,0,.5)`; a frosted card (`rgba(240,226,221,.4)`, blur 10px) sits rotated 2°.
+- **Motion (GSAP 3 + ScrollTrigger, ScrollSmoother smooth 2, SplitText, typed.js):** _Section pop_ (each box scrubs from scale .9, ±0.7°, 30px top radius, "top bottom" → "top 25px"), _line stagger_ (SplitText lines from y 100px, scale .95, expo.out 1s, delay .3), _typed word_, _sheet sweep_ (from x −110%, scale .92, 4°, radius 30, expo.inOut 1s), _colour comes in_ (grayscale 1 → 0, scrubbed), _stacked names_ (overlapping Fraunces 300 list; hover goes 900, navy, −4px), _step reveal_ (opacity/scale 0 → 1, expo.out 1s), an endless marquee and smooth scroll.
+
+**Mapped onto Shortcraft:**
+
+- **Landing:** "Post a Short / every day without / showing your face" in Fraunces on a blush box, then a giant SHORTCRAFT poster whose letters are filled with the eight looks, with notes "One idea in" → "A Short out". The idea form keeps today's GET contract. Ember box: "Your channel is UNPOSTED (typed) · We can help", with a tilted week of videos. Blush box: "You bring the idea", a features marquee and the 3 steps on a frosted card. Sky box: "Mind if we show off?" with the eight looks as stacked names that play a sample on hover. Pricing teaser, then a dark footer box with the idea form and a giant wordmark.
+- **Create:** the whole composer is an ember box that sweeps in. "What's it about?" in Fraunces, an under-line idea input with typed example ideas, Surprise me, the four setting pills and one blush **Make video** button with the cost in a dark pill under it. The look, length, quality and voice sheets sweep in (the Look sheet is a sky box with stacked look names and a live preview).
+- **Your videos:** a big Fraunces title, a blush Today's idea box (dark Make it) with the video being made on a frosted card (step reveal and progress), then a sky "This week" box whose thumbnails light up from grey. The player is a dark box that sweeps in (blush Download).
+- **Voices, pricing, sign-in:** the same boxes (blush My voices, ember Create a voice, three tilted plan boxes with Pro on ember, a dark top-up box, a blush/dark split sign-in).
+- **Dark partner:** `#1A1A1A` ground, `#212121` boxes, blush text, a deep sky box (`#0B6FA3 → #042839`).
+- **Accessibility:** small red text uses `#C81E3A` (5.2:1 on ground) or `#A32435` (5.8:1 on blush). White text on the ember box is 24px or larger only; the cost and other small text sit in a dark `#212121` pill. Handwritten notes are decorative (`aria-hidden`). Every move is off under `prefers-reduced-motion`.
+
+- [~] **B0 Canvas** (https://claude.ai/artifact/Va66qwzLQpCNKmya8GwepU, published 2026-10-14): 15 artboards. Landing at 1440 (scrolls with the real scroll moves in full view) and 390; the Boxes system; a motion lab with all nine moves (press Replay); Create, the Look sheet, Your videos, the player, voices, pricing, sign-in, Your videos dark; and phone Create, Your videos and player. Waiting on Tudor's approval and the decisions in §8.
+- **Implementation plan, after approval** (one PR each, in order; no API, credits or provider changes):
+  - [ ] **B1 Tokens + fonts:** replace the Studio values in `globals.css` (same token names, so every screen follows), add `--grad-*`, the 8px radius and the press-in utility; load Fraunces, Inter, Urbanist, Shadows Into Light Two and the display face with `next/font`; light becomes the default and dark the partner.
+  - [ ] **B2 Motion kit:** `gsap` (ScrollTrigger, SplitText; all plugins are free since 3.13) behind a small `src/components/motion/*` (`<Pop>`, `<SplitLines>`, `<Typed>`, `<ColourIn>`, `<Marquee>`), plus the sweep for `Sheet`. Server-rendered markup stays complete without JavaScript and under reduced motion.
+  - [ ] **B3 Landing**, **B4 Create + sheets**, **B5 Your videos + player**, **B6 Voices, pricing, sign-in**, **B7 phones + dark**, **B8 check** (axe in both themes and at 390px, a Lighthouse pass on the landing, because smooth scroll and big fonts cost weight).
+
 ### Later (out of the current charter, needs owner sign-off)
 
 Home dashboard · fuller onboarding (beyond the one-tap first video).
@@ -228,12 +254,14 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - D2.1 blocked-card canvas: https://claude.ai/artifact/KHgF5y7UMevAQvzhu6FYYQ: 4 artboards (Library 1440 + 390, light/dark) showing the new card next to the shipped ready, in-progress and failed cards. Private to Tudor.
 - Voice Studio canvas (journey V): https://claude.ai/artifact/RGGjuaD9kq5wxaQKPsg4C1: 10 artboards (journey map; Voice sheet dark/light/phone; voiceover editor dark/light/phone; Create a voice, My voices at the limit, phone describe step), Studio tokens. Private to Tudor.
 - Calm & Clear canvas (journey S): https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG: 10 artboards (journey map, Create light, look picker dark, Home light/dark, phone Create and Home, three looks), on the Paper & Ember tokens. Private to Tudor.
+- Boxes canvas (journey B): https://claude.ai/artifact/Va66qwzLQpCNKmya8GwepU: 15 artboards (landing 1440 + 390, system, motion lab, Create, Look sheet, Your videos, player, voices, pricing, sign-in, Your videos dark, three phone screens), interactive where marked. Private to Tudor.
 - Main CEO routine: `trig_01HJ4PZK4zLRutuBCtMST2Wx` · Design CEO routine: `trig_01T9k9zrSgLbcPa6noXKAr8P` (https://claude.ai/code/routines/trig_01T9k9zrSgLbcPa6noXKAr8P)
 
 ---
 
 ## 7. Changelog
 
+- **2026-10-14** — New journey **B: Boxes** from Tudor's brief (match lil-boxes.com). Measured the site's CSS and GSAP config, mapped it onto every screen and published the B0 canvas (15 artboards, motion lab included). Waiting on Tudor's approval and the decisions in §8; no code yet. (Design CEO, interactive)
 - **2026-10-13** — V2 and V3 shipped (#76, #77) and the S3 shell is on `main` (#78). V4 (Create a voice + My voices) is in review. (Design CEO, interactive)
 - **2026-10-13** — S3 shell re-landed: #69 had merged into its old base branch (`ceo-design/s2-home`) instead of `main`, so its commit was reapplied onto `main` in a new PR. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the V0 Voice Studio canvas and the four recommendations. V2 (Voice pill + sheet on Create) and V3 (Edit voiceover + v2 badges) are in review. (Design CEO, interactive)
@@ -266,6 +294,13 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **B Boxes, open** (2026-10-14). My recommendations are in brackets:
+  1. Boxes is loud by design, which reverses the charter's "calm studio, the UI stays quiet so the videos carry the colour". Replace that line with "playful boxes: bold colour blocks, big type, motion"? [yes, it is what was asked; the S layout rules keep each screen to one action, so it stays easy to use]
+  2. Display face: lil-boxes uses **Humane**, a paid Pangram Pangram font. Buy a web licence, or use **League Gothic** (free, OFL, drawn on the canvas)? [League Gothic now; swap to Humane later by changing one token if you want the exact look]
+  3. Light becomes the default and dark the partner (today it is dark-first Studio)? [yes, lil-boxes is light and its colour boxes need the light ground]
+  4. Smooth scroll (ScrollSmoother/Lenis) on the landing only, with the app screens scrolling natively? [yes, smooth scroll fights the video player and form inputs]
+  5. Keep the S copy ("Your videos", "Make video", "Today's idea") and add the handwritten notes only on the landing, Create, Your videos and pricing, at most one per screen? [yes]
 
 - **Voice Studio in the design scope** (2026-10-13, owner: "add to the plan as recommended") → voice becomes a 4th setting pill, so it fits the S journey (pills that remember the last choice) instead of adding a new section to Create. Editing happens after the video exists, inside the player, where the creator notices the problem. Product and pricing decisions are in TheMasterPlan §11.
 
