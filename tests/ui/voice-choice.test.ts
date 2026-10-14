@@ -3,6 +3,8 @@ import { defaultVoiceFor } from '@/config/voices';
 import {
   effectiveVoice,
   initialVoice,
+  isPickable,
+  nameOf,
   voiceName,
   voiceRequest,
 } from '@/components/voice/voice-choice';
@@ -54,6 +56,44 @@ describe('voiceRequest', () => {
     });
     expect(voiceRequest({ voiceId: null, speed: 'faster', delivery: 'natural' })).toEqual({
       speed: 'faster',
+    });
+  });
+});
+
+describe('saved voices (V4)', () => {
+  const mine = [
+    {
+      id: 'u_0f8e1c2a-1b2c-4d3e-8f90-123456789abc',
+      name: 'Late-night radio',
+      description: 'Low and smooth',
+    },
+  ];
+  const own = mine[0]!.id;
+  const gone = 'u_11111111-2222-4333-8444-555555555555';
+
+  it('accepts a saved voice only while the creator still has it', () => {
+    expect(isPickable(own, mine)).toBe(true);
+    expect(isPickable(gone, mine)).toBe(false);
+    expect(isPickable('george', [])).toBe(true);
+  });
+
+  it('starts from a saved voice, and follows the look again once it is deleted', () => {
+    expect(initialVoice({ voiceId: own, voiceSettings: null }, mine).voiceId).toBe(own);
+    expect(initialVoice({ voiceId: gone, voiceSettings: null }, mine).voiceId).toBeNull();
+  });
+
+  it('names saved and catalog voices', () => {
+    expect(nameOf(own, mine)).toBe('Late-night radio');
+    expect(nameOf('brian', mine)).toBe('Brian');
+    expect(nameOf(gone, mine)).toBe('Your voice');
+    expect(
+      voiceName({ voiceId: own, speed: 'normal', delivery: 'natural' }, 'fun-facts', mine),
+    ).toBe('Late-night radio');
+  });
+
+  it('sends a saved voice like any other pick', () => {
+    expect(voiceRequest({ voiceId: own, speed: 'normal', delivery: 'natural' })).toEqual({
+      voiceId: own,
     });
   });
 });

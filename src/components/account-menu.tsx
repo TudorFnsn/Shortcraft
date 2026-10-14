@@ -58,6 +58,13 @@ export function AccountMenu({ email }: { email: string | null }) {
           >
             Plans &amp; credits
           </Link>
+          <Link
+            href="/voices"
+            onClick={() => setOpen(false)}
+            className="hover:bg-raised rounded-lg px-2 py-2 text-[15px] font-medium"
+          >
+            My voices
+          </Link>
           <div className="flex flex-col gap-2 px-2">
             <span className="text-ink-muted text-sm">Theme</span>
             <ThemeToggle />

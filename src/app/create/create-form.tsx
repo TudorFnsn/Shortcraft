@@ -19,6 +19,7 @@ import {
   effectiveVoice,
   voiceName,
   voiceRequest,
+  type MyVoice,
   type VoicePick,
 } from '@/components/voice/voice-choice';
 import {
@@ -97,6 +98,7 @@ function AlertIcon() {
 export function CreateForm({
   initial,
   initialVoice,
+  myVoices,
   firstRun,
   lastThemeId,
   balance,
@@ -107,6 +109,8 @@ export function CreateForm({
   initial: Selection;
   /** The voice of the creator's last video (or the look's default). */
   initialVoice: VoicePick;
+  /** The creator's saved voices (Voice Studio V4). */
+  myVoices: MyVoice[];
   /** Brand-new account: the composer is prefilled so the first video is one tap away. */
   firstRun: boolean;
   /** Theme of the creator's latest video ("Last used" badge). */
@@ -405,7 +409,7 @@ export function CreateForm({
           </svg>
           <span>
             <span className="sr-only">Voice: </span>
-            {voiceName(voice, sel.themeId)}
+            {voiceName(voice, sel.themeId, myVoices)}
           </span>
           {chevron}
         </button>
@@ -688,10 +692,14 @@ export function CreateForm({
         <VoicePicker
           voiceId={effectiveVoice(voice, sel.themeId)}
           lookPick={defaultVoiceFor(sel.themeId)}
+          mine={myVoices}
+          createHref="/voices/new"
           speed={voice.speed}
           delivery={voice.delivery}
           playing={preview.playing}
-          onPlay={preview.toggle}
+          loading={preview.loading}
+          note={preview.note}
+          onPlay={(id) => void preview.toggleVoice(id, sel.themeId)}
           onVoice={(voiceId) => setVoice((v) => ({ ...v, voiceId }))}
           onSpeed={(speed) => setVoice((v) => ({ ...v, speed }))}
           onDelivery={(delivery) => setVoice((v) => ({ ...v, delivery }))}

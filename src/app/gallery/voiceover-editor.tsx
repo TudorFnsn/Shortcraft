@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { defaultVoiceFor, getVoice } from '@/config/voices';
+import { defaultVoiceFor } from '@/config/voices';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { VoicePicker } from '@/components/voice/voice-picker';
 import { useVoicePreview } from '@/components/voice/use-voice-preview';
-import { DELIVERY_LABEL, SPEED_LABEL, type VoicePick } from '@/components/voice/voice-choice';
+import {
+  DELIVERY_LABEL,
+  SPEED_LABEL,
+  nameOf,
+  type MyVoice,
+  type VoicePick,
+} from '@/components/voice/voice-choice';
 import type { LibraryCard } from './library';
 import {
   PREVIEW_MAX_CHARS,
@@ -52,11 +58,14 @@ type Load = { state: 'loading' } | { state: 'error' } | { state: 'ready'; scenes
 export function VoiceoverEditor({
   card,
   balance,
+  myVoices,
   onClose,
   onStarted,
 }: {
   card: LibraryCard;
   balance: number;
+  /** The creator's saved voices (Voice Studio V4). */
+  myVoices: MyVoice[];
   onClose: () => void;
   /** The new version was accepted; the Library refreshes to show it. */
   onStarted: () => void;
@@ -64,8 +73,8 @@ export function VoiceoverEditor({
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [texts, setTexts] = useState<Record<number, string>>({});
   const source = useMemo(
-    () => sourcePick(card.themeId, card.voiceId, card.voiceSettings),
-    [card.themeId, card.voiceId, card.voiceSettings],
+    () => sourcePick(card.themeId, card.voiceId, card.voiceSettings, myVoices),
+    [card.themeId, card.voiceId, card.voiceSettings, myVoices],
   );
   const [pick, setPick] = useState<VoicePick>(source);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -209,7 +218,8 @@ export function VoiceoverEditor({
           </svg>
           <span>
             <span className="sr-only">Voice: </span>
-            {getVoice(voiceId).name} · {SPEED_LABEL[pick.speed]} · {DELIVERY_LABEL[pick.delivery]}
+            {nameOf(voiceId, myVoices)} · {SPEED_LABEL[pick.speed]} ·{' '}
+            {DELIVERY_LABEL[pick.delivery]}
           </span>
           <svg
             width="14"
@@ -230,10 +240,14 @@ export function VoiceoverEditor({
             <VoicePicker
               voiceId={voiceId}
               lookPick={defaultVoiceFor(card.themeId)}
+              mine={myVoices}
+              createHref="/voices/new"
               speed={pick.speed}
               delivery={pick.delivery}
               playing={preview.playing}
-              onPlay={preview.toggle}
+              loading={preview.loading}
+              note={preview.note}
+              onPlay={(id) => void preview.toggleVoice(id, card.themeId)}
               onVoice={(id) => setPick((p) => ({ ...p, voiceId: id }))}
               onSpeed={(speed) => setPick((p) => ({ ...p, speed }))}
               onDelivery={(delivery) => setPick((p) => ({ ...p, delivery }))}

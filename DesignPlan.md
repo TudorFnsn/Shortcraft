@@ -189,7 +189,7 @@ Three new surfaces, drawn in the Studio look. They follow the S rules: one viole
     - It needs a read-only helper that loads a job's scene narration and thumbnails.
     - Rows are built from scenes. Word limits come from the same +30% rule the API enforces, so the UI never offers what the server refuses.
     - Make new version closes the sheet. The new job appears in Your videos as its own card with a "v2" badge and the usual progress, and the original stays.
-  - [ ] **V4 Create a voice + My voices** (needs Voice Design, `user_voices` and the credit holds from the CEO track):
+  - [~] **V4 Create a voice + My voices** (in review on `ceo-design/v4-my-voices`, built on the CEO track's `/api/voices*` contract). Two choices made while building: the ▶ on a saved voice speaks a short fixed line through the free, cached preview API, and after saving, "Make a video with it" opens Create with the new voice already picked (`/create?voice=<id>`):
     - The routes are `/voices` (My voices) and `/voices/new` (describe, then samples).
     - They are reached from the Voice sheet tile and a "My voices" item in the avatar menu. No new header link.
     - Deleting a voice asks for confirmation ("Videos you already made keep their voice").
@@ -234,6 +234,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
+- **2026-10-13** — V2 and V3 shipped (#76, #77) and the S3 shell is on `main` (#78). V4 (Create a voice + My voices) is in review. (Design CEO, interactive)
 - **2026-10-13** — S3 shell re-landed: #69 had merged into its old base branch (`ceo-design/s2-home`) instead of `main`, so its commit was reapplied onto `main` in a new PR. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the V0 Voice Studio canvas and the four recommendations. V2 (Voice pill + sheet on Create) and V3 (Edit voiceover + v2 badges) are in review. (Design CEO, interactive)
 - **2026-10-13** — V0 Voice Studio canvas published (10 artboards, Studio look) with a design-side implementation plan for V2–V4 and four open questions. Waiting on Tudor. (Design CEO, interactive)
