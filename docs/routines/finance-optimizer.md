@@ -39,7 +39,7 @@ gate (src/features/billing/margin.ts). Be frugal: your own tokens count as a cos
 STEP 1: BASELINE (you, no sub-agents). Pull: MRR/active subs/churn (Stripe analytics),
 last 30d API cost per finished video and per tier (Supabase render_jobs.api_cost_usd),
 credits granted vs burned, Vercel billing charges, margin-report output. Compare with the
-previous report in docs/routines/reports/ and compute deltas. If a source fails, say
+previous report in docs/reports/ and compute deltas. If a source fails, say
 which and continue with the rest. If everything fails, notify the owner that the routine
 could not run.
 
