@@ -4,6 +4,8 @@
  * "Continue with Google", drawn to Google's sign-in branding guidelines:
  * the standard four-colour G, Google's neutral light/dark button colours and
  * the approved label. Kept in its own file so the brand rules stay in one place.
+ * It sits on the sign-in dark box, so it always uses Google's dark outline
+ * style, and presses in like every Boxes button (DesignPlan §4 B.2).
  */
 export function GoogleButton({
   onClick,
@@ -20,7 +22,7 @@ export function GoogleButton({
       onClick={onClick}
       disabled={loading || disabled}
       aria-busy={loading}
-      className="flex min-h-12 w-full items-center justify-center gap-3 rounded-full border border-[#747775] bg-white px-5 text-[16px] font-medium text-[#1f1f1f] transition-colors hover:bg-[#f2f2f2] disabled:opacity-60 dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3] dark:hover:bg-[#1f1f20]"
+      className="flex min-h-12 w-full items-center justify-center gap-3 rounded-[8px] border border-[#8e918f] bg-[#131314] px-5 text-[16px] font-medium text-[#e3e3e3] transition hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-[#1f1f20] disabled:opacity-60"
     >
       <svg aria-hidden="true" width="20" height="20" viewBox="0 0 48 48">
         <path

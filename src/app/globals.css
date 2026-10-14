@@ -135,6 +135,20 @@
   --shadow-hero: 40px 40px 80px rgb(0 0 0 / 0.5);
   --shadow-crisp: 6px 6px 0 #000;
 
+  /* Sheet sweep on page load (B.1 motion #4) for boxes that are there from the
+     first paint (sign-in panel): CSS, so it needs no JavaScript and never flashes. */
+  --animate-sweep-in: sweep-in 1s cubic-bezier(0.87, 0, 0.13, 1) both;
+  @keyframes sweep-in {
+    from {
+      transform: translateX(-110%) scale(0.92) rotate(4deg);
+      border-radius: 30px;
+    }
+    to {
+      transform: none;
+      border-radius: 8px;
+    }
+  }
+
   /* Marquee (B.1 motion #9): endless vertical list, linear 18s. */
   --animate-marquee: marquee 18s linear infinite;
   @keyframes marquee {
@@ -249,6 +263,7 @@ body {
   --raised: #2a2a2a;
   --surface: #2a2a2a;
   --line: rgb(240 226 221 / 0.25);
+  --press-line: #f0e2dd;
   color: var(--ink);
 }
 

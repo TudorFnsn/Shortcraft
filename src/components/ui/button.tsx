@@ -17,7 +17,7 @@ const base =
   'inline-flex items-center justify-center gap-2 rounded-button transition disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
 
 const variants: Record<Variant, string> = {
-  primary: 'press bg-blush text-on-blush [--press-line:#212121]',
+  primary: 'press bg-blush text-on-blush',
   ink: 'press bg-[#212121] text-blush [--press-line:#000]',
   ember:
     'press text-white [background-color:#f0354d] [background-image:var(--grad-ember)] [--press-line:var(--shadow-red)]',
