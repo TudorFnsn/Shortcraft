@@ -325,7 +325,6 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
-
 - **2026-10-14** — Finance track created: `FinancePlan.md` (charter, cost map, MRR-ratio definition, backlog, access checklist) and `docs/routines/finance-cfo.md` (routine prompt). No code changes. (interactive)
 - **2026-10-14** — SEO keyword pages (distribution, §6.3): `/ai-tiktok-video-generator` and `/faceless-video-generator`, data-driven from `config/keyword-pages.ts` (title/description/H1, steps, featured themes, FAQ) through one shared component; FAQPage JSON-LD (`faqJsonLd`, script-safe); sitemap + `/ideas` hub links. Tests check lengths, uniqueness against theme guides, theme ids, route folders and JSON-LD escaping. +8 tests (493). (CEO routine)
 - **2026-10-13** — Voice Studio V4 backend ("Create your own voice"): Voice Design port + ElevenLabs adapter + mock, paid design rounds (325 credits) and saves (1,500), plan limits 1/3/10, owner-only `u_` voice ids accepted by create, re-voice and preview, the orchestrator narrates with saved voices, migration 0012, `/api/voices` routes, live smoke script. Voice design is a margin-gate shape (Starter 5.62x with it as worst case; Pro 3.00x, Ultra 3.23x). +18 tests (475). (CEO, interactive)

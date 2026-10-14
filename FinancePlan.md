@@ -11,14 +11,14 @@
 
 ## 1. Charter (set up 2026-10-14, change only with Tudor)
 
-| Question  | Answer                                                                                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Mission   | Maximise **cash return**: more MRR, a higher gross margin per video, a lower cost of running the app. Every other payment is a candidate for cutting.                    |
-| Always    | Check the **MRR ratio** first, every run (§3), before choosing work.                                                                                                     |
+| Question  | Answer                                                                                                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mission   | Maximise **cash return**: more MRR, a higher gross margin per video, a lower cost of running the app. Every other payment is a candidate for cutting.                      |
+| Always    | Check the **MRR ratio** first, every run (§3), before choosing work.                                                                                                       |
 | Autonomy  | **Analyse freely, change through PRs.** Branches `cfo/<slug>`; never merge; never touch live secrets, live Stripe, or paid vendor accounts. Price changes need Tudor's OK. |
-| Cadence   | Daily cloud routine **"Shortcraft Finance CFO"**, 07:30 UTC (after the main CEO at 06:00). Weekly deep run on Mondays: vendor and price research.                         |
-| Structure | A **DM master agent** reads the numbers, picks the highest-cash item, and splits it across specialist sub-agents (§5). Same heartbeat as the other routines.              |
-| Priority  | Cash first: what saves or earns the most euros per month this week goes first. Ties go to the cheaper change.                                                            |
+| Cadence   | Daily cloud routine **"Shortcraft Finance CFO"**, 07:30 UTC (after the main CEO at 06:00). Weekly deep run on Mondays: vendor and price research.                          |
+| Structure | A **DM master agent** reads the numbers, picks the highest-cash item, and splits it across specialist sub-agents (§5). Same heartbeat as the other routines.               |
+| Priority  | Cash first: what saves or earns the most euros per month this week goes first. Ties go to the cheaper change.                                                              |
 
 ---
 
@@ -26,17 +26,17 @@
 
 Fill the **Actual** column from invoices and dashboards the first time each is reachable. Until then the number is `?` and filling it is a roadmap item (§6, F0).
 
-| Line                        | Variable or fixed | Where the cost comes from in code                                   | Actual €/month | How the routine reads it                         |
-| --------------------------- | ----------------- | ------------------------------------------------------------------- | -------------- | ------------------------------------------------ |
-| fal.ai images and AI video  | Variable          | `providers/live/fal-image.ts`, `fal-video.ts`, `costUsdPerUnit`      | ?              | fal usage page (needs owner export or API key)   |
-| Anthropic scripts + moderation | Variable       | `providers/live/anthropic-script.ts` (`costUsdFor`: tokens × price)  | ?              | Anthropic Console usage; `render_jobs.api_cost_usd` |
-| ElevenLabs voice + voices   | Variable + plan   | `providers/live/elevenlabs-*`; one custom-voice slot per saved voice | ?              | ElevenLabs usage; plan slot count                |
-| Supabase (DB, storage, egress) | Fixed + usage  | `media` bucket holds every MP4 and image                             | ?              | Supabase connector (storage size, egress)        |
-| Vercel (compute, bandwidth, cron) | Fixed + usage | ffmpeg render, `/api/cron/advance-jobs`, previews on every PR     | ?              | Vercel connector `list_billing_charges`          |
-| Stripe fees                 | % of revenue      | `REVENUE_ASSUMPTIONS` in `features/billing/margin.ts`                | ?              | Stripe connector (balance transactions, fees)    |
-| Resend (lifecycle email)    | Fixed             | `features/email`                                                     | ?              | Owner                                            |
-| Sentry                      | Fixed             | `@sentry/nextjs`                                                     | ?              | Owner                                            |
-| Domain, misc. SaaS          | Fixed             |                                                                      | ?              | Owner                                            |
+| Line                              | Variable or fixed | Where the cost comes from in code                                    | Actual €/month | How the routine reads it                            |
+| --------------------------------- | ----------------- | -------------------------------------------------------------------- | -------------- | --------------------------------------------------- |
+| fal.ai images and AI video        | Variable          | `providers/live/fal-image.ts`, `fal-video.ts`, `costUsdPerUnit`      | ?              | fal usage page (needs owner export or API key)      |
+| Anthropic scripts + moderation    | Variable          | `providers/live/anthropic-script.ts` (`costUsdFor`: tokens × price)  | ?              | Anthropic Console usage; `render_jobs.api_cost_usd` |
+| ElevenLabs voice + voices         | Variable + plan   | `providers/live/elevenlabs-*`; one custom-voice slot per saved voice | ?              | ElevenLabs usage; plan slot count                   |
+| Supabase (DB, storage, egress)    | Fixed + usage     | `media` bucket holds every MP4 and image                             | ?              | Supabase connector (storage size, egress)           |
+| Vercel (compute, bandwidth, cron) | Fixed + usage     | ffmpeg render, `/api/cron/advance-jobs`, previews on every PR        | ?              | Vercel connector `list_billing_charges`             |
+| Stripe fees                       | % of revenue      | `REVENUE_ASSUMPTIONS` in `features/billing/margin.ts`                | ?              | Stripe connector (balance transactions, fees)       |
+| Resend (lifecycle email)          | Fixed             | `features/email`                                                     | ?              | Owner                                               |
+| Sentry                            | Fixed             | `@sentry/nextjs`                                                     | ?              | Owner                                               |
+| Domain, misc. SaaS                | Fixed             |                                                                      | ?              | Owner                                               |
 
 **Token and unit tracking.** The app records `api_cost_usd` per render job. Anthropic usage is converted to dollars in `costUsdFor`, but raw token counts are not stored. Roadmap F1 adds them, so tokens per video can be compared against dollars per video and dollars per credit sold.
 
@@ -46,17 +46,17 @@ Fill the **Actual** column from invoices and dashboards the first time each is r
 
 Source for each: `npx tsx scripts/metrics-report.mts` (read-only), `npx tsx scripts/margin-report.mts`, and the Stripe and Supabase connectors. If a source is unreachable, say so in the digest and use the last value in §8.
 
-| Metric                                  | Definition                                                                                                                          | Healthy                    |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| **MRR**                                 | Sum of live subscriptions at monthly price (yearly ÷ 12), net of nothing.                                                           | Up week on week            |
-| **MRR ratio** (the one we steer by)     | `MRR ÷ monthly run cost`, where run cost = fixed lines + variable API spend + Stripe fees over the same 30 days.                    | **≥ 3.0**, trend up        |
-| Gross margin per video                  | (credits burned × net revenue per credit − `api_cost_usd`) ÷ revenue.                                                              | ≥ 66% (the 3x gate)        |
-| Cost per video, by tier                 | Mean and p95 `api_cost_usd` for standard and premium.                                                                               | Falling                    |
-| Trial burn per signup                   | Cost of the free trial credits (`margin-report` prints it).                                                                         | Under 20% of first-month price |
-| Free-to-paid conversion                 | Paying users ÷ signups, 30-day cohort.                                                                                              | Up                         |
-| Paid churn and failed-payment recovery  | Cancelled ÷ live; recovered ÷ failed invoices.                                                                                      | Churn down, recovery up    |
-| Unused-credit breakage                  | Credits granted but never burned (free margin) vs. credits near expiry (churn risk).                                                | Tracked                    |
-| Fixed-cost share                        | Fixed lines ÷ MRR.                                                                                                                  | Falling                    |
+| Metric                                 | Definition                                                                                                       | Healthy                        |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **MRR**                                | Sum of live subscriptions at monthly price (yearly ÷ 12), net of nothing.                                        | Up week on week                |
+| **MRR ratio** (the one we steer by)    | `MRR ÷ monthly run cost`, where run cost = fixed lines + variable API spend + Stripe fees over the same 30 days. | **≥ 3.0**, trend up            |
+| Gross margin per video                 | (credits burned × net revenue per credit − `api_cost_usd`) ÷ revenue.                                            | ≥ 66% (the 3x gate)            |
+| Cost per video, by tier                | Mean and p95 `api_cost_usd` for standard and premium.                                                            | Falling                        |
+| Trial burn per signup                  | Cost of the free trial credits (`margin-report` prints it).                                                      | Under 20% of first-month price |
+| Free-to-paid conversion                | Paying users ÷ signups, 30-day cohort.                                                                           | Up                             |
+| Paid churn and failed-payment recovery | Cancelled ÷ live; recovered ÷ failed invoices.                                                                   | Churn down, recovery up        |
+| Unused-credit breakage                 | Credits granted but never burned (free margin) vs. credits near expiry (churn risk).                             | Tracked                        |
+| Fixed-cost share                       | Fixed lines ÷ MRR.                                                                                               | Falling                        |
 
 If the **MRR ratio is below 1** (we lose money each month), the whole run goes to the biggest cost line or the biggest revenue leak, and the digest says so first.
 
@@ -105,14 +105,14 @@ New video, image and TTS models and price drops; batch and async inference disco
 
 **Structure: a DM master agent plus specialists.** The master agent (the routine itself) does not do deep work. It reads the plan and the numbers, picks the highest-cash item, then launches sub-agents in parallel with a self-contained brief each (goal, files, what is already ruled out, expected output), and merges the results.
 
-| Specialist                | Job                                                                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Revenue analyst**       | Stripe: MRR, new/expansion/churned MRR, failed payments, plan mix, fees. Supabase: signups, activation, conversion. Fills §3 and §8.              |
-| **Cost analyst**          | `render_jobs.api_cost_usd`, tokens, per-vendor spend, per-video cost by tier, trial burn, failed-job spend. Fills §2 and §3.                      |
-| **Vendor scout**          | Web research on cheaper or better providers; records price, source URL and date; runs a bake-off script only with an owner-provided key.          |
-| **Pricing strategist**    | Margin gate scenarios for any price, credit or plan change. Output is a proposal table, never a Stripe write.                                      |
-| **Implementer**           | Writes the PR for the chosen item (code, tests, config), in an isolated worktree, and runs the bar below.                                         |
-| **Reviewer**              | Reads the Implementer's diff cold (`code-review`), checks the margin gate and that no secret or live setting changed.                              |
+| Specialist             | Job                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Revenue analyst**    | Stripe: MRR, new/expansion/churned MRR, failed payments, plan mix, fees. Supabase: signups, activation, conversion. Fills §3 and §8.     |
+| **Cost analyst**       | `render_jobs.api_cost_usd`, tokens, per-vendor spend, per-video cost by tier, trial burn, failed-job spend. Fills §2 and §3.             |
+| **Vendor scout**       | Web research on cheaper or better providers; records price, source URL and date; runs a bake-off script only with an owner-provided key. |
+| **Pricing strategist** | Margin gate scenarios for any price, credit or plan change. Output is a proposal table, never a Stripe write.                            |
+| **Implementer**        | Writes the PR for the chosen item (code, tests, config), in an isolated worktree, and runs the bar below.                                |
+| **Reviewer**           | Reads the Implementer's diff cold (`code-review`), checks the margin gate and that no secret or live setting changed.                    |
 
 Do not launch more specialists than the item needs. A small item is one analyst plus one implementer.
 
@@ -153,7 +153,7 @@ Do not launch more specialists than the item needs. A small item is one analyst 
 | F0  | **Baseline.** Fill §2 actuals and the first §8 row from Stripe, Supabase, Vercel and the owner's invoices. Needs the access in §9.                                                                                                | [ ]    |
 | F1  | **Unit-economics report.** `scripts/unit-economics.mts`: per-tier cost per video, tokens per video (add token columns to the job's cost record, additive, proposal for the migration), revenue per credit, MRR ratio, trial burn. | [ ]    |
 | F2  | **Video vendor bake-off** (§4.1), starting with the cheapest fal.ai-hosted alternatives, then direct vendors and open weights.                                                                                                    | [ ]    |
-| F3  | **Storage lifecycle** (§4.2): expire intermediates and free-tier videos.                                                                                                                                                         | [ ]    |
+| F3  | **Storage lifecycle** (§4.2): expire intermediates and free-tier videos.                                                                                                                                                          | [ ]    |
 | F4  | **Hybrid tier** (§4.1): AI clips for hook scenes only.                                                                                                                                                                            | [ ]    |
 | F5  | **Yearly plan + dunning** (§4.3).                                                                                                                                                                                                 | [ ]    |
 
@@ -161,9 +161,9 @@ Do not launch more specialists than the item needs. A small item is one analyst 
 
 ## 7. Vendor price ledger (source and date for every figure)
 
-| Slot  | Vendor / model | Unit | Price | Source URL | Date | Measured on real call? |
-| ----- | -------------- | ---- | ----- | ---------- | ---- | ---------------------- |
-| Video | fal.ai Kling 2.5 Turbo Pro | per billed second | ~$0.07 | (from `models.ts`) | 2026-10-04 | No |
+| Slot  | Vendor / model             | Unit              | Price  | Source URL         | Date       | Measured on real call? |
+| ----- | -------------------------- | ----------------- | ------ | ------------------ | ---------- | ---------------------- |
+| Video | fal.ai Kling 2.5 Turbo Pro | per billed second | ~$0.07 | (from `models.ts`) | 2026-10-04 | No                     |
 
 ---
 
@@ -179,17 +179,17 @@ Do not launch more specialists than the item needs. A small item is one analyst 
 
 The routine reads what it can reach. Anything marked **needed** is missing today.
 
-| Access                                                     | Why                                                          | State                                       |
-| ---------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------- |
-| GitHub repo `TudorFnsn/Shortcraft` (read, branch push, PR)  | Code, PRs, plan files                                        | Granted to the session                      |
-| Stripe connector                                           | MRR, fees, failed payments, churn                            | Connected, **test mode only**. **Needed:** a restricted read-only **live** key or a live-mode connector for real MRR |
-| Supabase connector                                         | `render_jobs`, ledger, subscriptions, storage size           | Configured; the cloud session could not connect (proxy tunnel error) on 2026-10-14. Retry; fall back to a read-only DB role exposed as a secret |
-| Vercel connector                                           | Billing charges, usage, runtime logs                         | Connected                                   |
-| fal.ai usage                                               | Real spend per model                                         | **Needed:** a read-only/usage-scoped key, or a monthly CSV export dropped into `docs/finance/` |
-| Anthropic Console usage                                    | Token counts and spend for scripts                           | **Needed:** an Admin/usage API key (read-only), or monthly export |
-| ElevenLabs usage and plan                                  | Characters used, slots used                                  | **Needed:** a read-only key, or export       |
-| Resend, Sentry, domain, other invoices                     | Fixed costs                                                  | **Needed:** list the monthly amounts in §2   |
-| Web search and fetch                                       | Vendor prices and new models                                 | Available                                   |
+| Access                                                     | Why                                                | State                                                                                                                                           |
+| ---------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub repo `TudorFnsn/Shortcraft` (read, branch push, PR) | Code, PRs, plan files                              | Granted to the session                                                                                                                          |
+| Stripe connector                                           | MRR, fees, failed payments, churn                  | Connected, **test mode only**. **Needed:** a restricted read-only **live** key or a live-mode connector for real MRR                            |
+| Supabase connector                                         | `render_jobs`, ledger, subscriptions, storage size | Configured; the cloud session could not connect (proxy tunnel error) on 2026-10-14. Retry; fall back to a read-only DB role exposed as a secret |
+| Vercel connector                                           | Billing charges, usage, runtime logs               | Connected                                                                                                                                       |
+| fal.ai usage                                               | Real spend per model                               | **Needed:** a read-only/usage-scoped key, or a monthly CSV export dropped into `docs/finance/`                                                  |
+| Anthropic Console usage                                    | Token counts and spend for scripts                 | **Needed:** an Admin/usage API key (read-only), or monthly export                                                                               |
+| ElevenLabs usage and plan                                  | Characters used, slots used                        | **Needed:** a read-only key, or export                                                                                                          |
+| Resend, Sentry, domain, other invoices                     | Fixed costs                                        | **Needed:** list the monthly amounts in §2                                                                                                      |
+| Web search and fetch                                       | Vendor prices and new models                       | Available                                                                                                                                       |
 
 Suggested additions (§10) are not required to start.
 
