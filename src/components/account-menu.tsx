@@ -54,14 +54,14 @@ export function AccountMenu({ email }: { email: string | null }) {
           <Link
             href="/pricing"
             onClick={() => setOpen(false)}
-            className="hover:bg-raised rounded-lg px-2 py-2 text-[15px] font-medium"
+            className="hover:bg-raised flex min-h-11 items-center rounded-lg px-2 py-2 text-[15px] font-medium md:min-h-0"
           >
             Plans &amp; credits
           </Link>
           <Link
             href="/voices"
             onClick={() => setOpen(false)}
-            className="hover:bg-raised rounded-lg px-2 py-2 text-[15px] font-medium"
+            className="hover:bg-raised flex min-h-11 items-center rounded-lg px-2 py-2 text-[15px] font-medium md:min-h-0"
           >
             My voices
           </Link>

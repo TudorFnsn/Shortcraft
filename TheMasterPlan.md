@@ -151,8 +151,8 @@ Owned by the **Design CEO** routine; full plan, charter and screen status in **`
 - [x] D0: direction (Paper & Ember) + design system approved 2026-10-10; foundations code shipped (PR #34)
 - [x] D1 Create redesign + one-tap first video + Library "Today's ideas" (PR #37) · [x] D2 Library redesign (PR #39) · [x] Landing redesign (PR #43) · [x] D3 Mobile pass (PR #44) · [x] D4 A11y/QA: desktop (#42) + phones/landing (#45); screen-reader run by a person still open
 - [x] D2.1 Library card for moderation-blocked videos (the "friendly Library message" from Moderation above): shipped in PR #51 (2026-10-12)
-- [~] V Voice Studio screens (Voice sheet on Create, voiceover editor, Create a voice / My voices): canvas approved 2026-10-13 (https://claude.ai/artifact/RGGjuaD9kq5wxaQKPsg4C1); design-side plan and open questions in DesignPlan §4 V. V2 (Create pill) can ship as soon as it is approved; V3 and V4 follow their backend steps
-- [~] S Calm & Clear (owner brief 2026-10-13: more intuitive, less crowded, easier on the eye, a straightforward idea → make → watch → post journey; plus a more natural palette). Look B "Studio" (dark, violet) approved 2026-10-13. In review: tokens #66, Create #67, Home #68, shell #69; then S4 check (DesignPlan §4 S).
+- [x] V Voice Studio screens (Voice sheet on Create, voiceover editor, Create a voice / My voices): canvas approved 2026-10-13; shipped in #76 (V2), #77 (V3) and #80 (V4)
+- [~] S Calm & Clear (owner brief 2026-10-13: a calmer idea → make → watch → post journey). Look B "Studio" approved 2026-10-13; tokens, Create, Home and shell shipped (#66, #67, #68, #78). S4 check in review on `ceo-design/s4-check` (axe clean on 56 scans, walkthrough in `docs/design/s4-check.md`); two open questions for Tudor in DesignPlan §8
 - [x] Follow-ups (owner-approved 2026-10-13), all shipped: real landing videos (#55), Posted check-off + streak (#56), queue tomorrow's video (#57), pricing page (#58), login/sign-up screens (#59)
 
 ### NEXT — Voice Studio: pick, tune, edit and own the voiceover (owner-requested 2026-10-13)

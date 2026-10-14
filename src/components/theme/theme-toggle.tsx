@@ -91,7 +91,7 @@ export function ThemeToggle() {
             aria-checked={on}
             tabIndex={on ? 0 : -1}
             onClick={() => pick(o.id)}
-            className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[9px] px-2 text-sm transition-colors ${
+            className={`flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[9px] px-2 text-sm transition-colors md:h-9 ${
               on ? 'bg-surface font-semibold shadow-sm' : 'text-ink-muted hover:text-ink'
             }`}
           >

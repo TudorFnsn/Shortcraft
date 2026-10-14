@@ -33,7 +33,8 @@ export default async function LibraryPage() {
   const empty = jobs.length === 0;
 
   const ideas = dailyIdeas(dayKey(now), jobs[0]?.themeId ?? null);
-  const hero = <TodayHero ideas={ideas} />;
+  // Keyed: it crosses into the client grid next to other children (React key warning).
+  const hero = <TodayHero key="today" ideas={ideas} />;
 
   return (
     <main className="mx-auto flex max-w-[1280px] flex-col gap-12 px-4 pt-6 pb-28 sm:px-8 md:pb-12 lg:pt-10 xl:px-12">
