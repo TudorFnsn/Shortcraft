@@ -380,7 +380,7 @@ export function VoiceoverEditor({
         {st.credits > balance && changes > 0 ? (
           <Link
             href="/pricing"
-            className="bg-ember text-on-ember inline-flex min-h-[54px] items-center justify-center rounded-full px-8 text-[17px] font-semibold"
+            className="bg-ink text-paper inline-flex min-h-[54px] items-center justify-center rounded-full px-8 text-[17px] font-semibold"
           >
             Get more credits
           </Link>

@@ -349,7 +349,7 @@ export function CreateVoiceView({
                   aria-label={`${playing ? 'Stop' : 'Play'} sample ${i + 1}`}
                   aria-pressed={playing}
                   className={`flex size-[52px] shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playing ? 'bg-ember text-on-ember' : 'bg-raised text-ink hover:bg-line'
+                    playing ? 'bg-ink text-paper' : 'bg-raised text-ink hover:bg-line'
                   }`}
                 >
                   <PlayIcon playing={playing} />

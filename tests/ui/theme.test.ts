@@ -40,35 +40,39 @@ const throwingStorage = {
 };
 
 describe('theme choice', () => {
-  it('only accepts light and dark; anything else means system', () => {
+  it('accepts dark and system; anything else means the light default', () => {
     expect(parseThemeChoice('light')).toBe('light');
     expect(parseThemeChoice('dark')).toBe('dark');
     expect(parseThemeChoice('system')).toBe('system');
-    expect(parseThemeChoice(null)).toBe('system');
-    expect(parseThemeChoice('"><script>')).toBe('system');
+    expect(parseThemeChoice(null)).toBe('light');
+    expect(parseThemeChoice('"><script>')).toBe('light');
   });
 
-  it('pins data-theme for light/dark and clears it for system', () => {
+  it('pins data-theme for dark/system and clears it for light', () => {
     const root = fakeRoot();
     applyThemeAttribute('dark', root);
     expect(root.attrs.get('data-theme')).toBe('dark');
     applyThemeAttribute('system', root);
+    expect(root.attrs.get('data-theme')).toBe('system');
+    applyThemeAttribute('light', root);
     expect(root.attrs.has('data-theme')).toBe(false);
   });
 
-  it('round-trips through storage, and system removes the key', () => {
+  it('round-trips through storage, and light removes the key', () => {
     const storage = memoryStorage();
-    saveThemeChoice('light', storage);
-    expect(storage.data.get(THEME_STORAGE_KEY)).toBe('light');
-    expect(readThemeChoice(storage)).toBe('light');
     saveThemeChoice('system', storage);
-    expect(storage.data.has(THEME_STORAGE_KEY)).toBe(false);
+    expect(storage.data.get(THEME_STORAGE_KEY)).toBe('system');
     expect(readThemeChoice(storage)).toBe('system');
+    saveThemeChoice('dark', storage);
+    expect(readThemeChoice(storage)).toBe('dark');
+    saveThemeChoice('light', storage);
+    expect(storage.data.has(THEME_STORAGE_KEY)).toBe(false);
+    expect(readThemeChoice(storage)).toBe('light');
   });
 
   it('survives blocked storage (private mode)', () => {
     expect(() => saveThemeChoice('dark', throwingStorage)).not.toThrow();
-    expect(readThemeChoice(throwingStorage)).toBe('system');
+    expect(readThemeChoice(throwingStorage)).toBe('light');
   });
 
   it('init script applies a stored choice before paint and ignores junk', () => {
@@ -81,7 +85,9 @@ describe('theme choice', () => {
       return root.attrs.get('data-theme');
     };
     expect(run('dark')).toBe('dark');
-    expect(run('light')).toBe('light');
+    expect(run('system')).toBe('system');
+    // Light is the default: nothing to set (an old stored "light" too).
+    expect(run('light')).toBeUndefined();
     expect(run(null)).toBeUndefined();
     expect(run('purple')).toBeUndefined();
   });

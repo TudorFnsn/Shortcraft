@@ -1,64 +1,98 @@
 @import 'tailwindcss';
 
-/* `dark:` follows the app's theme (dark unless the user picked Light), not the OS. */
-@custom-variant dark (&:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *));
+/*
+ * `dark:` follows the app's theme: Light is the default, Dark is pinned with
+ * data-theme="dark", and "System" (data-theme="system") follows the OS.
+ */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme='system'], [data-theme='system'] *) {
+      @slot;
+    }
+  }
+}
 
 /*
- * Studio — Shortcraft's design tokens (DesignPlan.md §4 S, Look B, owner-chosen
- * 2026-10-13): charcoal ground, off-white ink, one soft-violet accent. Dark is
- * the default for everyone; "Light" is an opt-in partner (data-theme on <html>,
- * set before paint by the script in layout.tsx). Token names are kept from
- * Paper & Ember (paper, surface, ember…) so every screen adopts the look at once;
- * `ember` is now the violet accent.
+ * Boxes — Shortcraft's design tokens (DesignPlan.md §4 B.1, owner-approved
+ * 2026-10-14, measured from lil-boxes.com): bold colour boxes on a light grey
+ * ground. Light is the default for everyone; Dark is the partner and System
+ * follows the OS (data-theme on <html>, set before paint by the script in
+ * layout.tsx). Token names are kept from earlier looks (paper, surface,
+ * raised, ember…) so every screen adopts the look at once.
  */
 :root {
-  --paper: #0e0f11;
-  --surface: #1a1c1f;
-  --raised: #24272b;
-  --line: #2c2f34;
-  --line-strong: #6e7178;
-  --ink: #f5f5f4;
-  --ink-muted: #9a9ca1;
-  --ember: #a78bfa;
-  --on-ember: #0e0f11;
-  --ember-soft: #2a2440;
-  --ember-ink: #c4b5fd;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --scrim: rgb(0 0 0 / 0.65);
-  --elev-sm: 0 1px 2px rgb(0 0 0 / 0.5);
-  --elev-selected: 0 0 0 4px var(--ember-soft);
-  --elev-sheet: 0 24px 64px rgb(0 0 0 / 0.6);
-  color-scheme: dark;
-}
-
-:root[data-theme='light'] {
-  --paper: #fafafa;
+  --paper: #f5f5f5;
   --surface: #ffffff;
-  --raised: #f0f0f2;
-  --line: #e4e4e7;
-  --line-strong: #8a8a93;
-  --ink: #0a0a0a;
-  --ink-muted: #5f5f68;
-  --ember: #6d4fe0;
+  --raised: #f0e2dd;
+  --blush: #f0e2dd;
+  --blush-2: #f0e4e5;
+  --on-blush: #212121;
+  --line: #e0e0e0;
+  --line-strong: #757575;
+  --ink: #212121;
+  --ink-muted: #616161;
+  --ember: #f0354d;
   --on-ember: #ffffff;
-  --ember-soft: #ede9fe;
-  --ember-ink: #5b3fd0;
+  --ember-soft: #fbe3e6;
+  --ember-ink: #c81e3a;
+  --red-deep: #a32435;
+  --shadow-red: #5f151f;
+  --orange: #f07142;
+  --sky: #35b5f0;
+  --navy: #042839;
+  --on-sky: #042839;
+  --yellow: #f0e835;
   --success: #166534;
   --warning: #854d0e;
-  --danger: #b91c1c;
-  --scrim: rgb(10 10 10 / 0.5);
-  --elev-sm: 0 1px 2px rgb(10 10 10 / 0.1);
-  --elev-sheet: 0 24px 64px rgb(10 10 10 / 0.16);
+  --danger: #c81e3a;
+  --scrim: rgb(33 33 33 / 0.35);
+  --elev-sm: 0 1px 2px rgb(0 0 0 / 0.1);
+  --elev-selected: 0 0 0 4px var(--ember-soft);
+  --elev-sheet: 0 24px 64px rgb(0 0 0 / 0.2);
+
+  --grad-ember: radial-gradient(at 10% 10%, #f07142, #f0354d);
+  --grad-blush: radial-gradient(at 10% 90%, #dbbdc0, #f0e2dd);
+  --grad-sky: radial-gradient(at 90% 10%, #70cbf5, #35b5f0);
+  --grad-hero: linear-gradient(135deg, #f0e2dd, #f0e4e5);
   color-scheme: light;
+
+  @variant dark {
+    --paper: #1a1a1a;
+    --surface: #212121;
+    --raised: #2a2a2a;
+    --blush-2: #2a2a2a;
+    --line: #333333;
+    --line-strong: #8a8a8a;
+    --ink: #f0e2dd;
+    --ink-muted: #bdbdbd;
+    --ember-soft: #3a1f25;
+    --ember-ink: #f095a1;
+    --red-deep: #f095a1;
+    --sky: #0b6fa3;
+    /* White, not blush: the deep sky's light corner needs it for 4.5:1. */
+    --on-sky: #ffffff;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --scrim: rgb(0 0 0 / 0.65);
+    --elev-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+    --elev-sheet: 0 24px 64px rgb(0 0 0 / 0.6);
+    --grad-sky: radial-gradient(at 90% 10%, #0b6fa3, #042839);
+    color-scheme: dark;
+  }
 }
 
-/* Tailwind utilities: bg-paper, text-ink, border-line, rounded-card, font-display, … */
+/* Tailwind utilities: bg-paper, text-ink, rounded-card, font-display, font-poster, … */
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-raised: var(--raised);
+  --color-blush: var(--blush);
+  --color-blush-2: var(--blush-2);
+  --color-on-blush: var(--on-blush);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
@@ -67,28 +101,44 @@
   --color-on-ember: var(--on-ember);
   --color-ember-soft: var(--ember-soft);
   --color-ember-ink: var(--ember-ink);
+  --color-red-deep: var(--red-deep);
+  --color-shadow-red: var(--shadow-red);
+  --color-orange: var(--orange);
+  --color-sky: var(--sky);
+  --color-navy: var(--navy);
+  --color-on-sky: var(--on-sky);
+  --color-yellow: var(--yellow);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-scrim: var(--scrim);
 
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  /* Body and eyebrows: Inter. Headings and inputs: Fraunces. Poster words:
+     League Gothic (stand-in for Humane, one swap here). Labels: Urbanist.
+     Handwritten notes: Shadows Into Light Two. */
+  --font-sans: var(--font-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --font-poster: var(--font-league-gothic), Impact, 'Arial Narrow', sans-serif;
+  --font-label: var(--font-urbanist), var(--font-inter), system-ui, sans-serif;
+  --font-note: var(--font-shadows), 'Comic Sans MS', cursive;
 
+  /* 8px on boxes, buttons, inputs and media; pills use rounded-full. */
   --radius-sm: 8px;
-  --radius-button: 14px;
-  --radius-card: 16px;
-  --radius-panel: 20px;
+  --radius-button: 8px;
+  --radius-card: 8px;
+  --radius-panel: 8px;
+  --radius-box: 8px;
 
   --shadow-sm: var(--elev-sm);
   --shadow-selected: var(--elev-selected);
   --shadow-sheet: var(--elev-sheet);
+  --shadow-hero: 40px 40px 80px rgb(0 0 0 / 0.5);
+  --shadow-crisp: 6px 6px 0 #000;
 }
 
-/* Studio headings: Geist bold with tight tracking (no second typeface). */
+/* Fraunces headings sit tight (B.1: −3 to −5px at title sizes). */
 .font-display {
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
 }
 
 body {
@@ -98,8 +148,97 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ember);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+/*
+ * Press-in (B.1 motion #6): no fill border, a 1px under-line plus a 0 1px 0
+ * shadow in the line colour; hover and keyboard focus press it in by 2px, the
+ * line fades and the fill lightens 10%. All .3s.
+ */
+@utility press {
+  border: 0;
+  border-bottom: 1px solid var(--press-line, currentColor);
+  box-shadow: 0 1px 0 0 var(--press-line, currentColor);
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s,
+    border-color 0.3s,
+    background-image 0.3s;
+  &:hover:not(:disabled, [aria-disabled='true']),
+  &:focus-visible {
+    transform: translate(2px, 2px);
+    box-shadow: -2px -2px 2px 1px rgb(0 0 0 / 0.1);
+    border-bottom-color: transparent;
+    background-image: linear-gradient(rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.1));
+  }
+}
+
+/* Under-line input (B.1 Shape): no box, a 1px line under Fraunces 300. */
+@utility field-line {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: 0 1px 0 0 currentColor;
+  font-family: var(--font-display);
+  font-weight: 300;
+  transition: box-shadow 0.3s;
+  &::placeholder {
+    color: currentColor;
+    opacity: 0.7;
+    font-weight: 200;
+  }
+  &:focus-visible {
+    box-shadow: 0 2px 0 0 currentColor;
+  }
+}
+
+/*
+ * Boxes (B.1): each tone re-scopes the text tokens so anything inside reads
+ * at AA on that fill, in both themes. Blush keeps its light fill in dark mode
+ * (B.2 "boxes keep their gradients except sky").
+ */
+@utility box-ember {
+  background-image: var(--grad-ember);
+  --ink: #ffffff;
+  --ink-muted: #ffffff;
+  --press-line: var(--shadow-red);
+  color: var(--ink);
+}
+@utility box-blush {
+  background-image: var(--grad-blush);
+  --ink: #212121;
+  --ink-muted: #4a4a4a;
+  --ember-ink: #a32435;
+  --raised: #ffffff;
+  --line: rgb(33 33 33 / 0.15);
+  --surface: #ffffff;
+  color: var(--ink);
+}
+@utility box-sky {
+  background-image: var(--grad-sky);
+  --ink: var(--on-sky);
+  --ink-muted: var(--on-sky);
+  --ember-ink: var(--on-sky);
+  color: var(--ink);
+}
+@utility box-hero {
+  background-image: var(--grad-hero);
+  --ink: #212121;
+  --ink-muted: #4a4a4a;
+  --ember-ink: #a32435;
+  color: var(--ink);
+}
+@utility box-dark {
+  background-color: #212121;
+  --ink: #f0e2dd;
+  --ink-muted: #bdbdbd;
+  --ember-ink: #f095a1;
+  --raised: #2a2a2a;
+  --surface: #2a2a2a;
+  --line: rgb(240 226 221 / 0.25);
+  color: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {

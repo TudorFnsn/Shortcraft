@@ -156,7 +156,7 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
                   aria-pressed={playing}
                   aria-busy={preview.loading === v.id}
                   className={`flex size-12 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playing ? 'bg-ember text-on-ember' : 'bg-raised text-ink hover:bg-line'
+                    playing ? 'bg-ink text-paper' : 'bg-raised text-ink hover:bg-line'
                   } ${preview.loading === v.id ? 'animate-pulse' : ''}`}
                 >
                   <PlayIcon playing={playing} />

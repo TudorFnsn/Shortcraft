@@ -121,7 +121,7 @@ export function PricingView() {
                 }`}
               >
                 {t.featured && (
-                  <span className="bg-ember text-on-ember absolute -top-3 left-6 rounded-full px-3 py-0.5 text-xs font-semibold">
+                  <span className="bg-ink text-paper absolute -top-3 left-6 rounded-full px-3 py-0.5 text-xs font-semibold">
                     Best for daily posting
                   </span>
                 )}

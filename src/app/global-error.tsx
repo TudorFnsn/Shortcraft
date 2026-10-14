@@ -34,7 +34,7 @@ export default function GlobalError({
           <button
             type="button"
             onClick={() => retry()}
-            className="bg-ember text-on-ember rounded-button mt-6 min-h-11 px-5 font-semibold"
+            className="bg-blush text-on-blush press rounded-button mt-6 min-h-11 px-5 font-semibold"
           >
             Try again
           </button>

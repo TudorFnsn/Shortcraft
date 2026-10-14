@@ -99,7 +99,7 @@ function VoiceTile({
         aria-pressed={playing}
         aria-busy={loading}
         className={`flex size-11 shrink-0 items-center justify-center rounded-full transition-colors ${
-          playing ? 'bg-ember text-on-ember' : 'bg-surface text-ink hover:bg-line'
+          playing ? 'bg-ink text-paper' : 'bg-surface text-ink hover:bg-line'
         } ${loading ? 'animate-pulse' : ''}`}
       >
         <PlayIcon playing={playing} />
