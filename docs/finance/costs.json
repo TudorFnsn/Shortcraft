@@ -1,0 +1,19 @@
+{
+  "_readme": "Owner-maintained fixed and semi-fixed monthly costs in USD. The CFO routine reads this file; null = unknown (the routine will ask for it). Update when a plan changes. Source of truth is the invoice, not the pricing page.",
+  "asOf": null,
+  "monthlyUsd": {
+    "vercel": null,
+    "supabase": null,
+    "elevenlabsSubscription": null,
+    "falPrepaidTopUps": null,
+    "anthropic": null,
+    "resend": null,
+    "sentry": null,
+    "domain": null,
+    "other": null
+  },
+  "invoicedProviderSpend": {
+    "_readme": "Invoiced totals per provider for a period, to calibrate src/config/models.ts (which uses list prices). Add one entry per check.",
+    "entries": []
+  }
+}
