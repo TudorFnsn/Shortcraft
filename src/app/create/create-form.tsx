@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
+import { useMemo, useState, type FormEvent, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { THEMES } from '@/config/themes';
@@ -8,8 +8,11 @@ import type { ModelTier } from '@/config/models';
 import { estimateJobCredits } from '@/features/render/pricing';
 import { lookFor } from '@/components/ideas';
 import { ThemeFrame } from '@/components/theme-frame';
+import { ColourIn } from '@/components/motion/colour-in';
+import { useTypedWords } from '@/components/motion/typed';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
+import { Note } from '@/components/ui/note';
 import { onRadioKeyDown } from '@/components/ui/radio-keys';
 import { Sheet } from '@/components/ui/sheet';
 import { defaultVoiceFor } from '@/config/voices';
@@ -49,15 +52,6 @@ type Failure = { kind: 'moderation' | 'other'; message: string } | null;
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-// ⌘ on Apple devices, Ctrl elsewhere. The server render says Ctrl.
-const noopSubscribe = () => () => {};
-const useModKey = () =>
-  useSyncExternalStore(
-    noopSubscribe,
-    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl'),
-    () => 'Ctrl',
-  );
-
 function LockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg
@@ -72,25 +66,6 @@ function LockIcon({ size = 14 }: { size?: number }) {
     >
       <rect x="3" y="7" width="10" height="7" rx="2" />
       <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      aria-hidden="true"
-      className="text-danger mt-0.5 shrink-0"
-    >
-      <circle cx="10" cy="10" r="8" />
-      <path d="M10 6v4.5M10 13.5v.01" />
     </svg>
   );
 }
@@ -122,15 +97,17 @@ export function CreateForm({
   freeTrial: boolean;
 }) {
   const router = useRouter();
-  const modKey = useModKey();
   const [sel, setSel] = useState<Selection>(initial);
   const [failure, setFailure] = useState<Failure>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sheet, setSheet] = useState<'look' | 'length' | 'quality' | 'voice' | null>(null);
   const [voice, setVoice] = useState<VoicePick>(initialVoice);
+  // The Look sheet previews the look under the pointer or focus before it is picked.
+  const [peek, setPeek] = useState<string | null>(null);
   const preview = useVoicePreview();
   const closeSheet = () => {
     preview.stop();
+    setPeek(null);
     setSheet(null);
   };
 
@@ -225,6 +202,8 @@ export function CreateForm({
   const otherError = failure?.kind === 'other' ? failure : null;
 
   const ideas = lookFor(sel.themeId).ideas;
+  // Typed placeholder (B.1 motion #3): the look's ideas, one after another.
+  const placeholder = useTypedWords(ideas, !sel.topic);
   function surprise() {
     const at = ideas.indexOf(sel.topic);
     update({ topic: ideas[(at + 1) % ideas.length] ?? sel.topic });
@@ -233,53 +212,56 @@ export function CreateForm({
 
   const costLine = locked
     ? `Not on your plan yet`
-    : state.affordable
-      ? `About ${fmt(state.estimate)} credits · you have ${fmt(balance)}`
-      : `About ${fmt(state.estimate)} credits · short by ${fmt(state.estimate - balance)}`;
+    : `About ${fmt(state.estimate)} credits · you have ${fmt(balance)}`;
 
-  const pill =
-    'bg-raised text-ink hover:bg-line inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[15px] font-medium transition-colors';
-  const chevron = (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M6 8l4 4 4-4" />
-    </svg>
-  );
+  // Setting pills (B.2): press-in pills on the ember box; one that differs from
+  // the look's default gets a blush fill. White text is 19px bold (large, AA).
+  const pill = (tinted: boolean) =>
+    `press inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[19px] whitespace-nowrap ${
+      tinted ? 'bg-blush text-on-blush [--press-line:#212121]' : 'bg-transparent text-white'
+    }`;
+  const lookDefaults = initial;
+  const shownTheme = THEMES.find((t) => t.id === (peek ?? sel.themeId)) ?? theme;
+  const voiceShown = voiceName(voice, sel.themeId, myVoices);
+  const voiceIsDefault = voice.voiceId === null || voice.voiceId === defaultVoiceFor(sel.themeId);
 
   return (
     <form
       onSubmit={onSubmit}
       onKeyDown={onFormKeyDown}
       aria-busy={submitting}
-      className="mx-auto flex max-w-[680px] flex-col gap-7 pt-2 pb-36 md:pt-10 md:pb-10"
+      aria-labelledby="create-h"
+      className="box-ember rounded-box animate-sweep-in relative flex min-h-[calc(100dvh-84px)] w-full justify-center overflow-hidden px-5 pt-8 pb-6 sm:min-h-[calc(100dvh-108px)] sm:px-6 sm:py-[72px]"
     >
-      <h1 className="font-display text-center text-[32px] leading-9 font-bold sm:text-[44px] sm:leading-[48px]">
-        What&apos;s your video about?
-      </h1>
+      <p
+        aria-hidden="true"
+        className="font-poster pointer-events-none absolute bottom-[8%] left-[5%] m-0 text-[22rem] leading-[.7] text-white/[.08] uppercase select-none max-md:hidden"
+      >
+        New
+      </p>
+      <div className="relative flex w-full max-w-[680px] flex-col gap-5 sm:gap-7">
+        <div className="flex flex-col items-start gap-3">
+          <Badge tone="ink" className="px-3 py-1 text-[13px] tracking-[3px] uppercase">
+            New video
+          </Badge>
+          <h1
+            id="create-h"
+            className="font-display m-0 text-[60px] leading-[.8] font-normal tracking-[-0.04em] sm:text-[104px]"
+          >
+            What&apos;s it about?
+          </h1>
+        </div>
 
-      {firstRun && (
-        <p className="bg-ember-soft text-ink rounded-card px-4 py-3 text-center text-sm">
-          <span className="font-semibold">Your first video is one tap away.</span> We picked an
-          idea. Make it, or write your own.
-        </p>
-      )}
+        {firstRun && (
+          <p className="bg-blush text-on-blush m-0 rounded-[8px] px-4 py-3 text-[15px]">
+            <span className="font-semibold">Your first video is one tap away.</span> We picked an
+            idea. Make it, or write your own.
+          </p>
+        )}
 
-      <div className={`flex flex-col gap-3 ${submitting ? 'opacity-60' : ''}`}>
-        <div
-          className={`bg-surface rounded-[20px] px-5 pt-5 pb-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--ember)] ${
-            moderation ? 'ring-danger ring-2' : ''
-          }`}
-        >
+        <div className={`flex flex-col gap-2 ${submitting ? 'opacity-60' : ''}`}>
           <label htmlFor="topic" className="sr-only">
-            Your idea
+            Describe an idea
           </label>
           <textarea
             id="topic"
@@ -287,313 +269,287 @@ export function CreateForm({
             required
             minLength={3}
             maxLength={300}
-            rows={3}
+            rows={2}
             value={sel.topic}
             onChange={(e) => {
               update({ topic: e.target.value });
               if (failure) setFailure(null);
             }}
-            placeholder={`e.g. ${ideas[0]?.toLowerCase() ?? ''}`}
+            placeholder={placeholder}
             aria-invalid={moderation ? true : undefined}
             aria-describedby={moderation ? 'topic-error' : undefined}
-            className="text-ink placeholder:text-ink-muted w-full resize-none bg-transparent text-[19px] leading-[28px] outline-none sm:text-[20px]"
+            className="field-line field-sizing-content min-h-14 w-full resize-none px-0.5 py-3 text-[28px] leading-[1.15] text-white sm:text-[40px]"
           />
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={surprise}
-              className="text-ember-ink inline-flex min-h-11 items-center gap-1.5 text-sm font-medium"
+          {moderation && (
+            <div
+              id="topic-error"
+              role="alert"
+              className="bg-blush flex flex-col gap-0.5 rounded-[8px] px-4 py-3 text-[#a32435]"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M4 7h9l-2.5-2.5M16 13H7l2.5 2.5" />
-              </svg>
-              Surprise me
-            </button>
-            <span className="text-ink-muted hidden text-[13px] sm:inline">
-              {modKey} Enter to make
-            </span>
-          </div>
-        </div>
-        {moderation && (
-          <div
-            id="topic-error"
-            role="alert"
-            className="bg-surface rounded-card flex items-start gap-2.5 px-4 py-3"
-          >
-            <AlertIcon />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-danger text-[15px] leading-5 font-semibold">
-                {moderation.message}
-              </span>
-              <span className="text-ink-muted text-sm">
-                Try a different angle on it. Nothing was charged.
-              </span>
+              <span className="text-[15px] leading-5 font-semibold">{moderation.message}</span>
+              <span className="text-[14px]">Try a different angle on it. Nothing was charged.</span>
             </div>
-          </div>
-        )}
-      </div>
-
-      <div
-        role="group"
-        aria-label="Video settings"
-        className="flex flex-wrap justify-center gap-2.5"
-      >
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          onClick={() => setSheet('look')}
-          className={`${pill} pl-1.5`}
-        >
-          <span className="block size-8 overflow-hidden rounded-full" aria-hidden="true">
-            <ThemeFrame themeId={sel.themeId} variant="card" caption={false} />
-          </span>
-          <span>
-            <span className="sr-only">Look: </span>
-            {theme.label}
-          </span>
-          {chevron}
-        </button>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          onClick={() => setSheet('length')}
-          className={pill}
-        >
-          <span>
-            <span className="sr-only">Length: </span>
-            {sel.durationSec} seconds
-          </span>
-          {state.durationLocked && <LockIcon />}
-          {chevron}
-        </button>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          onClick={() => setSheet('quality')}
-          className={pill}
-        >
-          <span>
-            <span className="sr-only">Quality: </span>
-            {TIER_COPY[sel.tier].title}
-          </span>
-          {state.tierLocked && <LockIcon />}
-          {chevron}
-        </button>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          onClick={() => setSheet('voice')}
-          className={pill}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <path d="M4 8v4M7.5 5.5v9M11 7v6M14.5 4v12M18 8.5v3" />
-          </svg>
-          <span>
-            <span className="sr-only">Voice: </span>
-            {voiceName(voice, sel.themeId, myVoices)}
-          </span>
-          {chevron}
-        </button>
-      </div>
-
-      <p role="status" className="sr-only">
-        {notice}
-      </p>
-
-      {locked && state.upgradePlan && (
-        <div className="bg-ember-soft rounded-card flex flex-col items-center gap-1.5 px-5 py-4 text-center">
-          <span className="text-ink text-[15px] leading-5 font-semibold">
-            {state.tierLocked
-              ? `Premium AI video comes with ${state.upgradePlan.name}`
-              : `${sel.durationSec}s videos come with ${state.upgradePlan.name}`}
-          </span>
-          <span className="text-ink text-sm">
-            {state.upgradePlan.name} is {formatEuros(state.upgradePlan.priceCents)} a month with{' '}
-            {fmt(state.upgradePlan.monthlyCredits)} credits.
-          </span>
+          )}
           <button
             type="button"
-            onClick={() =>
-              update(state.tierLocked ? { tier: 'standard' } : { durationSec: longestOnPlan })
-            }
-            className="text-ember-ink inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-2"
+            onClick={surprise}
+            className="inline-flex min-h-11 items-center self-start text-[19px] font-bold text-white underline underline-offset-4"
           >
-            {state.tierLocked ? 'Use Standard instead' : `Use ${longestOnPlan}s instead`}
+            Surprise me
           </button>
         </div>
-      )}
 
-      {state.primary.kind === 'top-up' && (
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="text-danger text-[15px] leading-5 font-semibold">
-            Not enough credits for {sel.durationSec}s.
-          </span>
-          {affordableLength ? (
-            <button
-              type="button"
-              onClick={() => update({ durationSec: affordableLength })}
-              className="text-ember-ink inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-2"
+        <div
+          role="group"
+          aria-label="Video settings"
+          className="-mr-5 flex gap-2.5 overflow-x-auto pr-5 pb-1 [--press-line:#f0e2dd] sm:mr-0 sm:flex-wrap sm:overflow-visible sm:pr-0"
+        >
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setSheet('look')}
+            className={pill(sel.themeId !== lookDefaults.themeId)}
+          >
+            <span className="font-normal">Look</span>
+            <strong className="font-bold">{theme.label}</strong>
+          </button>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setSheet('length')}
+            className={pill(sel.durationSec !== lookDefaults.durationSec)}
+          >
+            <span className="font-normal">Length</span>
+            <strong className="font-bold">{sel.durationSec}s</strong>
+            {state.durationLocked && <LockIcon size={16} />}
+            {state.durationLocked && <span className="sr-only">(not on your plan)</span>}
+          </button>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setSheet('quality')}
+            className={pill(sel.tier !== lookDefaults.tier)}
+          >
+            <span className="font-normal">Quality</span>
+            <strong className="font-bold">{TIER_COPY[sel.tier].title}</strong>
+            {state.tierLocked && <LockIcon size={16} />}
+            {state.tierLocked && <span className="sr-only">(not on your plan)</span>}
+          </button>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setSheet('voice')}
+            className={pill(!voiceIsDefault)}
+          >
+            <span className="font-normal">Voice</span>
+            <strong className="font-bold">{voiceShown}</strong>
+          </button>
+        </div>
+
+        <p role="status" className="sr-only">
+          {notice}
+        </p>
+
+        <div className="relative mt-auto flex flex-col gap-3 sm:mt-3">
+          {state.primary.kind === 'upgrade' ? (
+            <Link
+              href="/pricing"
+              className={buttonClasses({
+                size: 'xl',
+                className: 'w-full [--press-line:var(--shadow-red)]',
+              })}
             >
-              Switch to {affordableLength}s (about{' '}
-              {fmt(
-                estimateJobCredits({ targetDurationSec: affordableLength, modelTier: sel.tier }),
-              )}{' '}
-              credits)
-            </button>
+              See the {state.primary.planName} plan
+            </Link>
+          ) : state.primary.kind === 'top-up' ? (
+            <Link
+              href="/pricing"
+              className={buttonClasses({
+                size: 'xl',
+                className: 'w-full [--press-line:var(--shadow-red)]',
+              })}
+            >
+              Get credits
+            </Link>
           ) : (
-            <span className="text-ink-muted text-sm">Get more credits to make this video.</span>
+            <Button
+              type="submit"
+              size="xl"
+              aria-disabled={!canGenerate}
+              aria-keyshortcuts="Control+Enter Meta+Enter"
+              className="w-full [--press-line:var(--shadow-red)]"
+            >
+              {submitting ? (
+                <>
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                    className="animate-spin"
+                  >
+                    <path d="M10 2.5a7.5 7.5 0 1 1-7.5 7.5" />
+                  </svg>
+                  Starting…
+                </>
+              ) : otherError ? (
+                'Try again'
+              ) : (
+                'Make video'
+              )}
+            </Button>
           )}
-        </div>
-      )}
+          <Badge tone="ink" className="self-start px-3.5 py-2 text-[15px] font-normal tabular-nums">
+            {state.primary.kind === 'generate' && !state.hasTopic
+              ? 'Describe your idea to start'
+              : costLine}
+          </Badge>
 
-      {otherError && (
-        <div role="alert" className="bg-surface rounded-card flex items-start gap-2.5 px-4 py-3">
-          <AlertIcon />
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[15px] leading-5 font-semibold">
-              Couldn&apos;t start your video.
-            </span>
-            <span className="text-ink-muted text-sm">{otherError.message}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Phones: the action rides in a bar at the bottom of the screen. */}
-      <div className="bg-paper/95 fixed inset-x-0 bottom-0 z-30 flex flex-col items-center gap-1.5 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:static md:bg-transparent md:p-0 md:backdrop-blur-none">
-        {state.primary.kind === 'upgrade' ? (
-          <Link
-            href="/pricing"
-            className={buttonClasses({ size: 'lg', className: 'w-full rounded-full md:w-80' })}
-          >
-            See the {state.primary.planName} plan
-          </Link>
-        ) : state.primary.kind === 'top-up' ? (
-          <Link
-            href="/pricing"
-            className={buttonClasses({ size: 'lg', className: 'w-full rounded-full md:w-80' })}
-          >
-            Get more credits
-          </Link>
-        ) : (
-          <Button
-            type="submit"
-            size="lg"
-            aria-disabled={!canGenerate}
-            className={`w-full rounded-full md:w-80 ${
-              !state.primary.enabled ? '!bg-raised !text-ink-muted !opacity-100' : ''
-            }`}
-          >
-            {submitting ? (
-              <>
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                  className="animate-spin"
+          {locked && state.upgradePlan && (
+            <div className="bg-blush text-on-blush flex flex-col gap-1 rounded-[8px] px-4 py-3">
+              <span className="text-[15px] font-semibold">
+                {state.upgradePlan.name} unlocks{' '}
+                {state.tierLocked ? 'Premium AI video' : `${sel.durationSec}s`} ·{' '}
+                {formatEuros(state.upgradePlan.priceCents)}
+              </span>
+              <span className="flex flex-wrap gap-x-5">
+                <Link
+                  href="/pricing"
+                  className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[#a32435] underline underline-offset-2"
                 >
-                  <path d="M10 2.5a7.5 7.5 0 1 1-7.5 7.5" />
-                </svg>
-                Starting your video…
-              </>
-            ) : otherError ? (
-              'Try again'
-            ) : (
-              'Make video'
-            )}
-          </Button>
-        )}
-        <span className="text-ink-muted text-center text-[13px] tabular-nums sm:text-sm">
-          {state.primary.kind === 'generate' && !state.hasTopic
-            ? 'Describe your idea to start.'
-            : costLine}
-        </span>
+                  See the {state.upgradePlan.name} plan
+                </Link>
+                <button
+                  type="button"
+                  onClick={() =>
+                    update(state.tierLocked ? { tier: 'standard' } : { durationSec: longestOnPlan })
+                  }
+                  className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[#a32435] underline underline-offset-2"
+                >
+                  {state.tierLocked ? 'Use Standard instead' : `Use ${longestOnPlan}s instead`}
+                </button>
+              </span>
+            </div>
+          )}
+
+          {state.primary.kind === 'top-up' && affordableLength && (
+            <div className="bg-blush text-on-blush flex flex-wrap items-center gap-x-4 rounded-[8px] px-4 py-2">
+              <span className="text-[15px]">Not enough credits for {sel.durationSec}s.</span>
+              <button
+                type="button"
+                onClick={() => update({ durationSec: affordableLength })}
+                className="inline-flex min-h-11 items-center text-[15px] font-semibold text-[#a32435] underline underline-offset-2"
+              >
+                Switch to {affordableLength}s (about{' '}
+                {fmt(
+                  estimateJobCredits({ targetDurationSec: affordableLength, modelTier: sel.tier }),
+                )}{' '}
+                credits)
+              </button>
+            </div>
+          )}
+
+          {otherError && (
+            <div
+              role="alert"
+              className="bg-blush flex flex-col gap-0.5 rounded-[8px] px-4 py-3 text-[#a32435]"
+            >
+              <span className="text-[15px] leading-5 font-semibold">
+                Couldn&apos;t start your video.
+              </span>
+              <span className="text-[14px]">{otherError.message}</span>
+            </div>
+          )}
+
+          {freeTrial && (
+            <p className="text-blush m-0 self-start rounded-[16px] bg-[#212121] px-3.5 py-2 text-[13px] leading-5">
+              Trial videos carry a small &ldquo;Made with Shortcraft&rdquo; mark.{' '}
+              <Link href="/pricing" className="font-semibold whitespace-nowrap underline">
+                See plans
+              </Link>
+            </p>
+          )}
+
+          <Note
+            colour="cyan"
+            rotate={18}
+            className="absolute top-[-10px] right-[-220px] text-[40px] max-xl:hidden"
+          >
+            ready in
+            <br />
+            about 2 min!
+          </Note>
+        </div>
       </div>
 
-      {freeTrial && (
-        <p className="text-ink-muted text-center text-[13px] leading-[18px]">
-          Trial videos carry a small &ldquo;Made with Shortcraft&rdquo; mark.{' '}
-          <Link href="/pricing" className="text-ember-ink font-semibold underline">
-            See plans
-          </Link>
-        </p>
-      )}
-
-      <Sheet open={sheet === 'look'} onClose={() => setSheet(null)} title="Pick a look">
-        <div
-          role="radiogroup"
-          aria-label="Look"
-          onKeyDown={(e) =>
-            onRadioKeyDown(
-              e,
-              THEMES.map((t) => t.id),
-              sel.themeId,
-              (themeId) => update({ themeId }),
-            )
-          }
-          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-        >
-          {THEMES.map((t) => {
-            const checked = t.id === sel.themeId;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="radio"
-                aria-checked={checked}
-                tabIndex={checked ? 0 : -1}
-                onClick={() => {
-                  update({ themeId: t.id });
-                  setSheet(null);
-                }}
-                className="flex flex-col gap-2 text-left"
-              >
-                <span
-                  className={`relative block overflow-hidden rounded-[14px] ring-offset-2 ring-offset-[var(--surface)] ${
-                    checked ? 'ring-ember ring-[3px]' : ''
+      <Sheet
+        open={sheet === 'look'}
+        onClose={closeSheet}
+        title="Pick a look"
+        tone="sky"
+        size="wide"
+      >
+        <div className="flex flex-col gap-8 md:flex-row md:gap-[5%]">
+          <div
+            role="radiogroup"
+            aria-label="Look"
+            onKeyDown={(e) =>
+              onRadioKeyDown(
+                e,
+                THEMES.map((t) => t.id),
+                sel.themeId,
+                (themeId) => update({ themeId }),
+              )
+            }
+            onMouseLeave={() => setPeek(null)}
+            className="flex min-w-0 flex-col md:flex-[1_1_520px]"
+          >
+            {THEMES.map((t) => {
+              const checked = t.id === sel.themeId;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={checked}
+                  tabIndex={checked ? 0 : -1}
+                  onClick={() => update({ themeId: t.id })}
+                  onMouseEnter={() => setPeek(t.id)}
+                  onFocus={() => setPeek(t.id)}
+                  className={`font-display flex min-h-11 items-baseline gap-3 py-1 text-left text-[44px] leading-[.75] whitespace-nowrap transition-all duration-300 sm:text-[64px] lg:text-[76px] ${
+                    checked
+                      ? 'font-black tracking-[-0.05em] [text-shadow:1px_1px_0_rgb(255_255_255/.8)]'
+                      : 'font-extralight tracking-[-0.03em] hover:font-black'
                   }`}
                 >
-                  <ThemeFrame themeId={t.id} variant="card" />
+                  {t.label}
                   {t.id === lastThemeId && (
-                    <span className="absolute top-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
+                    <span className="font-sans text-[13px] font-semibold tracking-[1px] uppercase">
                       Last used
                     </span>
                   )}
-                </span>
-                <span className="flex flex-col gap-0.5 px-0.5">
-                  <span className="text-[15px] leading-5 font-semibold">{t.label}</span>
-                  <span className="text-ink-muted text-[13px] leading-[18px]">{t.blurb}</span>
-                </span>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-col items-center gap-4 md:flex-[0_1_340px]">
+            <ColourIn className="shadow-hero w-[200px] overflow-hidden rounded-[8px] sm:w-[260px]">
+              <ThemeFrame themeId={shownTheme.id} variant="phone" />
+            </ColourIn>
+            <p className="font-display m-0 text-[28px]">{shownTheme.label}</p>
+            <p className="m-0 text-center text-[17px]">{shownTheme.blurb}</p>
+            <Button size="lg" onClick={closeSheet} className="px-10">
+              Done
+            </Button>
+          </div>
         </div>
       </Sheet>
 
-      <Sheet open={sheet === 'length'} onClose={() => setSheet(null)} title="How long?">
+      <Sheet open={sheet === 'length'} onClose={closeSheet} title="How long?" tone="blush">
         <div
           role="radiogroup"
           aria-label="Length"
@@ -602,7 +558,7 @@ export function CreateForm({
               update({ durationSec: d }),
             )
           }
-          className="flex flex-col gap-2"
+          className="grid grid-cols-3 gap-3 sm:grid-cols-5"
         >
           {DURATIONS.map((d) => {
             const checked = d === sel.durationSec;
@@ -617,35 +573,41 @@ export function CreateForm({
                 aria-label={plan ? `${d} seconds, needs ${plan}` : `${d} seconds`}
                 onClick={() => {
                   update({ durationSec: d });
-                  setSheet(null);
+                  closeSheet();
                 }}
-                className={`flex min-h-14 items-center justify-between rounded-[16px] px-5 text-[17px] font-semibold transition-colors ${
-                  checked ? 'bg-ember-soft ring-ember ring-2' : 'bg-raised hover:bg-line'
+                className={`press flex flex-col items-center gap-1 rounded-[8px] px-2 pt-4 pb-3 [--press-line:#212121] ${
+                  checked ? 'text-blush bg-[#212121]' : 'bg-white/60'
                 }`}
               >
-                {d} seconds
-                <span className="text-ink-muted flex items-center gap-1.5 text-sm font-medium tabular-nums">
+                <span className="font-poster text-[64px] leading-[.8]">
+                  {d}
+                  <span className="text-[28px]">s</span>
+                </span>
+                <span className="flex items-center gap-1 text-[13px] font-semibold tabular-nums">
                   {plan ? (
                     <>
                       <LockIcon />
                       {plan}
                     </>
                   ) : (
-                    `about ${fmt(estimateJobCredits({ targetDurationSec: d, modelTier: sel.tier }))} credits`
+                    `~${fmt(estimateJobCredits({ targetDurationSec: d, modelTier: sel.tier }))}`
                   )}
                 </span>
               </button>
             );
           })}
         </div>
+        <p className="m-0 text-[15px]">
+          Numbers under each length are its credits at this quality.
+        </p>
       </Sheet>
 
-      <Sheet open={sheet === 'quality'} onClose={() => setSheet(null)} title="Quality">
+      <Sheet open={sheet === 'quality'} onClose={closeSheet} title="Quality" tone="blush">
         <div
           role="radiogroup"
           aria-label="Quality"
           onKeyDown={(e) => onRadioKeyDown(e, TIERS, sel.tier, (tier) => update({ tier }))}
-          className="grid gap-3 sm:grid-cols-2"
+          className="grid gap-5 p-1 sm:grid-cols-2"
         >
           {TIERS.map((tier) => {
             const checked = tier === sel.tier;
@@ -655,6 +617,7 @@ export function CreateForm({
               targetDurationSec: sel.durationSec,
               modelTier: tier,
             });
+            const premium = tier === 'premium';
             return (
               <button
                 key={tier}
@@ -664,31 +627,42 @@ export function CreateForm({
                 tabIndex={checked ? 0 : -1}
                 onClick={() => {
                   update({ tier });
-                  setSheet(null);
+                  closeSheet();
                 }}
-                className={`flex flex-col gap-1.5 rounded-[16px] p-5 text-left transition-colors ${
-                  checked ? 'bg-ember-soft ring-ember ring-2' : 'bg-raised hover:bg-line'
+                className={`${premium ? 'box-ember rotate-1' : '-rotate-1 bg-white text-[#212121]'} rounded-box flex flex-col gap-3 p-6 text-left transition-transform hover:translate-x-0.5 hover:translate-y-0.5 ${
+                  checked ? 'outline-[3px] outline-offset-4 outline-[#212121] outline-solid' : ''
                 }`}
               >
-                <span className="flex items-center gap-2 text-[17px] font-semibold">
-                  {copy.title}
+                <span className="flex items-center gap-3">
+                  <span className="font-display text-[40px] leading-none font-light">
+                    {copy.title}
+                  </span>
                   {tierLocked && (
-                    <Badge className="gap-1">
+                    <Badge tone="ink" className="gap-1 text-[13px]">
                       <LockIcon size={12} />
                       {tierLockPlan(tier)}
                     </Badge>
                   )}
                 </span>
-                <span className="text-ink-muted text-sm">{copy.desc}</span>
-                <span className="text-ink-muted text-[13px] tabular-nums">
-                  About {fmt(cost)} credits for {sel.durationSec}s
+                <span className="flex flex-col gap-1 rounded-[8px] bg-[#212121] px-3 py-2.5 text-[15px] text-[#f0e2dd]">
+                  {copy.desc}
+                  <span className="text-[#bdbdbd] tabular-nums">
+                    About {fmt(cost)} credits for {sel.durationSec}s
+                  </span>
                 </span>
               </button>
             );
           })}
         </div>
       </Sheet>
-      <Sheet open={sheet === 'voice'} onClose={closeSheet} title="Pick a voice">
+
+      <Sheet
+        open={sheet === 'voice'}
+        onClose={closeSheet}
+        title="Pick a voice"
+        tone="sky"
+        size="wide"
+      >
         <VoicePicker
           voiceId={effectiveVoice(voice, sel.themeId)}
           lookPick={defaultVoiceFor(sel.themeId)}
@@ -705,10 +679,10 @@ export function CreateForm({
           onDelivery={(delivery) => setVoice((v) => ({ ...v, delivery }))}
         />
         <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-ink-muted text-center text-sm sm:text-left">
+          <span className="text-center text-[15px] sm:text-left">
             Included in every video. No extra credits.
           </span>
-          <Button type="button" size="lg" onClick={closeSheet} className="rounded-full sm:px-8">
+          <Button size="lg" onClick={closeSheet} className="sm:px-10">
             Done
           </Button>
         </div>
