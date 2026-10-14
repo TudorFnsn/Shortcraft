@@ -318,11 +318,14 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Repo:** github.com/TudorFnsn/Shortcraft (branch-per-feature → fast-forward `main`).
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
+- **Finance CFO routine (to be created by the owner):** daily, PR-gated master agent that splits measurement, vendor scouting, implementation and review across subagents to improve the MRR ratio. Charter and backlog in `FinancePlan.md`; paste-ready prompt in `docs/routines/finance-cfo.md`; branches `ceo-finance/*`. Report: `npx tsx scripts/finance-report.mts`.
 - **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-14** — Finance track: `FinancePlan.md`, Finance CFO routine prompt (`docs/routines/finance-cfo.md`), `features/finance/unit-economics.ts` + `scripts/finance-report.mts` (MRR, cost per video, MRR ratio; read-only), `config/fixed-costs.ts` (owner fills real costs). Finding: tokens are not persisted, only `api_cost_usd`; usage ledger is backlog F1. +2 tests. (Finance CFO, interactive)
 
 - **2026-10-13** — Voice Studio V4 backend ("Create your own voice"): Voice Design port + ElevenLabs adapter + mock, paid design rounds (325 credits) and saves (1,500), plan limits 1/3/10, owner-only `u_` voice ids accepted by create, re-voice and preview, the orchestrator narrates with saved voices, migration 0012, `/api/voices` routes, live smoke script. Voice design is a margin-gate shape (Starter 5.62x with it as worst case; Pro 3.00x, Ultra 3.23x). +18 tests (475). (CEO, interactive)
 - **2026-10-13** — Synced with the Design CEO's V0 canvas plan: added what its V3 editor needs (`GET /api/jobs/:id/scenes`, per-scene thumbnails, `POST /api/voice/preview` + migration 0011) and a "Design handoff" API contract in §5 (limits are characters, re-voice ≈ 423 credits for 30s). +6 tests (450). (CEO, interactive)
