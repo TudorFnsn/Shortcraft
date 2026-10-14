@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
-import { gsap, MOTION, motionAllowed } from '@/components/motion/gsap';
+import { gsap } from '@/components/motion/gsap';
+import { sweepIn, sweepOut } from '@/components/motion/sweep';
 import { boxClasses, type BoxTone } from './box';
 
 /**
@@ -37,38 +38,15 @@ export function Sheet({
     openRef.current = open;
     const dialog = ref.current;
     if (!dialog) return;
-    const sweep = {
-      x: MOTION.sweep.x,
-      scale: MOTION.sweep.scale,
-      rotate: MOTION.sweep.rotate,
-      borderRadius: MOTION.sweep.radius,
-      duration: MOTION.sweep.duration,
-      ease: MOTION.sweep.ease,
-    };
     if (open && !dialog.open) {
       dialog.showModal();
-      if (motionAllowed()) gsap.from(dialog, { ...sweep, clearProps: 'all' });
+      sweepIn(dialog);
     } else if (open) {
       // Re-opened while sweeping out: settle back in place.
       gsap.killTweensOf(dialog);
       gsap.set(dialog, { clearProps: 'all' });
     }
-    if (!open && dialog.open) {
-      if (!motionAllowed()) {
-        dialog.close();
-        return;
-      }
-      const out = gsap.to(dialog, {
-        ...sweep,
-        onComplete: () => {
-          dialog.close();
-          gsap.set(dialog, { clearProps: 'all' });
-        },
-      });
-      return () => {
-        out.kill();
-      };
-    }
+    if (!open && dialog.open) return sweepOut(dialog, () => dialog.close());
   }, [open]);
 
   return (

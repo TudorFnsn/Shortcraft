@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { defaultVoiceFor } from '@/config/voices';
-import { Button } from '@/components/ui/button';
+import { Button, buttonClasses } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { VoicePicker } from '@/components/voice/voice-picker';
 import { useVoicePreview } from '@/components/voice/use-voice-preview';
@@ -187,7 +187,7 @@ export function VoiceoverEditor({
                 .join(' · ')} · About ${fmt(st.credits)} credits · you have ${fmt(balance)}`;
 
   return (
-    <Sheet open onClose={close} title="Edit voiceover" size="wide">
+    <Sheet open onClose={close} title="Edit voiceover" size="wide" tone="dark">
       <p className="text-ink-muted -mt-2 text-[15px]">
         Change the words, the voice, or both. The pictures stay as they are, and{' '}
         <span className="text-ink font-medium">{card.title}</span> is kept as it is.
@@ -202,7 +202,7 @@ export function VoiceoverEditor({
             if (voiceOpen) preview.stop();
             setVoiceOpen((o) => !o);
           }}
-          className="bg-raised hover:bg-line inline-flex min-h-11 items-center gap-2 self-start rounded-full px-4 text-[15px] font-medium transition-colors"
+          className="press inline-flex min-h-11 items-center gap-2 self-start rounded-full bg-transparent px-4 text-[15px] font-semibold"
         >
           <svg
             width="16"
@@ -236,7 +236,7 @@ export function VoiceoverEditor({
           </svg>
         </button>
         {voiceOpen && (
-          <div id="voiceover-voice" className="border-line rounded-[20px] border p-4 sm:p-5">
+          <div id="voiceover-voice" className="rounded-[8px] bg-black/20 p-4 sm:p-5">
             <VoicePicker
               voiceId={voiceId}
               lookPick={defaultVoiceFor(card.themeId)}
@@ -278,18 +278,22 @@ export function VoiceoverEditor({
             return (
               <li
                 key={s.idx}
-                className={`flex gap-3 rounded-[16px] p-3 transition-colors sm:gap-4 sm:p-4 ${
-                  edited ? 'bg-ember-soft' : ''
+                className={`flex gap-3 rounded-[8px] p-3 transition-colors sm:gap-4 sm:p-4 ${
+                  edited ? 'bg-[rgb(240_226_221/.14)]' : 'bg-surface'
                 }`}
               >
                 <SceneThumb jobId={card.id} idx={s.idx} />
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <label
                     htmlFor={`scene-${s.idx}`}
-                    className="text-ink-muted text-[13px] font-semibold"
+                    className="font-label text-ink-muted text-[14px] tracking-[1px] uppercase"
                   >
                     Scene {s.idx + 1}
-                    {edited && <span className="text-ember-ink ml-2">Edited</span>}
+                    {edited && (
+                      <span className="bg-blush text-on-blush ml-2 rounded-full px-2 py-0.5 font-sans text-[12px] font-semibold tracking-normal normal-case">
+                        Edited
+                      </span>
+                    )}
                   </label>
                   <textarea
                     id={`scene-${s.idx}`}
@@ -298,13 +302,13 @@ export function VoiceoverEditor({
                     onChange={(e) => setTexts((t) => ({ ...t, [s.idx]: e.target.value }))}
                     aria-invalid={tooLong || st.empty.has(s.idx) ? true : undefined}
                     aria-describedby={countId}
-                    className="bg-raised text-ink w-full resize-y rounded-[12px] px-3 py-2.5 text-base leading-[22px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ember)]"
+                    className="field-line text-ink w-full resize-y px-0.5 py-2 text-[20px] leading-[1.3]"
                   />
                   <div className="flex items-center justify-between gap-3">
                     <span
                       id={countId}
                       className={`text-[13px] tabular-nums ${
-                        tooLong ? 'text-warning font-semibold' : 'text-ink-muted'
+                        tooLong ? 'font-semibold text-[#fbbf24]' : 'text-ink-muted'
                       }`}
                     >
                       {tooLong ? 'Too long for this scene: ' : ''}
@@ -321,7 +325,7 @@ export function VoiceoverEditor({
                               return next;
                             })
                           }
-                          className="text-ember-ink min-h-11 px-2 text-[13px] font-semibold"
+                          className="min-h-11 px-2 text-[13px] font-semibold underline underline-offset-2"
                         >
                           Undo
                         </button>
@@ -332,7 +336,7 @@ export function VoiceoverEditor({
                         disabled={hearing !== null || !cleanLine(value)}
                         aria-pressed={preview.playing === `line-${s.idx}`}
                         aria-label={`Hear scene ${s.idx + 1}`}
-                        className="text-ink hover:bg-raised inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold whitespace-nowrap disabled:opacity-60"
+                        className="press inline-flex min-h-11 items-center gap-1.5 rounded-full bg-transparent px-3 text-[13px] font-semibold whitespace-nowrap disabled:opacity-60"
                       >
                         {preview.playing === `line-${s.idx}` ? (
                           <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true">
@@ -368,20 +372,23 @@ export function VoiceoverEditor({
       )}
 
       {error && (
-        <p role="alert" className="text-danger text-[15px] font-semibold">
+        <p
+          role="alert"
+          className="bg-blush m-0 rounded-[8px] px-4 py-3 text-[15px] font-semibold text-[#a32435]"
+        >
           {error}
         </p>
       )}
 
-      <div className="bg-surface border-line sticky bottom-0 -mx-6 -mb-6 flex flex-col gap-3 border-t px-6 py-4 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <span aria-live="polite" className="text-ink-muted text-center text-sm sm:text-left">
+      <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col gap-3 border-t border-[rgb(240_226_221/.25)] bg-[#212121] px-6 py-4 sm:-mx-8 sm:-mb-8 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <span
+          aria-live="polite"
+          className="self-center rounded-full bg-black/40 px-3.5 py-2 text-center text-[14px] tabular-nums sm:self-auto sm:text-left"
+        >
           {summary}
         </span>
         {st.credits > balance && changes > 0 ? (
-          <Link
-            href="/pricing"
-            className="bg-ink text-paper inline-flex min-h-[54px] items-center justify-center rounded-full px-8 text-[17px] font-semibold"
-          >
+          <Link href="/pricing" className={buttonClasses({ size: 'lg' })}>
             Get more credits
           </Link>
         ) : (
@@ -390,9 +397,7 @@ export function VoiceoverEditor({
             size="lg"
             onClick={() => void submit()}
             aria-disabled={!st.canSubmit || submitting}
-            className={`rounded-full sm:px-8 ${
-              !st.canSubmit ? '!bg-raised !text-ink-muted !opacity-100' : ''
-            }`}
+            className={`sm:px-8 ${!st.canSubmit ? 'opacity-50' : ''}`}
           >
             {submitting ? 'Starting…' : 'Make new version'}
           </Button>

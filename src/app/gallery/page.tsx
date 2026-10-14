@@ -5,9 +5,13 @@ import { getCurrentUser } from '@/features/auth/session';
 import { getStore } from '@/features/render/store';
 import { AutoRefresh } from './auto-refresh';
 import { TodayHero } from './today-hero';
-import { LibraryGrid } from './library-grid';
+import { LibraryGrid, LibraryTitle } from './library-grid';
 import { anyWorking, toCard, versionsOf } from './library';
-import { dailyIdeas, dayKey } from '@/components/ideas';
+import Link from 'next/link';
+import { createHref, dailyIdeas, dayKey } from '@/components/ideas';
+import { ColourIn } from '@/components/motion/colour-in';
+import { ThemeFrame } from '@/components/theme-frame';
+import { Box } from '@/components/ui/box';
 import { publicVoice } from '@/features/voice/my-voices';
 import { getUserVoiceStore } from '@/features/voice/store';
 
@@ -33,40 +37,66 @@ export default async function LibraryPage() {
   const empty = jobs.length === 0;
 
   const ideas = dailyIdeas(dayKey(now), jobs[0]?.themeId ?? null);
-  const hero = <TodayHero ideas={ideas} />;
+  const tomorrowDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrow = dailyIdeas(dayKey(tomorrowDay), jobs[0]?.themeId ?? null)[0] ?? null;
 
   return (
-    <main className="mx-auto flex max-w-[1280px] flex-col gap-12 px-4 pt-6 pb-28 sm:px-8 md:pb-12 lg:pt-10 xl:px-12">
+    <main className="flex flex-col gap-3 px-2 pb-28 sm:gap-6 sm:px-6 md:pb-6">
       {/* Re-render every few seconds while a video is being made. */}
       <AutoRefresh active={anyWorking(jobs)} />
-      <h1 className="sr-only">Your videos</h1>
 
       {empty ? (
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-16">
-          {hero}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div
-              aria-hidden="true"
-              className="bg-surface flex aspect-[9/16] w-[200px] items-center justify-center rounded-[24px]"
-            >
-              <svg width="40" height="40" viewBox="0 0 34 34">
-                <circle cx="17" cy="17" r="17" fill="var(--raised)" />
-                <path d="M13.5 10.5v13l10.5-6.5z" fill="var(--ink-muted)" />
-              </svg>
+        <>
+          <LibraryTitle />
+          <TodayHero ideas={ideas} />
+          <Box
+            tone="sky"
+            pop
+            alternate
+            aria-labelledby="starters-h"
+            className="flex flex-col gap-6 px-4 py-6 sm:gap-7 sm:p-12"
+          >
+            <div>
+              <p className="m-0 text-[12px] font-semibold tracking-[2px] uppercase sm:text-[16px] sm:tracking-[3px]">
+                Your first video
+              </p>
+              <h2
+                id="starters-h"
+                className="font-display m-0 mt-1 text-[36px] leading-[.85] font-normal tracking-[-0.04em] sm:text-[72px] sm:leading-[.8]"
+              >
+                Start with one of these
+              </h2>
             </div>
-            <p className="text-ink-muted max-w-[260px] text-sm">
-              Your videos will live here.
-              {hasPaid ? '' : ' Your first one comes with the trial credits.'}
+            <ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-6 p-0 sm:grid-cols-3 sm:gap-x-5 lg:max-w-[900px]">
+              {ideas.slice(0, 3).map((idea) => (
+                <li key={idea.topic} className="min-w-0">
+                  <Link href={createHref(idea)} className="group flex flex-col gap-2.5">
+                    <ColourIn className="overflow-hidden rounded-[8px] shadow-[16px_16px_40px_rgb(4_40_57/.35)]">
+                      <ThemeFrame themeId={idea.themeId} variant="card" caption={false} />
+                    </ColourIn>
+                    <span className="font-display text-[19px] leading-[1.05] group-hover:underline sm:text-[21px]">
+                      {idea.topic}
+                    </span>
+                    <span className="text-[14px]">{idea.themeLabel}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="m-0 text-[15px]">
+              {hasPaid
+                ? 'Your videos will live here.'
+                : 'Your videos will live here. Your first one comes with the trial credits.'}
             </p>
-          </div>
-        </div>
+          </Box>
+        </>
       ) : (
         <LibraryGrid
           cards={cards}
           balance={balance}
           myVoices={saved.map(publicVoice)}
           freeTrial={!hasPaid}
-          hero={hero}
+          ideas={ideas}
+          tomorrow={tomorrow}
         />
       )}
     </main>
