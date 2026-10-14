@@ -19,7 +19,13 @@ const leagueGothic = League_Gothic({
   subsets: ['latin'],
   display: 'swap',
 });
-const urbanist = Urbanist({ variable: '--font-urbanist', subsets: ['latin'], display: 'swap' });
+// Labels and the footer, below the fold: not preloaded, so the hero fonts come first.
+const urbanist = Urbanist({
+  variable: '--font-urbanist',
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+});
 // Decorative notes only: not preloaded, so they never hold up first paint.
 const shadows = Shadows_Into_Light_Two({
   variable: '--font-shadows',

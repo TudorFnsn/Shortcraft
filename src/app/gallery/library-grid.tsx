@@ -63,7 +63,7 @@ export function LibraryTitle({ note }: { note?: string | null }) {
         Your videos
       </SplitLines>
       {note && (
-        <Note rotate={-8} className="mb-2 text-[22px] sm:mr-16 sm:text-[40px]">
+        <Note rotate={-8} className="mb-2 text-[26px] sm:mr-16 sm:text-[40px]">
           {note}
         </Note>
       )}

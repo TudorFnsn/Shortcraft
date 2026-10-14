@@ -5,7 +5,7 @@
 > priority; this file wins on how the app looks and feels. Every design PR
 > updates this file (screen status + changelog) in the same change.
 >
-> Last updated: 2026-10-14
+> Last updated: 2026-10-14 (journey B built, PR #84)
 
 ---
 
@@ -296,23 +296,25 @@ Boards are on the B0 canvas. "Derived" means no board of its own: it is built fr
 
 #### B.3 Implementation plan (one PR, `ceo-design/boxes`, commits in this order)
 
+**Status 2026-10-14:** B1–B11 built in PR #84 (https://github.com/TudorFnsn/Shortcraft/pull/84), ready for Tudor's review. Screenshots per route are in `docs/design/boxes/`, named after their canvas board.
+
 The owner asked for the whole redesign in **one PR**. No API, credit, billing, provider or migration changes; every page keeps its data flow and server rendering.
 
-- [ ] **B1 Tokens, fonts, mark:** new values in `globals.css` (same names, plus `--grad-*`, `--red-deep`, `--shadow-red`, `--sky`, `--navy`, `--yellow`), 8px/50px radii, the press-in and under-line utilities; `next/font` for Fraunces, Inter, League Gothic, Urbanist, Shadows Into Light Two in `layout.tsx`; light becomes the default in `theme.ts` and the no-flash script; new mark in `brand-mark.tsx` and `icon.svg`.
-- [ ] **B2 Motion kit:** `gsap` dependency; `src/components/motion/*`: `<Pop>`, `<SplitLines>`, `<Typed>`, `<ColourIn>`, `<StepReveal>`, `<Marquee>` and `<SmoothScroll>` (landing only); `Sheet` gets the sweep. Each one renders its final state on the server and does nothing under reduced motion.
-- [ ] **B3 Primitives:** `Button` (blush, ink, ember-box and press-in variants), `Badge`/chips, under-line `Field`, `Box` (ember / blush / sky / hero / dark), handwritten `Note` (`aria-hidden`).
-- [ ] **B4 Shell:** header, account menu/sheet, phone "+", footer.
-- [ ] **B5 Landing**, then ideas, keyword, legal, not-found and error pages.
-- [ ] **B6 Sign-in / sign-up.**
-- [ ] **B7 Create** and its four sheets plus every state in B.2.
-- [ ] **B8 Your videos**, player sheet and voiceover editor.
-- [ ] **B9 My voices** and Create a voice.
-- [ ] **B10 Pricing.**
-- [ ] **B11 Check:** `format:check`, `lint`, `typecheck`, `test`, `next build` in mock mode; axe on every route in light, dark and at 390px; keyboard pass on every sheet; reduced-motion pass; Lighthouse on the landing (fonts subset, `display: swap`); screenshots per route in `docs/design/boxes/` next to the matching canvas board.
+- [x] **B1 Tokens, fonts, mark:** new values in `globals.css` (same names, plus `--grad-*`, `--red-deep`, `--shadow-red`, `--sky`, `--navy`, `--yellow`), 8px/50px radii, the press-in and under-line utilities; `next/font` for Fraunces, Inter, League Gothic, Urbanist, Shadows Into Light Two in `layout.tsx`; light becomes the default in `theme.ts` and the no-flash script; new mark in `brand-mark.tsx` and `icon.svg`.
+- [x] **B2 Motion kit:** `gsap` dependency; `src/components/motion/*`: `<Pop>`, `<SplitLines>`, `<Typed>`, `<ColourIn>`, `<StepReveal>`, `<Marquee>` and `<SmoothScroll>` (landing only); `Sheet` gets the sweep. Each one renders its final state on the server and does nothing under reduced motion.
+- [x] **B3 Primitives:** `Button` (blush, ink, ember-box and press-in variants), `Badge`/chips, under-line `Field`, `Box` (ember / blush / sky / hero / dark), handwritten `Note` (`aria-hidden`).
+- [x] **B4 Shell:** header, account menu/sheet, phone "+", footer.
+- [x] **B5 Landing**, then ideas, keyword, legal, not-found and error pages.
+- [x] **B6 Sign-in / sign-up.**
+- [x] **B7 Create** and its four sheets plus every state in B.2.
+- [x] **B8 Your videos**, player sheet and voiceover editor.
+- [x] **B9 My voices** and Create a voice.
+- [x] **B10 Pricing.**
+- [x] **B11 Check:** `format:check`, `lint`, `typecheck`, `test`, `next build` in mock mode; axe on every route in light, dark and at 390px; keyboard pass on every sheet; reduced-motion pass; Lighthouse on the landing (fonts subset, `display: swap`); screenshots per route in `docs/design/boxes/` next to the matching canvas board.
 
 ### Later (out of the current charter, needs owner sign-off)
 
-Home dashboard · fuller onboarding (beyond the one-tap first video).
+Home dashboard · fuller onboarding (beyond the one-tap first video) · a password-reset flow on sign-in (drawn on the Login board) · streak saver on Your videos (when the streak is at risk, Today's box leads with "Post today to keep your N-day streak") · tappable typed ideas on the landing (the typed placeholder ideas as one-tap chips into sign-up).
 
 ---
 
@@ -344,6 +346,8 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 ---
 
 ## 7. Changelog
+
+- **2026-10-14** — Journey B built end to end in PR #84 (`ceo-design/boxes`), B1–B11 ticked: Boxes tokens, fonts and mark; the gsap motion kit; primitives; shell; landing, ideas, keyword, legal, 404 and error; sign-in; Create and its four sheets; Your videos, player and voiceover editor; My voices and Create a voice; pricing. Check: axe 0 violations on 15 routes × light/dark × 1440/390, keyboard pass on every sheet, no-JS and reduced-motion pass, Lighthouse landing 93–95 (main 97), CLS 0. Seven canvas-vs-B.2/AA choices are listed in §8 for Tudor. (Design CEO, routine)
 
 - **2026-10-14** — Tudor approved the B0 Boxes canvas and all five recommendations. §4 B now holds the full system (tokens, type, shape, motion), a flow-by-flow table covering every route and state, and a one-PR implementation plan (B1–B11). The charter rows for "home", scope and theme are updated. (Design CEO, interactive)
 - **2026-10-14** — New journey **B: Boxes** from Tudor's brief (match lil-boxes.com). Measured the site's CSS and GSAP config, mapped it onto every screen and published the B0 canvas (15 artboards, motion lab included). Waiting on Tudor's approval and the decisions in §8; no code yet. (Design CEO, interactive)
@@ -379,6 +383,15 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **B build choices for Tudor** (2026-10-14, routine, PR #84). Where the canvas and B.2 or AA disagreed, B.2 and AA won; each can be flipped in one place:
+  1. **Ember corner contrast.** White on the ember gradient's orange start (`#F07142`) is 2.94:1, just under 3:1 for large text, so B.1's "white on ember at 24px+" is not quite AA at the very top-left. Tokens are unchanged; [recommend starting `--grad-ember` at `#EC6A3C`, which keeps the look and clears 3:1].
+  2. **Small text on ember** (the "New video" and "Your channel is" eyebrows, Create's setting pills) sits in the dark pill or is set at 19px bold, not 15–16px white as drawn.
+  3. **Sky box text.** Stacked names are navy (weight 200, picked 900) instead of 55% white (1.5:1); in dark mode the sky box uses white text (canvas blush 4.36:1, light-blue eyebrow 3.32:1).
+  4. **Blush boxes in dark mode** keep their light gradient with dark text (B.2: "boxes keep their gradients except sky"); the HomeDark board draws Today's box charcoal instead.
+  5. **Mark in dark mode.** B.1 says the right face turns blush with a blush glyph (the glyph would vanish); the code follows the canvas: blush face, glyph in the ground colour.
+  6. **Not built, no data or flow for it:** Today's idea "settings line", "Copy title + caption" (copies the title), "Forgot your password?" on sign-in, a video column in the voiceover editor (each scene row has its own thumbnail), and "Your plan" for Starter subscribers (planOf can't tell a Starter subscriber from a trial; Pro and Ultra are marked).
+  7. **"This week"** becomes "All your videos" once any video is older than 7 days, so the title stays true.
 
 - **B Boxes approved** (2026-10-14, owner: "i like it … with your recommendation … one PR, all pages"). All five recommendations accepted; the answers are in brackets:
   1. Boxes is loud by design, which reverses the charter's "calm studio, the UI stays quiet so the videos carry the colour". Replace that line with "playful boxes: bold colour blocks, big type, motion"? [yes, it is what was asked; the S layout rules keep each screen to one action, so it stays easy to use]
