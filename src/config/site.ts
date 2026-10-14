@@ -13,4 +13,17 @@ export const siteConfig = {
   trialCredits: 3000,
 } as const;
 
+/**
+ * Longest prompt (video topic) a creator can type in Create and send to
+ * `POST /api/jobs`. Owner decision 2026-10-14 (was 300).
+ */
+export const TOPIC_MAX_CHARS = 100_000;
+
+/**
+ * Longest idea carried in a URL (`/create?idea=…`, through sign-up). Stays
+ * small: a 100k-character query string is rejected by browsers and Vercel
+ * (414/431). Longer prompts are typed or pasted in Create itself.
+ */
+export const CARRIED_IDEA_MAX_CHARS = 300;
+
 export type SiteConfig = typeof siteConfig;

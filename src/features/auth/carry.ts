@@ -4,6 +4,7 @@
  * instead of an empty form. Pure, so the server redirect in `/create` and the
  * client login page share one implementation (tests/ui/carry.test.ts).
  */
+import { CARRIED_IDEA_MAX_CHARS } from '@/config/site';
 import { isThemeId } from '@/config/themes';
 
 type Params = Record<string, string | string[] | undefined>;
@@ -18,7 +19,7 @@ export interface Carried {
 
 /** The idea (trimmed, ≤300 chars) and a known theme id from a query string. */
 export function readCarried(params: Params): Carried {
-  const idea = first(params.idea)?.trim().slice(0, 300) || null;
+  const idea = first(params.idea)?.trim().slice(0, CARRIED_IDEA_MAX_CHARS) || null;
   const rawTheme = first(params.theme);
   const theme = rawTheme && isThemeId(rawTheme) ? rawTheme : null;
   return { idea, theme };
