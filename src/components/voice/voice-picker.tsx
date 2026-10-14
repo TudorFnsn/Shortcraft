@@ -52,7 +52,7 @@ function Segmented<T extends string>({
               aria-checked={checked}
               tabIndex={checked ? 0 : -1}
               onClick={() => onChange(v)}
-              className={`min-h-10 flex-1 rounded-full text-sm font-medium transition-colors ${
+              className={`min-h-11 flex-1 rounded-full text-sm font-medium transition-colors md:min-h-10 ${
                 checked ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
               }`}
             >

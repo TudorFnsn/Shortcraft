@@ -5,7 +5,7 @@
 > priority; this file wins on how the app looks and feels. Every design PR
 > updates this file (screen status + changelog) in the same change.
 >
-> Last updated: 2026-10-13
+> Last updated: 2026-10-14
 
 ---
 
@@ -161,11 +161,11 @@ The app works, but every screen asks for attention at once. This journey keeps P
 - Navigation: "Your videos" + credits + avatar on desktop. On phones, a single floating "+" replaces the 3-tab bar.
 
 - [✓] **S0 Canvas** (https://claude.ai/artifact/9GkURdvSAnYC2obP4EdnqG). **Approved by Tudor 2026-10-13: Look B "Studio" (dark, violet), "all screens adapt to the new look, start implementing".** The layout recommendations (Q1–Q6) are taken as accepted with it.
-- [~] **Studio tokens** (PR #66): dark-first palette (`#0e0f11` ground, `#f5f5f4` ink, violet `#a78bfa`) plus an opt-in light partner. Geist-only type. Every screen adopts it through the existing token names.
-- [~] **S1 Create** (PR #67, stacked on #66): one idea box with Surprise me, three setting pills that open sheets, and one Make video button with the cost underneath.
-- [~] **S2 Home** (PR #68, stacked on #67): Today's idea as the headline with Make it, the latest video large, and one row of videos. Filters show only from 12 videos; Posted lives in the player.
-- [~] **S3 Shell** (PR #69, stacked on #68): a quiet header (Your videos · credits · New video · avatar) and one floating + on phones instead of the tab bar.
-- [ ] **S4 Check:** axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted). Count clicks before and after.
+- [x] **Studio tokens** (PR #66, merged 2026-10-13): dark-first palette (`#0e0f11` ground, `#f5f5f4` ink, violet `#a78bfa`) plus an opt-in light partner. Geist-only type. Every screen adopts it through the existing token names.
+- [x] **S1 Create** (PR #67, merged 2026-10-13): one idea box with Surprise me, three setting pills that open sheets, and one Make video button with the cost underneath.
+- [x] **S2 Home** (PR #68, merged 2026-10-13): Today's idea as the headline with Make it, the latest video large, and one row of videos. Filters show only from 12 videos; Posted lives in the player.
+- [x] **S3 Shell** (re-landed as PR #78, merged 2026-10-13): a quiet header (Your videos · credits · New video · avatar) and one floating + on phones instead of the tab bar.
+- [~] **S4 Check** (in review on `ceo-design/s4-check`): axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted), clicks counted before and after. axe: 0 violations on all 56 scans after 5 small fixes (the phone "+" in a landmark, 44px avatar-menu rows, theme switch and Speed/Delivery on phones, a React key warning on Home). Clicks held steady; Create went from ~20 controls to 7. Report: `docs/design/s4-check.md`. No visual change on desktop, so it needs no canvas.
 
 ### V: Voice Studio (owner request 2026-10-13; product scope and backend in TheMasterPlan §5 "Voice Studio")
 
@@ -176,20 +176,20 @@ Three new surfaces, drawn in the Studio look. They follow the S rules: one viole
   2. **Voiceover editor:** "Edit voiceover" in the player opens a wide sheet. The video sits left (it plays the current line). On the right: the voice pill (Voice · Will · Normal · Natural, which opens the Voice sheet), then one row per scene with thumbnail, narration field, "▶ Hear this line" and a word count. An edited scene turns violet-tinted and says "Edited". Going over +30% turns the count amber ("Too long for this scene: 17 / 15 words") and disables Make new version. The footer line reads "1 scene changed · About 340 credits · you have 12,480". On phones it is a full-screen sheet with the action bar pinned to the bottom.
   3. **Create a voice:** its own route. Step 1 is a description box ("Age, accent, pace, mood") with 4 starter chips and "Hear 3 samples · 100 credits"; a note says to describe a type of voice, not a real person. Step 2 shows what was asked with "Change · 100 credits", 3 sample cards (▶, waveform, a short note) as one radio group, a name field and **Save voice**. The line under it reads "1,500 credits, once… You'll have 2 of 3 voices on Pro". **My voices** shows N of M on the plan, rows with ▶, name, description and "in 4 videos", plus Rename and Delete. At the limit, Create a voice is disabled and a tinted notice says "Delete one to make room, or move to Ultra for 10."
 - **Implementation plan (design side), after approval.** Every step keeps the S rules: one violet action per screen, sheets instead of new sections, Studio tokens only, axe-clean in both themes and at 390px.
-  - [~] **V2 Create pill + Voice sheet** (in review on `ceo-design/v2-voice-pill`; the voice choice is sent only when it differs from the defaults):
+  - [x] **V2 Create pill + Voice sheet** (PR #76, merged 2026-10-13; the voice choice is sent only when it differs from the defaults):
     - `create-form.tsx` gets a 4th pill and a `voice` sheet.
     - New `src/components/voice/voice-picker.tsx` holds the tile grid plus the two segmented rows, and is reused by the editor.
     - New `src/components/voice/use-voice-preview.ts` drives one shared `<audio>` playing `public/voices/<slug>.mp3`: one plays at a time, and it stops when the sheet closes.
     - Unlike the other sheets, picking does not close this one, because speed and delivery follow; Done or Escape closes it.
     - The voice is remembered with the other settings. Until the creator picks one, the voice follows the look's default; after that it stays put.
     - `POST /api/jobs` already takes `voiceId`, `speed` and `delivery`.
-  - [~] **V3 Voiceover editor** (in review on `ceo-design/v3-voiceover-editor`). It is built on the CEO track's API contract (TheMasterPlan §5): `GET /api/jobs/:id/scenes` for the lines and their limits, `?scene=<idx>` thumbnails, `POST /api/voice/preview` for **"Hear this line"**, and `POST /api/jobs/:id/revoice`. It counts characters (the server's 130% + 20 limit), not words, and the voice opens inline in the editor instead of as a second sheet:
+  - [x] **V3 Voiceover editor** (PR #77, merged 2026-10-13). It is built on the CEO track's API contract (TheMasterPlan §5): `GET /api/jobs/:id/scenes` for the lines and their limits, `?scene=<idx>` thumbnails, `POST /api/voice/preview` for **"Hear this line"**, and `POST /api/jobs/:id/revoice`. It counts characters (the server's 130% + 20 limit), not words, and the voice opens inline in the editor instead of as a second sheet:
     - "Edit voiceover" sits in the player sheet next to Download, only for finished videos you own.
     - The editor is a `Sheet` with a new `size="wide"` variant (full screen on phones).
     - It needs a read-only helper that loads a job's scene narration and thumbnails.
     - Rows are built from scenes. Word limits come from the same +30% rule the API enforces, so the UI never offers what the server refuses.
     - Make new version closes the sheet. The new job appears in Your videos as its own card with a "v2" badge and the usual progress, and the original stays.
-  - [~] **V4 Create a voice + My voices** (in review on `ceo-design/v4-my-voices`, built on the CEO track's `/api/voices*` contract). Two choices made while building: the ▶ on a saved voice speaks a short fixed line through the free, cached preview API, and after saving, "Make a video with it" opens Create with the new voice already picked (`/create?voice=<id>`):
+  - [x] **V4 Create a voice + My voices** (PR #80, merged 2026-10-14, built on the CEO track's `/api/voices*` contract). Two choices made while building: the ▶ on a saved voice speaks a short fixed line through the free, cached preview API, and after saving, "Make a video with it" opens Create with the new voice already picked (`/create?voice=<id>`):
     - The routes are `/voices` (My voices) and `/voices/new` (describe, then samples).
     - They are reached from the Voice sheet tile and a "My voices" item in the avatar menu. No new header link.
     - Deleting a voice asks for confirmation ("Videos you already made keep their voice").
@@ -234,6 +234,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 
 ## 7. Changelog
 
+- **2026-10-14** — S and V are all on `main` (#66–#68, #76–#78, #80). S4 check in review on `ceo-design/s4-check`: axe 0 violations on 56 scans (14 screens and states × dark/light × 1440/390) after five small fixes; 5-task walkthrough measured. Two questions for Tudor in §8. (Design CEO, routine)
 - **2026-10-13** — V2 and V3 shipped (#76, #77) and the S3 shell is on `main` (#78). V4 (Create a voice + My voices) is in review. (Design CEO, interactive)
 - **2026-10-13** — S3 shell re-landed: #69 had merged into its old base branch (`ceo-design/s2-home`) instead of `main`, so its commit was reapplied onto `main` in a new PR. (Design CEO, interactive)
 - **2026-10-13** — Tudor approved the V0 Voice Studio canvas and the four recommendations. V2 (Voice pill + sheet on Create) and V3 (Edit voiceover + v2 badges) are in review. (Design CEO, interactive)
@@ -266,6 +267,10 @@ Home dashboard · fuller onboarding (beyond the one-tap first video).
 - **2026-10-10** — Design track set up. Tudor answered the configuration questions (§1), the Design CEO audited the current UI (§2) and wrote the target experience and roadmap D0–D4. (Design CEO, interactive)
 
 ## 8. Decision log
+
+- **Open (2026-10-14, from the S4 check), waiting on Tudor:**
+  1. On phones, "Mark as posted" sits below the fold in the player (under Download, Copy title, Make another and Edit voiceover), so posting takes a scroll. Move it into the row with Copy title, so the S journey's Post step (Download · Copy title · Posted) is all in view? [recommended: yes, a small layout change in `library-grid.tsx`]
+  2. The charter says the theme follows the system, but the Studio look is dark for everyone unless they pick Light (there is no "System" choice any more). Should "System" come back, so a phone in light mode gets the light partner? [recommended: yes, keep dark as the look's hero in marketing, but follow the system in the app]
 
 - **Voice Studio in the design scope** (2026-10-13, owner: "add to the plan as recommended") → voice becomes a 4th setting pill, so it fits the S journey (pills that remember the last choice) instead of adding a new section to Create. Editing happens after the video exists, inside the player, where the creator notices the problem. Product and pricing decisions are in TheMasterPlan §11.
 
