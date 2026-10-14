@@ -87,7 +87,7 @@ export function ThemeToggle() {
           pick,
         )
       }
-      className="bg-raised flex gap-1 rounded-full p-1"
+      className="bg-ink/10 flex gap-1 rounded-full p-1"
     >
       {OPTIONS.map((o) => {
         const on = o.id === choice;
@@ -100,7 +100,7 @@ export function ThemeToggle() {
             tabIndex={on ? 0 : -1}
             onClick={() => pick(o.id)}
             className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-2 text-sm transition-colors ${
-              on ? 'bg-ink text-paper font-semibold' : 'text-ink-muted hover:text-ink'
+              on ? 'bg-blush text-on-blush font-semibold' : 'text-ink-muted hover:text-ink'
             }`}
           >
             <svg

@@ -36,7 +36,7 @@ describe('Boxes primitives', () => {
   });
 
   it('handwritten notes are hidden from screen readers', () => {
-    const out = renderToStaticMarkup(createElement(Note, null, 'post one today!'));
+    const out = renderToStaticMarkup(Note({ children: 'post one today!' }));
     expect(out).toContain('aria-hidden="true"');
     expect(out).toContain('font-note');
   });
@@ -52,7 +52,7 @@ describe('Boxes primitives', () => {
   });
 
   it('chips come in the canvas tones', () => {
-    expect(renderToStaticMarkup(createElement(Badge, { tone: 'ink' }, 'Posted'))).toContain(
+    expect(renderToStaticMarkup(Badge({ tone: 'ink', children: 'Posted' }))).toContain(
       'rounded-full',
     );
   });

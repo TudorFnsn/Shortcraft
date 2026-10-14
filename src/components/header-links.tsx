@@ -2,52 +2,41 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signedInLinks } from './shell-paths';
 
-/** The signed-in header's quiet links; marks the page you're on. */
+const LINKS = {
+  videos: { href: '/gallery', label: 'Your videos' },
+  create: { href: '/create', label: 'New video' },
+} as const;
+
+/**
+ * The signed-in header (B.2): press-in links in Inter 600 uppercase to the page
+ * you are not on, then the dark credits pill (always in view; it is also the
+ * way to top up). Phones keep only the pill; "New video" is the floating +.
+ */
 export function HeaderLinks({ balance }: { balance: number }) {
   const pathname = usePathname();
-  const onVideos = pathname.startsWith('/gallery');
-  const onCreate = pathname.startsWith('/create');
+  const credits = balance.toLocaleString('en-US');
 
   return (
-    <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
-      <Link
-        href="/gallery"
-        aria-current={onVideos ? 'page' : undefined}
-        className={`hidden min-h-11 items-center rounded-full px-3.5 text-[15px] font-medium transition-colors md:inline-flex ${
-          onVideos ? 'text-ink' : 'text-ink-muted hover:text-ink'
-        }`}
-      >
-        Your videos
-      </Link>
-      {/* The balance is always in view; it doubles as the way to top up. */}
+    <nav aria-label="Main" className="flex items-center gap-2 sm:gap-3.5">
+      {signedInLinks(pathname).map((id) => (
+        <Link
+          key={id}
+          href={LINKS[id].href}
+          className="press text-ink hidden min-h-11 items-center rounded-[8px] px-[15px] text-[14px] font-semibold tracking-[1px] uppercase md:inline-flex"
+        >
+          {LINKS[id].label}
+        </Link>
+      ))}
       <Link
         href="/pricing"
-        className="text-ink-muted hover:text-ink inline-flex min-h-11 items-center rounded-full px-3 text-sm tabular-nums transition-colors"
+        aria-label={`${credits} credits. Get more`}
+        className="bg-ink text-paper inline-flex min-h-11 items-center rounded-full px-4 text-[14px] font-semibold tabular-nums"
       >
-        {balance.toLocaleString('en-US')}
-        <span className="ml-1">credits</span>
+        {credits}
+        <span className="ml-1 max-sm:hidden">credits</span>
       </Link>
-      {!onCreate && (
-        <Link
-          href="/create"
-          className="bg-raised text-ink hover:bg-line hidden min-h-11 items-center gap-2 rounded-full px-4 text-[15px] font-semibold transition-colors md:inline-flex"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <path d="M10 4v12M4 10h12" />
-          </svg>
-          New video
-        </Link>
-      )}
     </nav>
   );
 }
