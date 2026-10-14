@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SplitLines } from '@/components/motion/split-lines';
 import { buttonClasses } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { useVoicePreview } from '@/components/voice/use-voice-preview';
@@ -24,8 +25,9 @@ function PlayIcon({ playing }: { playing: boolean }) {
 }
 
 /**
- * My voices (Voice Studio V4): the creator's saved voices with ▶, rename and
- * delete, the plan's slot count and, at the limit, the way out.
+ * My voices (Voice Studio V4; Boxes board Voices): a blush box with the plan's
+ * slot count, the saved voices as rows (ink ▶, Fraunces name, press-in Rename
+ * and Delete), the way out at the limit, and a small dark confirm box.
  */
 export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slots }) {
   const router = useRouter();
@@ -87,18 +89,31 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <section
+      aria-labelledby="mv-h"
+      className="box-blush rounded-box flex w-full flex-col gap-5 px-5 py-8 sm:p-12"
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="font-display text-[32px] leading-9 font-bold sm:text-[40px] sm:leading-[44px]">
+        <div className="flex flex-col gap-2">
+          <p className="text-ember-ink m-0 text-[13px] font-semibold tracking-[3px] uppercase sm:text-[16px]">
+            {slots.line}
+          </p>
+          <SplitLines
+            as="h1"
+            id="mv-h"
+            className="font-display m-0 text-[56px] leading-[.8] font-normal tracking-[-0.04em] sm:text-[96px]"
+          >
             My voices
-          </h1>
-          <span className="text-ink-muted text-[15px]">{slots.line}</span>
+          </SplitLines>
         </div>
         {slots.atLimit ? (
           <span
             aria-disabled="true"
-            className="bg-raised text-ink-muted inline-flex min-h-12 cursor-not-allowed items-center gap-2 rounded-full px-5 text-[15px] font-semibold"
+            className={buttonClasses({
+              variant: 'ink',
+              size: 'lg',
+              className: 'cursor-not-allowed gap-2 opacity-50',
+            })}
           >
             {plus}
             Create a voice
@@ -106,7 +121,7 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
         ) : (
           <Link
             href="/voices/new"
-            className={buttonClasses({ className: 'min-h-12 gap-2 rounded-full px-5' })}
+            className={buttonClasses({ variant: 'ink', size: 'lg', className: 'gap-2' })}
           >
             {plus}
             Create a voice
@@ -115,15 +130,15 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
       </div>
 
       {slots.atLimit && (
-        <div className="bg-ember-soft rounded-card flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
-          <p className="text-ink flex-1 text-[15px] leading-[22px]">
+        <div className="flex flex-col gap-3 rounded-[8px] bg-white/60 px-5 py-4 sm:flex-row sm:items-center">
+          <p className="m-0 flex-1 text-[15px] leading-[22px]">
             All your voice slots are in use. Delete one to make room
             {slots.more ? `, or move to ${slots.more.name} for ${slots.more.limit}.` : '.'}
           </p>
           {slots.more && (
             <Link
               href="/pricing"
-              className="bg-surface text-ember-ink inline-flex min-h-11 items-center justify-center rounded-full px-5 text-[15px] font-semibold whitespace-nowrap"
+              className={buttonClasses({ variant: 'secondary', className: 'whitespace-nowrap' })}
             >
               See {slots.more.name}
             </Link>
@@ -132,22 +147,22 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
       )}
 
       {voices.length === 0 ? (
-        <div className="bg-surface rounded-card flex flex-col items-center gap-3 px-6 py-10 text-center">
-          <p className="text-[17px] font-semibold">No voices yet</p>
-          <p className="text-ink-muted max-w-[420px] text-[15px] leading-[22px]">
+        <div className="flex flex-col items-center gap-3 rounded-[8px] bg-white/55 px-6 py-10 text-center">
+          <p className="font-display m-0 text-[28px]">No voices yet</p>
+          <p className="m-0 max-w-[420px] text-[15px] leading-[22px]">
             Describe the narrator you want, hear 3 samples and keep the one that fits. It&apos;s
             yours for every video.
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="m-0 mt-2 flex list-none flex-col gap-3 p-0">
           {voices.map((v) => {
             const playing = preview.playing === v.id;
             const editing = renaming?.id === v.id;
             return (
               <li
                 key={v.id}
-                className="bg-surface flex flex-wrap items-center gap-3 rounded-[18px] py-3 pr-3 pl-3.5 sm:flex-nowrap"
+                className="flex flex-wrap items-center gap-4 rounded-[8px] bg-white/55 p-4 sm:flex-nowrap sm:p-[18px]"
               >
                 <button
                   type="button"
@@ -155,8 +170,8 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
                   aria-label={`${playing ? 'Stop' : 'Play'} ${v.name}`}
                   aria-pressed={playing}
                   aria-busy={preview.loading === v.id}
-                  className={`flex size-12 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playing ? 'bg-ink text-paper' : 'bg-raised text-ink hover:bg-line'
+                  className={`flex size-12 shrink-0 items-center justify-center rounded-full transition-transform hover:translate-x-0.5 hover:translate-y-0.5 ${
+                    playing ? 'bg-blush ring-2 ring-[#212121]' : 'text-blush bg-[#212121]'
                   } ${preview.loading === v.id ? 'animate-pulse' : ''}`}
                 >
                   <PlayIcon playing={playing} />
@@ -181,19 +196,19 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
                       onKeyDown={(e) => {
                         if (e.key === 'Escape') setRenaming(null);
                       }}
-                      className="bg-raised text-ink min-h-11 min-w-0 flex-1 rounded-[12px] px-3 text-[15px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ember)]"
+                      className="field-line min-h-11 min-w-0 flex-1 px-0.5 text-[24px]"
                     />
                     <button
                       type="submit"
                       disabled={busy || !renaming.name.trim()}
-                      className="text-ember-ink min-h-11 px-3 text-[15px] font-semibold disabled:opacity-60"
+                      className={buttonClasses({ variant: 'secondary', className: 'px-3' })}
                     >
                       Save
                     </button>
                     <button
                       type="button"
                       onClick={() => setRenaming(null)}
-                      className="text-ink-muted min-h-11 px-2 text-[15px] font-medium"
+                      className="min-h-11 px-2 text-[15px] font-medium underline underline-offset-2"
                     >
                       Cancel
                     </button>
@@ -201,15 +216,19 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
                 ) : (
                   <>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-base font-semibold">{v.name}</span>
-                      <span className="text-ink-muted line-clamp-2 text-sm">{v.description}</span>
+                      <span className="font-display truncate text-[24px] leading-tight sm:text-[26px]">
+                        {v.name}
+                      </span>
+                      <span className="text-ink-muted line-clamp-2 text-[15px]">
+                        {v.description}
+                      </span>
                     </span>
-                    <span className="ml-auto flex shrink-0 items-center">
+                    <span className="ml-auto flex shrink-0 items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setRenaming({ id: v.id, name: v.name })}
                         aria-label={`Rename ${v.name}`}
-                        className="text-ink hover:bg-raised min-h-11 rounded-full px-3.5 text-[15px] font-medium"
+                        className={buttonClasses({ variant: 'secondary', size: 'sm' })}
                       >
                         Rename
                       </button>
@@ -217,7 +236,7 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
                         type="button"
                         onClick={() => setDeleting(v)}
                         aria-label={`Delete ${v.name}`}
-                        className="text-danger hover:bg-raised min-h-11 rounded-full px-3.5 text-[15px] font-medium"
+                        className={buttonClasses({ variant: 'secondary', size: 'sm' })}
                       >
                         Delete
                       </button>
@@ -230,11 +249,11 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
         </ul>
       )}
 
-      <p role="status" className="text-ink-muted text-sm">
+      <p role="status" className="m-0 text-[15px] empty:hidden">
         {preview.note || message}
       </p>
 
-      <p className="text-ink-muted text-sm leading-5">
+      <p className="text-ink-muted m-0 text-[14px] leading-5">
         Voices are made up from your description; they never copy a real person. Deleting a voice
         doesn&apos;t change videos you already made with it.
       </p>
@@ -243,8 +262,9 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
         open={deleting !== null}
         onClose={() => setDeleting(null)}
         title={deleting ? `Delete ${deleting.name}?` : 'Delete voice?'}
+        tone="dark"
       >
-        <p className="text-ink-muted text-[15px] leading-[22px]">
+        <p className="m-0 text-[17px] leading-[1.45]">
           Videos you already made keep their voice. A video that is still being made switches to its
           look&apos;s voice. This frees one of your {slots.limit} slots and can&apos;t be undone.
         </p>
@@ -252,7 +272,7 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
           <button
             type="button"
             onClick={() => setDeleting(null)}
-            className={buttonClasses({ variant: 'secondary', className: 'rounded-full' })}
+            className={buttonClasses({ size: 'lg' })}
           >
             Keep it
           </button>
@@ -260,12 +280,12 @@ export function MyVoicesView({ voices, slots }: { voices: MyVoice[]; slots: Slot
             type="button"
             onClick={() => void remove()}
             aria-disabled={busy}
-            className="bg-danger text-paper inline-flex min-h-12 items-center justify-center rounded-full px-6 text-[15px] font-semibold"
+            className="press inline-flex min-h-[54px] items-center justify-center rounded-[8px] bg-[#c81e3a] px-6 text-[17px] font-semibold text-white"
           >
             {busy ? 'Deleting…' : 'Delete voice'}
           </button>
         </div>
       </Sheet>
-    </div>
+    </section>
   );
 }
