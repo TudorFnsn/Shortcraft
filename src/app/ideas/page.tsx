@@ -4,7 +4,8 @@ import { siteConfig } from '@/config/site';
 import { THEMES } from '@/config/themes';
 import { ThemeFrame } from '@/components/theme-frame';
 import { lookFor } from '@/components/ideas';
-import { ideaPagePath } from '@/features/seo/site';
+import { KEYWORD_PAGES } from '@/config/keyword-pages';
+import { ideaPagePath, keywordPagePath } from '@/features/seo/site';
 
 const description =
   'Ready-made ideas for faceless TikTok, Reels and Shorts videos in eight styles, from horror stories to fun facts. Pick one and make it with AI.';
@@ -45,6 +46,16 @@ export default function IdeasIndexPage() {
           </li>
         ))}
       </ul>
+      <nav
+        aria-label="Guides"
+        className="text-ink-muted flex flex-wrap gap-x-6 gap-y-2 text-[15px]"
+      >
+        {KEYWORD_PAGES.map((p) => (
+          <Link key={p.slug} href={keywordPagePath(p.slug)} className="hover:text-ink underline">
+            {p.heading}
+          </Link>
+        ))}
+      </nav>
     </main>
   );
 }
