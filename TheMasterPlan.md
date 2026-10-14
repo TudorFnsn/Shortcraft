@@ -75,6 +75,7 @@ src/features/
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
+  finance/         MRR, MRR ratio, gross margin, cost per video + per 1,000 credits (FinancePlan.md)
   metrics/         north-star report math (weekly paying-retained creators, activation, trial→paid, failure rate)
   email/           lifecycle email: planner (who gets which reminder), templates, Resend sender, signed unsubscribe links, daily run
   seo/             canonical site URL, sitemap entries, robots rules (copy per theme in config/theme-guides.ts)
@@ -82,7 +83,7 @@ src/app/           landing, login, create, gallery, pricing, terms, privacy, ide
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc, 0007_pg_cron_sweep, 0008_posted_at, 0009_lifecycle_email, 0010_voice_studio, 0011_voice_previews
-scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only)
+scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only), finance-report.mts (MRR + costs, read-only)
 ```
 
 ---
@@ -319,10 +320,13 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
 - **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
+- **Finance CEO routine (to be created by the owner):** daily, 07:00 UTC, PR-gated, branches `ceo-finance/*`. Works only from `FinancePlan.md`; the master splits work to the subagents in `.claude/agents/finance-*.md` (cost auditor, vendor scout, revenue optimizer, implementer). Paste the prompt from `FinancePlan.md` §2 at claude.ai → Routines.
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-14** — Finance track: `FinancePlan.md`, four `finance-*` subagents, `features/finance` + `scripts/finance-report.mts` (MRR, MRR ratio, gross margin, API cost per finished video and per 1,000 credits; read-only) and owner-filled `config/finance-costs.ts`. +5 tests. No migration, no dependency, no runtime change. (Finance, interactive)
 
 - **2026-10-14** — SEO keyword pages (distribution, §6.3): `/ai-tiktok-video-generator` and `/faceless-video-generator`, data-driven from `config/keyword-pages.ts` (title/description/H1, steps, featured themes, FAQ) through one shared component; FAQPage JSON-LD (`faqJsonLd`, script-safe); sitemap + `/ideas` hub links. Tests check lengths, uniqueness against theme guides, theme ids, route folders and JSON-LD escaping. +8 tests (493). (CEO routine)
 - **2026-10-13** — Voice Studio V4 backend ("Create your own voice"): Voice Design port + ElevenLabs adapter + mock, paid design rounds (325 credits) and saves (1,500), plan limits 1/3/10, owner-only `u_` voice ids accepted by create, re-voice and preview, the orchestrator narrates with saved voices, migration 0012, `/api/voices` routes, live smoke script. Voice design is a margin-gate shape (Starter 5.62x with it as worst case; Pro 3.00x, Ultra 3.23x). +18 tests (475). (CEO, interactive)
