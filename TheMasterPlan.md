@@ -82,7 +82,8 @@ src/app/           landing, login, create, gallery, pricing, terms, privacy, ide
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc, 0007_pg_cron_sweep, 0008_posted_at, 0009_lifecycle_email, 0010_voice_studio, 0011_voice_previews
-scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only)
+scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only), finance-report.mts (MRR + unit economics, read-only)
+docs/routines/     scheduled-routine definitions (finance-cfo.md); docs/finance/ holds costs.json (owner-fed bills) and REPORT.md (CFO run log)
 ```
 
 ---
@@ -205,6 +206,10 @@ Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design 
   - Edit the script before the video is made (pause after scripting). It changes the state machine and the 202 flow, so it comes after V1–V4.
   - **Clone your own voice** as its own item (see decision log), after the legal work: consent recording + "this is my voice" checkbox, explicit GDPR consent for voice data, Privacy Policy + Terms updates, a deletion path, Pro/Ultra only, ~3,000 credits.
 
+### Finance (parallel track) — owned by the Finance CFO routine
+
+See `docs/routines/finance-cfo.md`. Weekly: MRR vs Stripe, real cost per video, provider scouting (fal.ai video is the biggest line), platform bills, CAC. **Owner:** (1) fill the `null` fixed costs and paste last month's invoiced provider spend into `docs/finance/costs.json`; (2) let the cloud environment reach Supabase (the MCP tunnel failed 2026-10-14) or set `SUPABASE_SERVICE_ROLE_KEY` as a routine secret; (3) schedule the routine with the prompt in §0 of its doc.
+
 ### LATER — Phase 4: Retention & ARPU
 
 - [ ] Characters (consistent reference across scenes).
@@ -324,6 +329,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-14** — Finance CFO routine (owner request): `docs/routines/finance-cfo.md` (master agent + five lanes: revenue/MRR, unit economics, provider scout, platform spend, growth economics; allowed vs proposal-only actions; notification rules; access checklist), `scripts/finance-report.mts` (read-only: DB MRR, API cost per video and per 1k credits by tier, wasted spend on failed jobs, profit vs fixed bills), pure math in `features/finance/unit-economics.ts` (+6 tests), `docs/finance/costs.json` (owner-maintained fixed + invoiced costs) and `docs/finance/REPORT.md` (run log). Supabase MCP did not connect from the cloud session, so no live numbers yet.
 - **2026-10-14** — SEO keyword pages (distribution, §6.3): `/ai-tiktok-video-generator` and `/faceless-video-generator`, data-driven from `config/keyword-pages.ts` (title/description/H1, steps, featured themes, FAQ) through one shared component; FAQPage JSON-LD (`faqJsonLd`, script-safe); sitemap + `/ideas` hub links. Tests check lengths, uniqueness against theme guides, theme ids, route folders and JSON-LD escaping. +8 tests (493). (CEO routine)
 - **2026-10-13** — Voice Studio V4 backend ("Create your own voice"): Voice Design port + ElevenLabs adapter + mock, paid design rounds (325 credits) and saves (1,500), plan limits 1/3/10, owner-only `u_` voice ids accepted by create, re-voice and preview, the orchestrator narrates with saved voices, migration 0012, `/api/voices` routes, live smoke script. Voice design is a margin-gate shape (Starter 5.62x with it as worst case; Pro 3.00x, Ultra 3.23x). +18 tests (475). (CEO, interactive)
 - **2026-10-13** — Synced with the Design CEO's V0 canvas plan: added what its V3 editor needs (`GET /api/jobs/:id/scenes`, per-scene thumbnails, `POST /api/voice/preview` + migration 0011) and a "Design handoff" API contract in §5 (limits are characters, re-voice ≈ 423 credits for 30s). +6 tests (450). (CEO, interactive)

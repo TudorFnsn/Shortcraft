@@ -1,0 +1,22 @@
+{
+  "_readme": "Owner-maintained monthly bills that are NOT per-video API spend, in USD. null = not reported yet. The finance routine reads this; when a value is null it asks the owner (PushNotification) instead of guessing. Update on every plan change.",
+  "updated": "2026-10-14",
+  "fixed": [
+    { "name": "Vercel (Hobby)", "monthlyUsd": 0 },
+    { "name": "Supabase (free)", "monthlyUsd": 0 },
+    {
+      "name": "ElevenLabs subscription (custom-voice slots + included characters)",
+      "monthlyUsd": null
+    },
+    { "name": "fal.ai (prepaid credit, no subscription)", "monthlyUsd": 0 },
+    { "name": "Anthropic API (usage only, counted in render_jobs.api_cost_usd)", "monthlyUsd": 0 },
+    { "name": "Resend (free tier)", "monthlyUsd": 0 },
+    { "name": "Sentry (free tier)", "monthlyUsd": 0 },
+    { "name": "Domain", "monthlyUsd": null },
+    { "name": "Ads / affiliate payouts", "monthlyUsd": null }
+  ],
+  "invoiced": {
+    "_readme": "Real provider spend per month from the dashboards/invoices, to calibrate src/config/models.ts (which uses list prices). Add one entry per month.",
+    "months": []
+  }
+}
