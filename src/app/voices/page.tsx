@@ -21,7 +21,7 @@ export default async function MyVoicesPage() {
   const voices = saved.map(publicVoice);
 
   return (
-    <main className="mx-auto max-w-[760px] px-4 py-8 sm:px-8 lg:py-12">
+    <main className="flex flex-col gap-3 px-2 pt-2 pb-28 sm:gap-6 sm:px-6 md:pb-6">
       <MyVoicesView voices={voices} slots={slotsFor(voices.length, planId)} />
     </main>
   );

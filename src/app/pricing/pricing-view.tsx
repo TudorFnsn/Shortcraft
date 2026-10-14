@@ -4,33 +4,29 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { planTeasers } from '@/components/landing/plan-teaser';
+import { SplitLines } from '@/components/motion/split-lines';
+import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
+import { Note } from '@/components/ui/note';
 import { WITHDRAWAL_WAIVER_TEXT } from '@/config/legal';
 import { PLANS, TOPUP_PACKS } from '@/config/plans';
 
 const eur = (cents: number) => `€${(cents / 100).toFixed(2)}`;
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-function Check() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="text-ember-ink mt-0.5 shrink-0"
-    >
-      <path d="M4.5 10.5l3.5 3.5 7.5-8" />
-    </svg>
-  );
-}
+/** 20000 → "20K" for the top-up tiles. */
+const short = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
 
-export function PricingView() {
+/** Plan boxes (B.1 Shape): Starter blush −1°, Pro ember, Ultra blush +1°. */
+const TILT = ['-rotate-1', '', 'rotate-1'] as const;
+
+/**
+ * Pricing (DesignPlan §4 B.2, board Pricing): the title stagger with a note,
+ * the withdrawal waiver, three tilted plan boxes with Fraunces prices (Pro is
+ * the ember box), the dark top-up box with League Gothic tiles and the refund
+ * line. Checkout calls are unchanged.
+ */
+export function PricingView({ currentPlan = null }: { currentPlan?: string | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,19 +59,28 @@ export function PricingView() {
   }
 
   return (
-    <main className="mx-auto flex max-w-[1120px] flex-col gap-12 px-4 py-10 sm:px-8 lg:py-16">
-      <header className="flex max-w-[640px] flex-col gap-3">
-        <h1 className="font-display text-[36px] leading-10 font-bold tracking-[-0.02em] sm:text-[44px] sm:leading-[48px]">
-          A plan for every posting rhythm
-        </h1>
-        <p className="text-ink-muted text-[17px] leading-7">
+    <main className="flex flex-col gap-8 px-2 pt-4 pb-6 sm:gap-10 sm:px-6">
+      <header className="relative flex flex-col gap-3 px-2 sm:px-14 sm:pt-5">
+        <p className="text-ember-ink m-0 text-[14px] font-semibold tracking-[3px] uppercase sm:text-[18px]">
+          Pricing
+        </p>
+        <SplitLines
+          as="h1"
+          className="font-display m-0 max-w-[12ch] text-[64px] leading-[.8] font-normal tracking-[-0.04em] sm:text-[clamp(80px,10vw,144px)] xl:max-w-none"
+        >
+          Pay for what you post
+        </SplitLines>
+        <p className="text-ink-muted m-0 mt-5 max-w-[640px] text-[17px] leading-[1.45]">
           Every plan removes the watermark and refills your credits each month. If a video
           doesn&apos;t finish, its credits come back automatically.
         </p>
+        <Note rotate={14} className="absolute top-8 right-20 text-[40px] max-lg:hidden">
+          most creators pick Pro
+        </Note>
       </header>
 
-      <div className="flex flex-col gap-3">
-        <label className="bg-surface border-line rounded-card text-ink flex cursor-pointer items-start gap-3 border p-4 text-sm leading-6">
+      <div className="flex flex-col gap-2 sm:px-14">
+        <label className="bg-surface text-ink flex cursor-pointer items-start gap-3 rounded-[8px] p-4 text-[15px] leading-6">
           <input
             type="checkbox"
             checked={accepted}
@@ -83,100 +88,105 @@ export function PricingView() {
               setAccepted(e.target.checked);
               setError(null);
             }}
-            className="accent-ember mt-0.5 size-5 shrink-0"
+            className="mt-0.5 size-5 shrink-0 accent-[#212121]"
           />
           <span>
             {WITHDRAWAL_WAIVER_TEXT}{' '}
-            <Link href="/terms" className="text-ember-ink font-medium underline">
+            <Link href="/terms" className="font-semibold underline">
               Terms
             </Link>{' '}
             ·{' '}
-            <Link href="/terms#refunds" className="text-ember-ink font-medium underline">
+            <Link href="/terms#refunds" className="font-semibold underline">
               Refunds
             </Link>{' '}
             ·{' '}
-            <Link href="/privacy" className="text-ember-ink font-medium underline">
+            <Link href="/privacy" className="font-semibold underline">
               Privacy
             </Link>
           </span>
         </label>
-        <p role="alert" className="text-danger min-h-5 text-sm font-medium">
+        <p
+          role="alert"
+          className="bg-blush m-0 rounded-[8px] px-4 py-3 text-[15px] font-semibold text-[#a32435] empty:hidden"
+        >
           {error}
         </p>
       </div>
 
-      <section aria-labelledby="plans-h" className="flex flex-col gap-5">
+      <section aria-labelledby="plans-h" className="flex flex-col gap-5 sm:px-14">
         <h2 id="plans-h" className="sr-only">
           Monthly plans
         </h2>
-        <ul className="grid gap-5 md:grid-cols-3">
-          {teasers.map((t) => {
+        <ul className="m-0 grid list-none gap-6 p-0 md:grid-cols-3">
+          {teasers.map((t, i) => {
             const plan = PLANS[t.id as keyof typeof PLANS];
             const key = `${t.id}_monthly`;
+            const current = currentPlan === t.id;
+            const pro = t.featured;
             return (
               <li
                 key={t.id}
-                className={`bg-surface rounded-panel relative flex flex-col gap-5 p-6 ${
-                  t.featured ? 'border-ember shadow-sheet border-2' : 'border-line border'
-                }`}
+                className={`${pro ? 'box-ember shadow-[30px_30px_60px_rgb(0_0_0/.35)]' : 'box-blush'} rounded-box flex flex-col gap-4 p-7 transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:rotate-0 sm:p-10 ${TILT[i] ?? ''}`}
               >
-                {t.featured && (
-                  <span className="bg-ember text-on-ember absolute -top-3 left-6 rounded-full px-3 py-0.5 text-xs font-semibold">
-                    Best for daily posting
-                  </span>
-                )}
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-[19px] leading-6 font-semibold">{t.name}</h3>
-                  <p className="flex items-baseline gap-1">
-                    <span className="font-display text-[40px] leading-[44px] font-bold tracking-[-0.02em]">
-                      {t.price}
-                    </span>
-                    <span className="text-ink-muted text-sm">/ month</span>
-                  </p>
-                  <p className="text-ink-muted text-sm">
-                    {t.credits} credits a month · {t.videos}
-                  </p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="m-0 text-[19px] font-bold tracking-[3px] uppercase">{t.name}</h3>
+                  {current ? (
+                    <Badge tone="ink" className="text-[13px]">
+                      Your plan
+                    </Badge>
+                  ) : (
+                    pro && (
+                      <Badge tone="ink" className="text-[13px]">
+                        Best for daily posting
+                      </Badge>
+                    )
+                  )}
                 </div>
-                <ul className="flex flex-1 flex-col gap-2.5 text-[15px] leading-5">
-                  <li className="flex gap-2.5">
-                    <Check />
-                    Videos up to {plan.limits.maxVideoDurationSec}s
-                  </li>
-                  <li className="flex gap-2.5">
-                    <Check />
+                <p className="font-display m-0 text-[64px] leading-[.9] font-light tracking-[-0.03em] whitespace-nowrap sm:text-[clamp(56px,6vw,88px)]">
+                  {t.price}
+                  <span className="text-[20px] tracking-normal"> / month</span>
+                </p>
+                <ul
+                  className={`m-0 flex flex-1 list-disc flex-col gap-1 pl-5 ${
+                    pro ? 'text-[19px] font-bold' : 'text-[17px]'
+                  } leading-[1.5]`}
+                >
+                  <li>{t.credits} credits a month</li>
+                  <li>Videos up to {plan.limits.maxVideoDurationSec} seconds</li>
+                  <li>
                     {plan.limits.modelTiers.includes('premium')
-                      ? 'Animated stills and Premium AI video'
-                      : 'Animated-still scenes (Standard)'}
+                      ? 'Animated stills and AI video motion'
+                      : 'Animated stills'}
                   </li>
-                  <li className="flex gap-2.5">
-                    <Check />
-                    No watermark
+                  <li>
+                    {plan.limits.savedVoices} saved{' '}
+                    {plan.limits.savedVoices === 1 ? 'voice' : 'voices'}
                   </li>
-                  {plan.limits.studio && (
-                    <li className="flex gap-2.5">
-                      <Check />
-                      Studio editor
-                    </li>
-                  )}
-                  {plan.limits.series && (
-                    <li className="flex gap-2.5">
-                      <Check />
-                      Series
-                    </li>
-                  )}
+                  <li>No watermark</li>
                 </ul>
+                <p
+                  className={`m-0 ${pro ? 'text-[19px] font-bold' : 'text-ink-muted text-[15px]'}`}
+                >
+                  {t.videos}
+                </p>
                 <button
                   type="button"
-                  disabled={busy !== null}
-                  aria-label={`Choose ${t.name}, ${t.price} a month`}
+                  disabled={busy !== null || current}
+                  aria-label={
+                    current ? `${t.name} is your plan` : `Choose ${t.name}, ${t.price} a month`
+                  }
                   onClick={() => purchase(key)}
-                  className={buttonClasses({
-                    variant: t.featured ? 'primary' : 'secondary',
-                    size: 'lg',
-                    className: 'w-full disabled:opacity-50',
-                  })}
+                  className={
+                    pro
+                      ? buttonClasses({
+                          size: 'lg',
+                          className:
+                            'mt-auto w-full [--press-line:var(--shadow-red)] disabled:opacity-60',
+                        })
+                      : `press font-display mt-auto inline-flex min-h-[54px] w-full items-center justify-center rounded-[8px] bg-transparent px-6 text-[30px] font-light [--press-line:#212121] disabled:opacity-60`
+                  }
                 >
-                  {busy === key ? 'Opening checkout…' : `Choose ${t.name}`}
+                  {busy === key ? 'Opening checkout…' : current ? 'Your plan' : `Choose ${t.name}`}
                 </button>
               </li>
             );
@@ -184,38 +194,44 @@ export function PricingView() {
         </ul>
       </section>
 
-      <section aria-labelledby="topups-h" className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1.5">
-          <h2 id="topups-h" className="font-display text-[26px] leading-8 font-bold">
-            Need more this month?
+      <section
+        aria-labelledby="topups-h"
+        className="box-dark rounded-box mt-4 flex flex-col gap-8 px-5 py-10 sm:mx-0 sm:px-14 sm:py-12 lg:flex-row lg:flex-wrap lg:items-center lg:gap-12"
+      >
+        <div className="lg:flex-[1_1_320px]">
+          <h2
+            id="topups-h"
+            className="font-display m-0 text-[44px] leading-[.85] font-normal tracking-[-0.03em] sm:text-[64px]"
+          >
+            Need a top-up?
           </h2>
-          <p className="text-ink-muted">One-time credit top-ups, added to your balance.</p>
+          <p className="font-label m-0 mt-3 text-[16px] uppercase sm:text-[18px]">
+            One-time credits, added to your balance
+          </p>
         </div>
-        <ul className="grid gap-4 sm:grid-cols-3">
+        <ul className="m-0 grid list-none grid-cols-3 gap-3 p-0 sm:gap-4 lg:flex-[2_1_600px]">
           {TOPUP_PACKS.map((pack) => (
-            <li
-              key={pack.id}
-              className="bg-surface border-line rounded-card flex items-center justify-between gap-4 border p-5"
-            >
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[17px] font-semibold">{fmt(pack.credits)} credits</span>
-                <span className="text-ink-muted text-sm">{eur(pack.priceCents)} once</span>
-              </div>
+            <li key={pack.id}>
               <button
                 type="button"
                 disabled={busy !== null}
                 aria-label={`Buy ${fmt(pack.credits)} credits for ${eur(pack.priceCents)}`}
                 onClick={() => purchase(pack.id)}
-                className={buttonClasses({
-                  variant: 'secondary',
-                  className: 'min-h-11 shrink-0 disabled:opacity-50',
-                })}
+                className="press flex w-full flex-col items-start gap-1 rounded-[8px] bg-transparent p-3 text-left disabled:opacity-60 sm:p-5"
               >
-                {busy === pack.id ? 'Opening…' : 'Buy'}
+                <span className="font-poster text-[48px] leading-[.9] sm:text-[64px]">
+                  {short(pack.credits)}
+                </span>
+                <span className="text-[14px] sm:text-[17px]">
+                  {busy === pack.id ? 'Opening…' : `credits · ${eur(pack.priceCents)}`}
+                </span>
               </button>
             </li>
           ))}
         </ul>
+        <p className="text-ink-muted m-0 w-full text-[15px]">
+          Failed videos refund their credits automatically. Cancel any time from your account.
+        </p>
       </section>
     </main>
   );

@@ -6,6 +6,9 @@ import { onRadioKeyDown } from '@/components/ui/radio-keys';
 import Link from 'next/link';
 import { DELIVERY_LABEL, SPEED_LABEL, type MyVoice } from './voice-choice';
 
+/** Section labels: Inter 600 uppercase (B.1 eyebrow, app scale). */
+const LABEL = 'text-[13px] font-semibold tracking-[2px] uppercase';
+
 function PlayIcon({ playing }: { playing: boolean }) {
   return playing ? (
     <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true">
@@ -33,14 +36,14 @@ function Segmented<T extends string>({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-ink-muted text-sm font-semibold" aria-hidden="true">
+      <span className={LABEL} aria-hidden="true">
         {label}
       </span>
       <div
         role="radiogroup"
         aria-label={label}
         onKeyDown={(e) => onRadioKeyDown(e, values, value, onChange)}
-        className="bg-raised flex gap-1 rounded-full p-1"
+        className="flex gap-1 rounded-full bg-black/10 p-1"
       >
         {values.map((v) => {
           const checked = v === value;
@@ -52,8 +55,8 @@ function Segmented<T extends string>({
               aria-checked={checked}
               tabIndex={checked ? 0 : -1}
               onClick={() => onChange(v)}
-              className={`min-h-10 flex-1 rounded-full text-sm font-medium transition-colors ${
-                checked ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+              className={`min-h-11 flex-1 rounded-full text-[15px] font-semibold transition-colors ${
+                checked ? 'text-blush bg-[#212121]' : 'text-ink hover:bg-black/10'
               }`}
             >
               {labels[v]}
@@ -88,8 +91,8 @@ function VoiceTile({
 }) {
   return (
     <div
-      className={`flex min-h-16 items-center gap-3 rounded-[16px] py-2 pr-3 pl-2.5 transition-colors ${
-        checked ? 'bg-ember-soft ring-ember ring-2' : 'bg-raised'
+      className={`flex min-h-16 items-center gap-3 rounded-[8px] py-2 pr-3 pl-2.5 transition-colors ${
+        checked ? 'bg-blush text-[#212121]' : 'bg-black/10'
       }`}
     >
       <button
@@ -98,8 +101,8 @@ function VoiceTile({
         aria-label={`${playing ? 'Stop' : 'Play'} ${name}`}
         aria-pressed={playing}
         aria-busy={loading}
-        className={`flex size-11 shrink-0 items-center justify-center rounded-full transition-colors ${
-          playing ? 'bg-ember text-on-ember' : 'bg-surface text-ink hover:bg-line'
+        className={`flex size-11 shrink-0 items-center justify-center rounded-full transition-transform hover:translate-x-0.5 hover:translate-y-0.5 ${
+          playing ? 'bg-blush text-[#212121] ring-2 ring-[#212121]' : 'text-blush bg-[#212121]'
         } ${loading ? 'animate-pulse' : ''}`}
       >
         <PlayIcon playing={playing} />
@@ -112,11 +115,15 @@ function VoiceTile({
         onClick={() => onVoice(id)}
         className="flex min-h-11 min-w-0 flex-1 flex-col justify-center text-left"
       >
-        <span className="truncate text-[15px] leading-5 font-semibold">
+        <span className="font-display truncate text-[22px] leading-6">
           {name}
-          {badge && <span className="text-ink-muted ml-2 text-xs font-medium">{badge}</span>}
+          {badge && (
+            <span className="ml-2 font-sans text-[12px] font-semibold tracking-[1px] uppercase">
+              {badge}
+            </span>
+          )}
         </span>
-        <span className="text-ink-muted truncate text-[13px] leading-[18px]">{detail}</span>
+        <span className="truncate text-[14px] leading-[18px]">{detail}</span>
       </button>
     </div>
   );
@@ -124,7 +131,9 @@ function VoiceTile({
 
 /**
  * The voice list with ▶ samples, plus speed and delivery. Shared by the Voice
- * sheet on Create and the voiceover editor. The creator's saved voices come
+ * sheet on Create and the voiceover editor. Boxes look (DesignPlan §4 B.2):
+ * rows like My voices (ink ▶ circle, Fraunces name), the picked one in blush,
+ * and speed and delivery as blush/ink pills; it reads on the sky and dark boxes. The creator's saved voices come
  * first, with a way to create one; then the catalog.
  */
 export function VoicePicker({
@@ -178,7 +187,7 @@ export function VoicePicker({
       >
         {(mine.length > 0 || createHref) && (
           <div className="flex flex-col gap-2">
-            <span className="text-ink-muted text-sm font-semibold" aria-hidden="true">
+            <span className={LABEL} aria-hidden="true">
               My voices
             </span>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -197,7 +206,7 @@ export function VoicePicker({
               {createHref && (
                 <Link
                   href={createHref}
-                  className="border-line-strong text-ink hover:bg-raised flex min-h-16 items-center gap-2.5 rounded-[16px] border-[1.5px] border-dashed px-4 text-[15px] font-semibold transition-colors"
+                  className="flex min-h-16 items-center gap-2.5 rounded-[8px] border-[1.5px] border-dashed border-current px-4 text-[17px] font-semibold transition-colors hover:bg-black/10"
                 >
                   <svg
                     width="16"
@@ -219,7 +228,7 @@ export function VoicePicker({
         )}
         <div className="flex flex-col gap-2">
           {(mine.length > 0 || createHref) && (
-            <span className="text-ink-muted text-sm font-semibold" aria-hidden="true">
+            <span className={LABEL} aria-hidden="true">
               Voices
             </span>
           )}
@@ -241,7 +250,7 @@ export function VoicePicker({
         </div>
       </div>
       {note && (
-        <p role="status" className="text-ink-muted -mt-3 text-sm">
+        <p role="status" className="-mt-3 text-[15px]">
           {note}
         </p>
       )}

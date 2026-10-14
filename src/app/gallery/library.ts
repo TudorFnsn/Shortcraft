@@ -22,6 +22,17 @@ const STEP_LABEL: Record<(typeof RENDER_STEPS)[number], string> = {
 
 export const STEP_COUNT = RENDER_STEPS.length;
 
+/** The six step names in order, for the step reveal on a video being made. */
+export const STEP_LABELS: readonly string[] = RENDER_STEPS.map((s) => STEP_LABEL[s]);
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The sky box's title: "This week" while every video is from the last 7 days. */
+export function libraryTitle(cards: readonly { createdAt: string }[], now: Date): string {
+  const recent = cards.every((c) => now.getTime() - new Date(c.createdAt).getTime() <= WEEK_MS);
+  return recent ? 'This week' : 'All your videos';
+}
+
 /** 1-based step and its label for an in-progress job ("draft" counts as step 1). */
 export function stepOf(status: RenderStatus): { step: number; label: string } {
   const idx = RENDER_STEPS.indexOf(status as (typeof RENDER_STEPS)[number]);

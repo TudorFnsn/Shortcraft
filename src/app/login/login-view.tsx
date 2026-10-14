@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ThemeFrame } from '@/components/theme-frame';
+import { Note } from '@/components/ui/note';
 import { buttonClasses } from '@/components/ui/button';
 import { siteConfig } from '@/config/site';
 import { createSupabaseBrowserClient } from '@/utils/supabase/client';
@@ -13,8 +13,8 @@ import { GoogleButton } from './google-button';
 
 type Mode = 'signin' | 'signup';
 
-const field =
-  'border-line-strong bg-surface text-ink placeholder:text-ink-muted focus-visible:border-ember min-h-12 w-full rounded-card border px-4 text-[16px]';
+/** Under-line field in Fraunces 300 (B.1), on the dark box. */
+const field = 'field-line text-ink min-h-12 w-full px-0.5 py-2 text-[24px] sm:text-[30px]';
 
 export function LoginView({
   carried,
@@ -88,41 +88,68 @@ export function LoginView({
   }
 
   return (
-    <main className="mx-auto grid max-w-[1120px] items-center gap-12 px-4 py-10 sm:px-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-20 lg:py-16">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-display text-[32px] leading-9 font-bold tracking-[-0.02em]">
-            {signup ? 'Create your account' : 'Welcome back'}
-          </h1>
-          <p className="text-ink-muted">
-            {signup
-              ? `${siteConfig.trialCredits.toLocaleString('en-US')} free credits to start. No card needed.`
-              : 'Log in to make today’s video.'}
-          </p>
-        </div>
-
-        <div
-          role="group"
-          aria-label="Account"
-          className="bg-raised grid grid-cols-2 gap-1 rounded-full p-1"
+    <main className="flex flex-col gap-3 overflow-x-clip px-2 pt-2 pb-2 sm:px-6 sm:pb-6 lg:flex-row lg:gap-6">
+      <section
+        aria-labelledby="hello-h"
+        className="box-hero rounded-box relative flex min-w-0 flex-col justify-end gap-4 overflow-hidden px-5 py-8 sm:p-12 lg:flex-[1_1_560px]"
+      >
+        <p
+          aria-hidden="true"
+          className="font-poster m-0 bg-clip-text text-[140px] leading-[.72] text-transparent uppercase sm:text-[220px] xl:text-[300px]"
+          style={{ backgroundImage: 'linear-gradient(90deg, #f07142, #f0354d 40%, #4a0f19)' }}
         >
+          Hello
+        </p>
+        <h1
+          id="hello-h"
+          className="font-display m-0 max-w-[14ch] text-[40px] leading-[.85] font-light tracking-[-0.03em] sm:text-[72px]"
+        >
+          Your next Short is one idea away
+        </h1>
+        <Note
+          rotate={16}
+          className="absolute top-6 right-5 text-[26px] sm:top-20 sm:right-14 sm:text-[40px]"
+        >
+          {siteConfig.trialCredits.toLocaleString('en-US')} free credits!
+        </Note>
+      </section>
+
+      <section
+        aria-labelledby="form-h"
+        className="box-dark rounded-box animate-sweep-in flex min-w-0 flex-col justify-center gap-6 px-5 py-10 sm:px-14 sm:py-16 lg:flex-[1_1_520px]"
+      >
+        <div role="group" aria-label="Account" className="flex gap-2">
           {(['signin', 'signup'] as const).map((m) => (
             <button
               key={m}
               type="button"
               aria-pressed={mode === m}
               onClick={() => switchTo(m)}
-              className={`min-h-11 rounded-full text-[15px] font-semibold transition-colors ${
-                mode === m ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+              className={`min-h-11 rounded-full px-4 text-[15px] font-semibold transition-colors ${
+                mode === m ? 'bg-blush text-on-blush' : 'text-ink hover:bg-ink/10'
               }`}
             >
-              {m === 'signin' ? 'Log in' : 'Sign up'}
+              {m === 'signin' ? 'Sign in' : 'Create account'}
             </button>
           ))}
         </div>
 
+        <div className="flex flex-col gap-2">
+          <h2
+            id="form-h"
+            className="font-display m-0 text-[44px] leading-[.85] font-normal tracking-[-0.03em] sm:text-[64px]"
+          >
+            {signup ? 'Create your account' : 'Welcome back'}
+          </h2>
+          <p className="text-ink-muted m-0 text-[16px]">
+            {signup
+              ? `${siteConfig.trialCredits.toLocaleString('en-US')} free credits to start. No card needed.`
+              : 'Sign in to make today’s video.'}
+          </p>
+        </div>
+
         {idea && (
-          <p className="bg-ember-soft text-ink rounded-card px-4 py-3 text-[15px] leading-6">
+          <p className="bg-blush text-on-blush m-0 rounded-[8px] px-4 py-3 text-[15px] leading-6">
             After this, Create opens with your idea:{' '}
             <span className="font-semibold">&ldquo;{idea}&rdquo;</span>
           </p>
@@ -139,9 +166,9 @@ export function LoginView({
           </>
         )}
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-semibold">
+            <label htmlFor="email" className="text-[15px]">
               Email
             </label>
             <input
@@ -158,7 +185,7 @@ export function LoginView({
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <label htmlFor="password" className="text-sm font-semibold">
+              <label htmlFor="password" className="text-[15px]">
                 Password
               </label>
               {signup && (
@@ -184,7 +211,7 @@ export function LoginView({
                 onClick={() => setShowPassword((s) => !s)}
                 aria-pressed={showPassword}
                 aria-controls="password"
-                className="text-ink-muted hover:text-ink absolute inset-y-0 right-1 my-auto h-10 rounded-full px-3 text-[13px] font-semibold"
+                className="text-ink absolute inset-y-0 right-0 my-auto h-11 rounded-[8px] px-3 text-[14px] font-semibold"
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -194,52 +221,42 @@ export function LoginView({
           <button
             type="submit"
             disabled={loading || googleLoading}
-            className={buttonClasses({ size: 'lg', className: 'w-full disabled:opacity-60' })}
+            className={buttonClasses({
+              size: 'xl',
+              className: 'mt-2 w-full disabled:opacity-60 sm:text-[40px]',
+            })}
           >
-            {loading ? 'One moment…' : signup ? 'Create account' : 'Log in'}
+            {loading ? 'One moment…' : signup ? 'Create account' : 'Sign in'}
           </button>
         </form>
 
-        <p role="alert" className="text-danger text-sm font-medium empty:hidden">
+        <p
+          role="alert"
+          className="bg-blush m-0 rounded-[8px] px-4 py-3 text-[15px] font-medium text-[#a32435] empty:hidden"
+        >
           {error}
         </p>
-        <p role="status" className="text-success text-sm font-medium empty:hidden">
+        <p
+          role="status"
+          className="bg-blush text-on-blush m-0 rounded-[8px] px-4 py-3 text-[15px] font-medium empty:hidden"
+        >
           {notice}
         </p>
 
         {(signup || googleEnabled) && (
-          <p className="text-ink-muted text-[13px] leading-5">
+          <p className="text-ink-muted m-0 text-[13px] leading-5">
             {signup ? 'By signing up' : 'By continuing with Google'} you agree to the{' '}
-            <Link href="/terms" className="text-ember-ink font-medium underline">
+            <Link href="/terms" className="text-ink font-medium underline">
               Terms
             </Link>{' '}
             and{' '}
-            <Link href="/privacy" className="text-ember-ink font-medium underline">
+            <Link href="/privacy" className="text-ink font-medium underline">
               Privacy Policy
             </Link>
             . We may send a couple of reminder emails; every one has an unsubscribe link.
           </p>
         )}
-      </div>
-
-      <aside
-        aria-label={`Why ${siteConfig.name}`}
-        className="bg-surface border-line rounded-panel hidden items-center gap-8 border p-8 lg:flex"
-      >
-        <div className="w-[180px] shrink-0 overflow-hidden rounded-[22px] border-[5px] border-[#050506]">
-          <ThemeFrame themeId="fun-facts" variant="phone" caption />
-        </div>
-        <div className="flex flex-col gap-4">
-          <h2 className="font-display text-[24px] leading-8 font-bold">
-            Your next Short, without showing your face
-          </h2>
-          <ul className="text-ink-muted flex flex-col gap-2.5 text-[15px] leading-6">
-            <li>One line of idea in, a captioned 9:16 video out.</li>
-            <li>Eight looks, from Fun Facts to Horror Story.</li>
-            <li>Failed videos refund their credits automatically.</li>
-          </ul>
-        </div>
-      </aside>
+      </section>
     </main>
   );
 }

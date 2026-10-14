@@ -226,3 +226,24 @@ describe('blocked by the safety check (D2.1)', () => {
     expect(finishedMessage(before, after)).toBe("Owls wasn't made. Your credits were refunded.");
   });
 });
+
+describe('Boxes library helpers', () => {
+  it('names the six steps in order for the step reveal', async () => {
+    const { STEP_LABELS, STEP_COUNT } = await import('@/app/gallery/library');
+    expect(STEP_LABELS).toHaveLength(STEP_COUNT);
+    expect(STEP_LABELS[0]).toBe('Writing script');
+    expect(STEP_LABELS.at(-1)).toBe('Final cut');
+  });
+
+  it('titles the box "This week" only while every video is recent', async () => {
+    const { libraryTitle } = await import('@/app/gallery/library');
+    const now = new Date('2026-10-14T12:00:00Z');
+    expect(libraryTitle([{ createdAt: '2026-10-10T12:00:00Z' }], now)).toBe('This week');
+    expect(
+      libraryTitle(
+        [{ createdAt: '2026-10-10T12:00:00Z' }, { createdAt: '2026-09-01T12:00:00Z' }],
+        now,
+      ),
+    ).toBe('All your videos');
+  });
+});

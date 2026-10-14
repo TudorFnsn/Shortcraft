@@ -44,7 +44,7 @@ export default async function CreatePage({ searchParams }: PageProps<'/create'>)
       : remembered;
 
   return (
-    <main className="mx-auto max-w-[1344px] px-4 py-8 sm:px-8 lg:py-10 xl:px-12">
+    <main className="flex px-2 pb-2 sm:px-6 sm:pb-6">
       <CreateForm
         initial={initial}
         initialVoice={startVoice}

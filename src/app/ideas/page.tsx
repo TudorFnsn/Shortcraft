@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { siteConfig } from '@/config/site';
 import { THEMES } from '@/config/themes';
-import { ThemeFrame } from '@/components/theme-frame';
 import { lookFor } from '@/components/ideas';
+import { SplitLines } from '@/components/motion/split-lines';
+import { Box } from '@/components/ui/box';
 import { KEYWORD_PAGES } from '@/config/keyword-pages';
 import { ideaPagePath, keywordPagePath } from '@/features/seo/site';
 
@@ -16,42 +17,60 @@ export const metadata: Metadata = {
   alternates: { canonical: '/ideas' },
 };
 
-/** Public hub that links every theme page (and is linked from the landing + footer). */
+/**
+ * Public hub that links every look's ideas page (DesignPlan §4 B.2: the
+ * landing's sky looks box, with the stacked names as links).
+ */
 export default function IdeasIndexPage() {
   return (
-    <main className="mx-auto flex max-w-[1344px] flex-col gap-8 px-4 py-8 sm:px-8 sm:py-14 xl:px-12">
-      <div className="flex max-w-[680px] flex-col gap-3">
-        <h1 className="font-display text-[36px] leading-10 font-bold tracking-[-0.025em] sm:text-[52px] sm:leading-[56px]">
+    <main className="flex flex-col gap-10 px-2 pt-4 pb-6 sm:px-6 sm:pb-6">
+      <Box
+        tone="sky"
+        aria-labelledby="ideas-h"
+        className="flex flex-col gap-3 px-5 py-14 sm:px-12 sm:py-20 lg:px-20 lg:py-[120px]"
+      >
+        <p className="m-0 text-[clamp(1rem,2vw,1.5rem)] font-semibold tracking-[3px] uppercase">
+          Eight looks
+        </p>
+        <SplitLines
+          as="h1"
+          id="ideas-h"
+          className="font-display m-0 text-[clamp(3.5rem,8vw,9rem)] leading-[.8] font-normal tracking-[-0.04em]"
+        >
           Faceless video ideas
-        </h1>
-        <p className="text-ink-muted text-[17px] leading-[26px]">
+        </SplitLines>
+        <p className="m-0 mt-4 max-w-[760px] text-[clamp(1.25rem,1.75vw,2rem)] leading-[1.25] font-light">
           Eight formats that work without showing your face, each with ideas you can turn into a
           narrated, captioned vertical video in minutes.
         </p>
-      </div>
-      <ul className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {THEMES.map((t) => (
-          <li key={t.id}>
-            <Link href={ideaPagePath(t.id)} className="group flex flex-col gap-2.5">
-              <ThemeFrame themeId={t.id} variant="card" className="rounded-card" />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-[15px] leading-5 font-semibold group-hover:underline">
-                  {t.label} ideas
+        <ul className="m-0 mt-8 flex list-none flex-col p-0 sm:mt-14">
+          {THEMES.map((t) => (
+            <li key={t.id}>
+              <Link
+                href={ideaPagePath(t.id)}
+                className="group font-display flex min-h-11 flex-wrap items-baseline gap-x-5 py-1 leading-[.8]"
+              >
+                <span className="text-[clamp(2.4rem,6vw,7rem)] font-extralight tracking-[-0.03em] transition-all duration-300 group-hover:font-black group-hover:tracking-[-0.04em] group-hover:[text-shadow:1px_1px_0_rgb(255_255_255/.8)] group-focus-visible:font-black">
+                  {t.label}
                 </span>
-                <span className="text-ink-muted text-[13px] leading-[18px]">
-                  {t.blurb} · {lookFor(t.id).ideas.length} ideas
+                <span className="font-sans text-[15px] font-semibold tracking-[1px] uppercase">
+                  {lookFor(t.id).ideas.length} ideas
                 </span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Box>
       <nav
         aria-label="Guides"
-        className="text-ink-muted flex flex-wrap gap-x-6 gap-y-2 text-[15px]"
+        className="font-label flex flex-wrap gap-x-6 gap-y-2 px-3 text-[16px] uppercase sm:px-6"
       >
         {KEYWORD_PAGES.map((p) => (
-          <Link key={p.slug} href={keywordPagePath(p.slug)} className="hover:text-ink underline">
+          <Link
+            key={p.slug}
+            href={keywordPagePath(p.slug)}
+            className="inline-flex min-h-11 items-center underline underline-offset-4"
+          >
             {p.heading}
           </Link>
         ))}

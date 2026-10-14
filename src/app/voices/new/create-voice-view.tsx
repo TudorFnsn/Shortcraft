@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SplitLines } from '@/components/motion/split-lines';
+import { StepReveal } from '@/components/motion/step-reveal';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
+import { Note } from '@/components/ui/note';
 import { onRadioKeyDown } from '@/components/ui/radio-keys';
 import { useVoicePreview } from '@/components/voice/use-voice-preview';
 import type { Slots } from '../slots';
@@ -43,7 +47,8 @@ function PlayIcon({ playing }: { playing: boolean }) {
 }
 
 /**
- * Create a voice (Voice Studio V4): describe a narrator, hear 3 designed
+ * Create a voice (Voice Studio V4; Boxes board Voices): the ember box, in two
+ * steps that pop in. Describe a narrator, hear 3 designed
  * samples, keep one under a name. Each round of samples and the save are
  * charged (and refunded if the provider fails); the prices sit next to the
  * buttons that spend them.
@@ -124,7 +129,7 @@ export function CreateVoiceView({
   const back = (
     <Link
       href="/voices"
-      className="text-ink-muted hover:text-ink inline-flex min-h-11 items-center gap-1.5 self-start text-[15px]"
+      className="press text-ink inline-flex min-h-11 items-center gap-1.5 self-start rounded-[8px] px-3 text-[14px] font-semibold tracking-[1px] uppercase"
     >
       <svg
         width="16"
@@ -143,11 +148,47 @@ export function CreateVoiceView({
     </Link>
   );
 
+  /** On the ember box: small text sits in the dark pill (AA). */
+  const pill = 'text-blush m-0 self-start rounded-[16px] bg-[#212121] px-3.5 py-2 text-[15px]';
+  const box = (children: React.ReactNode, labelledBy: string, extra?: React.ReactNode) => (
+    <>
+      {back}
+      <section
+        aria-labelledby={labelledBy}
+        className="box-ember rounded-box animate-sweep-in relative flex flex-col gap-5 overflow-hidden px-5 py-8 sm:gap-6 sm:p-12"
+      >
+        <div className="relative mx-auto flex w-full max-w-[760px] flex-col gap-5 sm:gap-6">
+          {children}
+        </div>
+        {extra}
+      </section>
+    </>
+  );
+  const heading = (id: string, text: string, step?: string) => (
+    <div className="flex flex-col items-start gap-3">
+      {step && (
+        <Badge tone="ink" className="px-3 py-1 text-[13px] tracking-[3px] uppercase">
+          {step}
+        </Badge>
+      )}
+      <SplitLines
+        as="h1"
+        id={id}
+        className="font-display m-0 text-[52px] leading-[.85] font-normal tracking-[-0.04em] sm:text-[96px] sm:leading-[.8]"
+      >
+        {text}
+      </SplitLines>
+    </div>
+  );
+
   const error = failure && (
-    <div role="alert" className="bg-surface rounded-card flex flex-col gap-1 px-4 py-3">
-      <span className="text-danger text-[15px] font-semibold">{failure.message}</span>
+    <div
+      role="alert"
+      className="bg-blush flex flex-col gap-1 rounded-[8px] px-4 py-3 text-[#a32435]"
+    >
+      <span className="text-[15px] font-semibold">{failure.message}</span>
       {failure.topUp && (
-        <Link href="/pricing" className="text-ember-ink text-sm font-semibold underline">
+        <Link href="/pricing" className="text-[15px] font-semibold underline">
           Get more credits
         </Link>
       )}
@@ -155,107 +196,98 @@ export function CreateVoiceView({
   );
 
   if (saved) {
-    return (
-      <div className="flex flex-col gap-6">
-        {back}
-        <div className="bg-surface rounded-card flex flex-col items-start gap-4 px-6 py-8">
-          <h1 className="font-display text-[28px] leading-8 font-bold">{saved.name} is saved</h1>
-          <p className="text-ink-muted text-[15px] leading-[22px]">
-            It&apos;s at the top of the Voice sheet on Create and in Edit voiceover, for every
-            video, at no extra cost.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/create?voice=${encodeURIComponent(saved.id)}`}
-              className={buttonClasses({ size: 'lg', className: 'rounded-full' })}
-            >
-              Make a video with it
-            </Link>
-            <Link
-              href="/voices"
-              className={buttonClasses({ variant: 'secondary', className: 'rounded-full' })}
-            >
-              My voices
-            </Link>
-          </div>
+    return box(
+      <>
+        {heading('cv-h', `${saved.name} is saved`)}
+        <p className="m-0 max-w-[32ch] text-[24px] leading-[1.3] font-light">
+          It&apos;s at the top of the Voice sheet on Create and in Edit voiceover, for every video,
+          at no extra cost.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/create?voice=${encodeURIComponent(saved.id)}`}
+            className={buttonClasses({ size: 'xl', className: '[--press-line:var(--shadow-red)]' })}
+          >
+            Make a video with it
+          </Link>
+          <Link
+            href="/voices"
+            className="press inline-flex min-h-[64px] items-center rounded-[8px] px-6 text-[19px] font-bold text-white [--press-line:#f0e2dd]"
+          >
+            My voices
+          </Link>
         </div>
-      </div>
+      </>,
+      'cv-h',
     );
   }
 
   if (slots.atLimit) {
-    return (
-      <div className="flex flex-col gap-6">
-        {back}
-        <h1 className="font-display text-[32px] leading-9 font-bold sm:text-[40px] sm:leading-[44px]">
-          Create a voice
-        </h1>
-        <div className="bg-ember-soft rounded-card flex flex-col gap-3 px-5 py-4">
-          <p className="text-ink text-[15px] leading-[22px]">
-            All your voice slots are in use. Delete one in My voices to make room
-            {slots.more ? `, or move to ${slots.more.name} for ${slots.more.limit}.` : '.'}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/voices"
-              className={buttonClasses({ variant: 'secondary', className: 'rounded-full' })}
-            >
-              My voices
+    return box(
+      <>
+        {heading('cv-h', 'Create a voice')}
+        <p className="m-0 max-w-[32ch] text-[24px] leading-[1.3] font-light">
+          All your voice slots are in use. Delete one in My voices to make room
+          {slots.more ? `, or move to ${slots.more.name} for ${slots.more.limit}.` : '.'}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {slots.more && (
+            <Link href="/pricing" className={buttonClasses({ size: 'lg' })}>
+              See {slots.more.name}
             </Link>
-            {slots.more && (
-              <Link href="/pricing" className={buttonClasses({ className: 'rounded-full' })}>
-                See {slots.more.name}
-              </Link>
-            )}
-          </div>
+          )}
+          <Link
+            href="/voices"
+            className="press inline-flex min-h-[54px] items-center rounded-[8px] px-6 text-[19px] font-bold text-white [--press-line:#f0e2dd]"
+          >
+            My voices
+          </Link>
         </div>
-      </div>
+      </>,
+      'cv-h',
     );
   }
 
   if (!round) {
-    return (
+    return box(
       <form
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-5 sm:gap-6"
         aria-busy={working === 'design'}
         onSubmit={(e) => {
           e.preventDefault();
           void design();
         }}
       >
-        {back}
-        <h1 className="font-display text-[32px] leading-9 font-bold sm:text-[40px] sm:leading-[44px]">
-          Describe the voice you want
-        </h1>
+        {heading('cv-h', 'Describe a voice', 'Step 1 of 2')}
         <div className="flex flex-col gap-2">
-          <label htmlFor="voice-description" className="text-ink-muted text-sm font-semibold">
+          <label htmlFor="voice-description" className="text-[19px] font-bold">
             Age, accent, pace, mood
           </label>
           <textarea
             id="voice-description"
-            rows={4}
+            rows={2}
             maxLength={DESCRIPTION_MAX}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. late-night radio host, low and smooth, slow, a little smoky"
+            placeholder="late-night radio host, low and smooth, slow, a little smoky"
             aria-describedby="voice-description-hint"
-            className="bg-surface text-ink placeholder:text-ink-muted w-full resize-none rounded-[18px] px-4 py-3.5 text-[17px] leading-6 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ember)]"
+            className="field-line field-sizing-content min-h-14 w-full resize-none px-0.5 py-2 text-[26px] leading-[1.2] text-white sm:text-[34px]"
           />
-          <span id="voice-description-hint" className="text-ink-muted text-[13px]">
+          <span id="voice-description-hint" className={pill}>
             {descLength < DESCRIPTION_MIN
               ? `At least ${DESCRIPTION_MIN} characters. Describe a type of voice, not a real person.`
               : `${descLength} / ${DESCRIPTION_MAX} characters. Describe a type of voice, not a real person.`}
           </span>
         </div>
         <div className="flex flex-col gap-2.5">
-          <span className="text-ink-muted text-sm font-semibold">Or start from</span>
+          <span className="text-[19px] font-bold">Or start from</span>
           <div className="flex flex-wrap gap-2">
             {STARTERS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setDescription(s)}
-                className="bg-raised hover:bg-line text-ink min-h-11 rounded-full px-4 text-left text-sm font-medium transition-colors"
+                className="bg-blush text-on-blush press min-h-11 rounded-full px-4 text-left text-[15px] font-semibold [--press-line:#212121]"
               >
                 {s.split(',')[0]}
               </button>
@@ -265,18 +297,20 @@ export function CreateVoiceView({
 
         {error}
 
-        <div className="flex flex-col items-center gap-1.5 sm:items-start">
+        <div className="mt-2 flex flex-col gap-3">
           <Button
             type="submit"
-            size="lg"
+            size="xl"
             aria-disabled={!canDesign}
-            className={`w-full rounded-full sm:w-auto sm:px-8 ${
-              !canDesign && working === null ? '!bg-raised !text-ink-muted !opacity-100' : ''
+            className={`w-full [--press-line:var(--shadow-red)] ${
+              !canDesign && working === null ? 'opacity-60' : ''
             }`}
           >
-            {working === 'design' ? 'Making 3 samples…' : 'Hear 3 samples'}
+            {working === 'design'
+              ? 'Making 3 samples…'
+              : `Hear 3 samples · ${fmt(prices.designRound)} credits`}
           </Button>
-          <span role="status" className="text-ink-muted text-[13px] tabular-nums sm:text-sm">
+          <span role="status" className={`${pill} tabular-nums`}>
             {working === 'design'
               ? 'This takes a few seconds.'
               : left < prices.designRound
@@ -284,30 +318,27 @@ export function CreateVoiceView({
                 : `${fmt(prices.designRound)} credits · you have ${fmt(left)}`}
           </span>
         </div>
-      </form>
+      </form>,
+      'cv-h',
     );
   }
 
   const ids = round.samples.map((_, i) => i);
-  return (
+  return box(
     <form
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-5 sm:gap-6"
       aria-busy={working !== null}
       onSubmit={(e) => {
         e.preventDefault();
         void save();
       }}
     >
-      {back}
-      <h1 className="font-display text-[32px] leading-9 font-bold sm:text-[40px] sm:leading-[44px]">
-        Create a voice
-      </h1>
+      {heading('cv-h', 'Pick a voice', 'Step 2 of 2')}
 
-      <div className="bg-surface rounded-card flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-ink-muted text-[13px] font-semibold">You asked for</span>
-          <span className="text-[17px] leading-6">{asked}</span>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="m-0 text-[24px] leading-[1.25] font-light">
+          You asked for: <span className="font-display">{asked}</span>
+        </p>
         <button
           type="button"
           onClick={() => {
@@ -315,15 +346,16 @@ export function CreateVoiceView({
             setRound(null);
             setFailure(null);
           }}
-          className="bg-raised hover:bg-line min-h-11 shrink-0 rounded-full px-4 text-[15px] font-semibold transition-colors"
+          className="press inline-flex min-h-11 items-center rounded-[8px] px-3 text-[19px] font-bold text-white [--press-line:#f0e2dd]"
         >
           Change · {fmt(prices.designRound)} credits
         </button>
       </div>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-3 text-[20px] font-bold">Pick the one that sounds right</legend>
-        <div
+      <fieldset className="m-0 flex flex-col gap-3 border-0 p-0">
+        <legend className="sr-only">Pick the one that sounds right</legend>
+        <StepReveal
+          as="div"
           role="radiogroup"
           aria-label="Samples"
           onKeyDown={(e) => {
@@ -339,8 +371,10 @@ export function CreateVoiceView({
             return (
               <div
                 key={key}
-                className={`flex items-center gap-3 rounded-[20px] p-4 transition-colors sm:flex-col sm:items-start ${
-                  checked ? 'bg-ember-soft ring-ember ring-2' : 'bg-surface'
+                className={`flex items-center gap-3 rounded-[8px] p-4 transition-transform sm:flex-col sm:items-start ${
+                  checked
+                    ? 'bg-blush -rotate-[1.5deg] text-[#212121] shadow-[14px_14px_30px_rgb(0_0_0/.3)]'
+                    : 'press bg-transparent [--press-line:#f0e2dd]'
                 }`}
               >
                 <button
@@ -348,8 +382,8 @@ export function CreateVoiceView({
                   onClick={() => preview.toggle(key, s.audioDataUrl)}
                   aria-label={`${playing ? 'Stop' : 'Play'} sample ${i + 1}`}
                   aria-pressed={playing}
-                  className={`flex size-[52px] shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playing ? 'bg-ember text-on-ember' : 'bg-raised text-ink hover:bg-line'
+                  className={`flex size-[52px] shrink-0 items-center justify-center rounded-full ${
+                    playing ? 'bg-blush ring-2 ring-[#212121]' : 'text-blush bg-[#212121]'
                   }`}
                 >
                   <PlayIcon playing={playing} />
@@ -360,21 +394,23 @@ export function CreateVoiceView({
                   aria-checked={checked}
                   tabIndex={checked ? 0 : -1}
                   onClick={() => setPicked(i)}
-                  className="min-h-11 flex-1 text-left text-base font-semibold sm:w-full"
+                  className="font-display min-h-11 flex-1 text-left text-[24px] sm:w-full"
                 >
                   Sample {i + 1}
                   {checked && (
-                    <span className="text-ember-ink ml-2 text-[13px] font-semibold">Picked</span>
+                    <span className="ml-2 font-sans text-[13px] font-semibold tracking-[1px] uppercase">
+                      Picked
+                    </span>
                   )}
                 </button>
               </div>
             );
           })}
-        </div>
+        </StepReveal>
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="voice-name" className="text-sm font-semibold">
+        <label htmlFor="voice-name" className="text-[19px] font-bold">
           Name it
         </label>
         <input
@@ -382,29 +418,33 @@ export function CreateVoiceView({
           maxLength={NAME_MAX}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Late-night radio"
-          className="bg-surface text-ink placeholder:text-ink-muted min-h-[52px] rounded-[14px] px-4 text-[17px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ember)]"
+          placeholder="Late-night radio"
+          className="field-line min-h-[52px] px-0.5 text-[28px] text-white sm:text-[34px]"
         />
       </div>
 
       {error}
 
-      <div className="flex flex-col items-center gap-1.5 sm:items-start">
+      <div className="mt-2 flex flex-col gap-3">
         <Button
           type="submit"
-          size="lg"
+          size="xl"
           aria-disabled={!canSave}
-          className={`w-full rounded-full sm:w-auto sm:px-8 ${
-            !canSave && working === null ? '!bg-raised !text-ink-muted !opacity-100' : ''
+          className={`w-full [--press-line:var(--shadow-red)] ${
+            !canSave && working === null ? 'opacity-60' : ''
           }`}
         >
           {working === 'save' ? 'Saving…' : 'Save voice'}
         </Button>
-        <span role="status" className="text-ink-muted text-[13px] sm:text-sm">
+        <span role="status" className={pill}>
           {fmt(prices.save)} credits, once. Then use it in every video at no extra cost. You&apos;ll
           have {slots.used + 1} of {slots.limit} voices.
         </span>
       </div>
-    </form>
+    </form>,
+    'cv-h',
+    <Note colour="cyan" rotate={16} className="absolute top-14 right-10 text-[36px] max-lg:hidden">
+      sounds right!
+    </Note>,
   );
 }

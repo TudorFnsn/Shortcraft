@@ -25,17 +25,10 @@ function subscribe(onChange: () => void) {
 }
 
 const getSnapshot = (): ThemeChoice => readThemeChoice(window.localStorage);
-// The server can't know the stored choice; "system" matches the server HTML.
-const getServerSnapshot = (): ThemeChoice => 'system';
+// The server can't know the stored choice; Light (the default) matches the server HTML.
+const getServerSnapshot = (): ThemeChoice => 'light';
 
-// Studio is dark by default ("system" = the default, no data-theme); Light is
-// the opt-in partner. A stored "dark" from before still resolves to the default.
 const OPTIONS: { id: ThemeChoice; label: string; icon: React.ReactNode }[] = [
-  {
-    id: 'system',
-    label: 'Dark',
-    icon: <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" strokeLinejoin="round" />,
-  },
   {
     id: 'light',
     label: 'Light',
@@ -49,9 +42,24 @@ const OPTIONS: { id: ThemeChoice; label: string; icon: React.ReactNode }[] = [
       </>
     ),
   },
+  {
+    id: 'dark',
+    label: 'Dark',
+    icon: <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" strokeLinejoin="round" />,
+  },
+  {
+    id: 'system',
+    label: 'System',
+    icon: (
+      <>
+        <rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1.5" />
+        <path d="M5.5 14h5M8 11.25V14" strokeLinecap="round" />
+      </>
+    ),
+  },
 ];
 
-/** Dark / Light picker. Applies instantly and remembers the choice. */
+/** Light / Dark / System picker (B.2: blush/ink pills). Applies instantly and remembers the choice. */
 export function ThemeToggle() {
   const choice = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -79,7 +87,7 @@ export function ThemeToggle() {
           pick,
         )
       }
-      className="bg-raised flex gap-1 rounded-xl p-1"
+      className="bg-ink/10 flex gap-1 rounded-full p-1"
     >
       {OPTIONS.map((o) => {
         const on = o.id === choice;
@@ -91,8 +99,8 @@ export function ThemeToggle() {
             aria-checked={on}
             tabIndex={on ? 0 : -1}
             onClick={() => pick(o.id)}
-            className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[9px] px-2 text-sm transition-colors ${
-              on ? 'bg-surface font-semibold shadow-sm' : 'text-ink-muted hover:text-ink'
+            className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-2 text-sm transition-colors ${
+              on ? 'bg-blush text-on-blush font-semibold' : 'text-ink-muted hover:text-ink'
             }`}
           >
             <svg
