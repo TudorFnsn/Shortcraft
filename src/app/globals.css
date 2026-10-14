@@ -134,6 +134,17 @@
   --shadow-sheet: var(--elev-sheet);
   --shadow-hero: 40px 40px 80px rgb(0 0 0 / 0.5);
   --shadow-crisp: 6px 6px 0 #000;
+
+  /* Marquee (B.1 motion #9): endless vertical list, linear 18s. */
+  --animate-marquee: marquee 18s linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-50%);
+    }
+  }
 }
 
 /* Fraunces headings sit tight (B.1: −3 to −5px at title sizes). */
@@ -239,6 +250,36 @@ body {
   --surface: #2a2a2a;
   --line: rgb(240 226 221 / 0.25);
   color: var(--ink);
+}
+
+/*
+ * Line stagger waits hidden only when the head script set data-motion (motion
+ * allowed, JavaScript on). If the split never runs, it shows after 2.5s.
+ */
+:root[data-motion] [data-split]:not([data-split-ready]) {
+  visibility: hidden;
+  animation: split-failsafe 0s 2.5s forwards;
+}
+@keyframes split-failsafe {
+  to {
+    visibility: visible;
+  }
+}
+
+/* Typed word caret, blinking every .7s. */
+.typed-caret {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.9em;
+  margin-left: 0.04em;
+  vertical-align: -0.05em;
+  background: currentColor;
+  animation: caret-blink 0.7s steps(1) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

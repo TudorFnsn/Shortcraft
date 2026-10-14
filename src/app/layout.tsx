@@ -5,6 +5,7 @@ import './globals.css';
 import { siteConfig } from '@/config/site';
 import { Header } from '@/components/header';
 import { themeInitScript } from '@/components/theme/theme';
+import { motionInitScript } from '@/components/motion/motion-script';
 import { Footer } from '@/components/footer';
 import { MobileNav } from '@/components/mobile-nav';
 import { InlineScript } from '@/components/inline-script';
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="en" suppressHydrationWarning className={`${fontVariables} h-full antialiased`}>
       <head>
         <InlineScript html={themeInitScript} />
+        <InlineScript html={motionInitScript} />
       </head>
       <body className="bg-paper text-ink flex min-h-full flex-col">
         <a

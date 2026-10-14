@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import { gsap, MOTION, motionAllowed } from '@/components/motion/gsap';
 
 /**
  * A modal sheet on the native <dialog>: focus is trapped and returned, Escape
  * closes it, and a click on the backdrop closes it too. Opens as a bottom sheet
  * on phones and a centred panel from `sm` up.
+ *
+ * Sheet sweep (B.1 motion #4): it sweeps in from the left (x −110%, scale .92,
+ * rotate 4°, radius 30, expo.inOut 1s) and sweeps back out on close. Under
+ * reduced motion it simply appears and disappears.
  */
 export function Sheet({
   open,
@@ -22,19 +27,60 @@ export function Sheet({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const openRef = useRef(open);
 
   useEffect(() => {
+    openRef.current = open;
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
+    const sweep = {
+      x: MOTION.sweep.x,
+      scale: MOTION.sweep.scale,
+      rotate: MOTION.sweep.rotate,
+      borderRadius: MOTION.sweep.radius,
+      duration: MOTION.sweep.duration,
+      ease: MOTION.sweep.ease,
+    };
+    if (open && !dialog.open) {
+      dialog.showModal();
+      if (motionAllowed()) gsap.from(dialog, { ...sweep, clearProps: 'all' });
+    } else if (open) {
+      // Re-opened while sweeping out: settle back in place.
+      gsap.killTweensOf(dialog);
+      gsap.set(dialog, { clearProps: 'all' });
+    }
+    if (!open && dialog.open) {
+      if (!motionAllowed()) {
+        dialog.close();
+        return;
+      }
+      const out = gsap.to(dialog, {
+        ...sweep,
+        onComplete: () => {
+          dialog.close();
+          gsap.set(dialog, { clearProps: 'all' });
+        },
+      });
+      return () => {
+        out.kill();
+      };
+    }
   }, [open]);
 
   return (
     <dialog
       ref={ref}
       aria-label={title}
-      onClose={onClose}
+      // Escape: let the parent close it so the sweep can play out first.
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      // The native close event also fires after our own sweep-out; only report
+      // closes the parent doesn't know about yet.
+      onClose={() => {
+        if (openRef.current) onClose();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
