@@ -1,3 +1,4 @@
+import { TOPIC_MAX_CHARS } from '@/config/site';
 import { describe, expect, it } from 'vitest';
 import {
   normalizeForModeration,
@@ -110,5 +111,22 @@ describe('screenVisualPrompt / screenScenePrompts — generated scene prompts', 
 
   it('passes a clean script', () => {
     expect(screenScenePrompts([scene(0, 'a forest at night'), scene(1, 'an owl')])).toBeNull();
+  });
+});
+
+describe('screenPrompt — long prompts (Create accepts up to TOPIC_MAX_CHARS)', () => {
+  it('still catches minor + sexual terms far apart in a long prompt', () => {
+    const filler = 'the weather was calm that day. '.repeat(3000);
+    expect(screenPrompt(`a kid ${filler} then something sexy`)).toBe('minor_sexual');
+    expect(screenPrompt(`nude ${filler} toddler`)).toBe('minor_sexual');
+  });
+
+  it('screens a worst-case 100k-character prompt in linear time', () => {
+    const worst = 'kid '.repeat(TOPIC_MAX_CHARS / 4);
+    expect(worst.length).toBe(TOPIC_MAX_CHARS);
+    const start = performance.now();
+    expect(screenPrompt(worst)).toBeNull();
+    // The old ` minor .* sexual ` rule took ~1s+ here; linear checks take a few ms.
+    expect(performance.now() - start).toBeLessThan(250);
   });
 });

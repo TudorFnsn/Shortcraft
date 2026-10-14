@@ -1,5 +1,6 @@
 'use client';
 
+import { CARRIED_IDEA_MAX_CHARS } from '@/config/site';
 import { useTypedWords } from '@/components/motion/typed';
 
 const IDEAS = [
@@ -19,7 +20,7 @@ export function HeroIdeaInput({ id, className = '' }: { id: string; className?: 
       id={id}
       name="idea"
       type="text"
-      maxLength={300}
+      maxLength={CARRIED_IDEA_MAX_CHARS}
       placeholder={placeholder}
       className={`field-line text-ink min-h-11 w-full px-1 py-3 ${className}`.trim()}
     />

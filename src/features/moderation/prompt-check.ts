@@ -59,14 +59,19 @@ const GROUP = String.raw`(jews|muslims|christians|blacks|whites|asians|arabs|imm
 
 interface Rule {
   category: ModerationCategory;
-  pattern: RegExp;
+  /** Every pattern must match (all-of), so co-occurrence needs no `.*` backtracking. */
+  pattern: RegExp | readonly RegExp[];
 }
 
+const matches = (r: Rule, text: string): boolean => [r.pattern].flat().every((p) => p.test(text));
+
 const RULES: readonly Rule[] = [
-  // Minors + sexual terms anywhere in the same prompt, in either order.
+  // Minors + sexual terms anywhere in the same prompt, in either order. Two
+  // separate word checks, not ` minor .* sexual `: prompts can be 100k chars
+  // and that form backtracks quadratically on repeated minor terms.
   {
     category: 'minor_sexual',
-    pattern: new RegExp(` ${MINOR} (.* )?${SEXUAL} | ${SEXUAL} (.* )?${MINOR} `),
+    pattern: [new RegExp(` ${MINOR} `), new RegExp(` ${SEXUAL} `)],
   },
   { category: 'minor_sexual', pattern: / (loli|lolicon|shota|shotacon|child porn\w*) / },
   {
@@ -107,7 +112,7 @@ const REASONS: Record<ModerationCategory, string> = {
 /** First matching category, or null if the text passes. Pure, for tests and reuse. */
 export function screenPrompt(text: string): ModerationCategory | null {
   const normalized = normalizeForModeration(text);
-  return RULES.find((r) => r.pattern.test(normalized))?.category ?? null;
+  return RULES.find((r) => matches(r, normalized))?.category ?? null;
 }
 
 /**
@@ -125,8 +130,7 @@ const VISUAL_CATEGORIES: ReadonlySet<ModerationCategory> = new Set([
 export function screenVisualPrompt(text: string): ModerationCategory | null {
   const normalized = normalizeForModeration(text);
   return (
-    RULES.find((r) => VISUAL_CATEGORIES.has(r.category) && r.pattern.test(normalized))?.category ??
-    null
+    RULES.find((r) => VISUAL_CATEGORIES.has(r.category) && matches(r, normalized))?.category ?? null
   );
 }
 

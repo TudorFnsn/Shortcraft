@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { THEMES } from '@/config/themes';
+import { TOPIC_MAX_CHARS } from '@/config/site';
 import type { ModelTier } from '@/config/models';
 import { estimateJobCredits } from '@/features/render/pricing';
 import { lookFor } from '@/components/ideas';
@@ -268,7 +269,7 @@ export function CreateForm({
             name="topic"
             required
             minLength={3}
-            maxLength={300}
+            maxLength={TOPIC_MAX_CHARS}
             rows={2}
             value={sel.topic}
             onChange={(e) => {
