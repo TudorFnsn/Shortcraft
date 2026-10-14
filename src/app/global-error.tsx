@@ -3,10 +3,14 @@
 /**
  * Last-resort error screen (replaces the root layout when it crashes) and the
  * report to Sentry for errors no inner boundary caught. Own <html>/<body>, and
- * global styles imported here, as Next requires.
+ * global styles imported here, as Next requires. Boxes look (DesignPlan §4
+ * B.2): the ember box with an "OOPS" poster and one Try again; the fonts fall
+ * back to system faces here, since the root layout (which loads them) is gone.
  */
 import { useEffect } from 'react';
 import './globals.css';
+import { PosterBox } from '@/components/poster-box';
+import { buttonClasses } from '@/components/ui/button';
 
 export default function GlobalError({
   error,
@@ -24,21 +28,16 @@ export default function GlobalError({
 
   return (
     <html lang="en">
-      <body className="bg-paper text-ink flex min-h-screen items-center justify-center p-6">
+      <body className="bg-paper text-ink flex min-h-screen flex-col">
         <title>Something went wrong · Shortcraft</title>
-        <main className="max-w-sm text-center">
-          <h1 className="font-display text-2xl font-bold">Something went wrong</h1>
-          <p className="text-ink-muted mt-2">
+        <PosterBox word="Oops" title="Something went wrong">
+          <p className="m-0 max-w-[30ch] text-[24px] leading-[1.3] font-light">
             We&apos;ve been notified. Your videos and credits are safe.
           </p>
-          <button
-            type="button"
-            onClick={() => retry()}
-            className="bg-blush text-on-blush press rounded-button mt-6 min-h-11 px-5 font-semibold"
-          >
+          <button type="button" onClick={() => retry()} className={buttonClasses({ size: 'lg' })}>
             Try again
           </button>
-        </main>
+        </PosterBox>
       </body>
     </html>
   );
