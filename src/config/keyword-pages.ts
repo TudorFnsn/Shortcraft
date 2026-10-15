@@ -110,6 +110,72 @@ export const KEYWORD_PAGES: readonly KeywordPage[] = [
       ...SHARED_FAQ,
     ],
   },
+  {
+    slug: 'ai-youtube-shorts-generator',
+    title: 'AI YouTube Shorts generator: post a Short every day',
+    description:
+      'Turn a topic into a captioned, narrated YouTube Short with an AI picture for every scene. Vertical 9:16 MP4, ready to upload. Start free.',
+    heading: 'AI YouTube Shorts generator',
+    intro: [
+      'Shorts reward channels that upload often, and a steady upload schedule is hard to keep by hand. Shortcraft writes, illustrates, narrates and captions each Short from one line of text.',
+      'Every video comes out as a vertical 9:16 MP4 you upload to YouTube Shorts, and the same file works on TikTok and Instagram Reels.',
+    ],
+    steps: [
+      'Type a topic for your Short, or pick a ready-made idea.',
+      'Choose a look, a length and a voice.',
+      'Shortcraft writes a script with a hook in the first seconds, draws each scene, records the voiceover and adds captions.',
+      'Download the MP4 and upload it to YouTube Shorts.',
+    ],
+    themeIds: ['fun-facts', 'mini-doc', 'life-hack', 'motivation'],
+    faq: [
+      {
+        q: 'Are the videos the right format for YouTube Shorts?',
+        a: 'Yes. Every video is a vertical 9:16 MP4 with burned-in captions, which is the format Shorts expects. Upload it from the YouTube app or YouTube Studio like any other Short.',
+      },
+      {
+        q: 'How long can a Short be?',
+        a: 'Shortcraft makes videos from 15 seconds up to two minutes, depending on your plan: up to 30 seconds on Starter, 90 on Pro and 120 on Ultra.',
+      },
+      {
+        q: 'Can I reuse the same video on TikTok and Reels?',
+        a: 'Yes. The file has no platform branding, so the same Short can go to TikTok and Instagram Reels as well.',
+      },
+      ...SHARED_FAQ,
+    ],
+  },
+  {
+    slug: 'ai-story-video-generator',
+    title: 'AI story video generator: narrated stories with captions',
+    description:
+      'Turn a story idea into a narrated vertical video with an AI picture for every scene and word-by-word captions. Horror, drama, story time. Start free.',
+    heading: 'AI story video generator',
+    intro: [
+      'Story videos hold attention because people want to know how they end. Shortcraft writes the story with a hook, a middle and a real ending, then illustrates and narrates it scene by scene.',
+      'Pick a scary story, a first-person tale, office drama or a short documentary, and get a captioned 9:16 video ready for TikTok, Reels and Shorts.',
+    ],
+    steps: [
+      'Type a story idea in a sentence, or take one of ours.',
+      'Choose the kind of story, its length and the narrator’s voice.',
+      'Shortcraft writes the story, draws a picture for each scene, narrates it and adds captions.',
+      'Watch it, fix a line of the voiceover if you want, then download and post.',
+    ],
+    themeIds: ['horror-story', 'story-time', 'office-drama', 'mini-doc'],
+    faq: [
+      {
+        q: 'Does the story actually end, or stop mid-sentence?',
+        a: 'It ends. Every script is written as a hook, the story and a closing scene, and the video is cut to the length of the full voiceover, so the last line is always heard.',
+      },
+      {
+        q: 'Can I change the narrator?',
+        a: 'Yes. Choose from a set of natural voices, set the speed and how lively the delivery is, or describe a voice of your own and save it to My voices on a paid plan.',
+      },
+      {
+        q: 'Can I edit the story after the video is made?',
+        a: 'You can rewrite any line of the narration and make a new version. It reuses the pictures, so only the voice and captions are redone and it costs far less than a new video.',
+      },
+      ...SHARED_FAQ,
+    ],
+  },
 ];
 
 export function keywordPage(slug: string): KeywordPage {

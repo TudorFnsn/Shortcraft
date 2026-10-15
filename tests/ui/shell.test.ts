@@ -12,6 +12,8 @@ describe('Boxes shell rules (DesignPlan B.2)', () => {
       '/ideas/horror-story',
       '/ai-tiktok-video-generator',
       '/faceless-video-generator',
+      '/ai-youtube-shorts-generator',
+      '/ai-story-video-generator',
     ]) {
       expect(isMarketingPath(p)).toBe(true);
     }
