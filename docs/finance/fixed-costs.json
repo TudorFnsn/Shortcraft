@@ -1,0 +1,13 @@
+{
+  "_note": "Owner-maintained. Monthly fixed costs in USD, one line per vendor. The Finance CFO routine reads this; it cannot see invoices. Zero is a valid value (free tier) - write it so the routine knows you checked.",
+  "monthlyUsd": {
+    "vercel": 0,
+    "supabase": 0,
+    "elevenlabs_plan": 0,
+    "fal_minimum_topup": 0,
+    "anthropic_minimum": 0,
+    "domain": 0,
+    "email_provider": 0,
+    "sentry": 0
+  }
+}
