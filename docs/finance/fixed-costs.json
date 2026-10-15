@@ -1,0 +1,12 @@
+{
+  "_note": "Owner fills this in (USD per month, what you actually pay). null = unknown; the Finance CFO routine asks for every null. Read by scripts/finance-report.mts.",
+  "monthlyUsd": {
+    "vercel": null,
+    "supabase": null,
+    "elevenlabs_plan": null,
+    "resend": null,
+    "sentry": null,
+    "domain": null,
+    "other": null
+  }
+}
