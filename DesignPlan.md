@@ -165,7 +165,7 @@ The app works, but every screen asks for attention at once. This journey keeps P
 - [~] **S1 Create** (PR #67, stacked on #66): one idea box with Surprise me, three setting pills that open sheets, and one Make video button with the cost underneath.
 - [~] **S2 Home** (PR #68, stacked on #67): Today's idea as the headline with Make it, the latest video large, and one row of videos. Filters show only from 12 videos; Posted lives in the player.
 - [~] **S3 Shell** (PR #69, stacked on #68): a quiet header (Your videos · credits · New video · avatar) and one floating + on phones instead of the tab bar.
-- [ ] **S4 Check:** axe in both themes and at 390px, plus a 5-task walkthrough (first video, make another, find a finished video, download, mark posted). Count clicks before and after.
+- **S4 Check:** superseded by B11 (2026-10-14), which ran axe in both themes and at 390px on every route. Its open PR #82 is stale and can be closed. The 5-task click count is not repeated.
 
 ### V: Voice Studio (owner request 2026-10-13; product scope and backend in TheMasterPlan §5 "Voice Studio")
 
@@ -296,7 +296,7 @@ Boards are on the B0 canvas. "Derived" means no board of its own: it is built fr
 
 #### B.3 Implementation plan (one PR, `ceo-design/boxes`, commits in this order)
 
-**Status 2026-10-14:** B1–B11 built in PR #84 (https://github.com/TudorFnsn/Shortcraft/pull/84), ready for Tudor's review. Screenshots per route are in `docs/design/boxes/`, named after their canvas board.
+**Status 2026-10-15: shipped.** B1–B11 merged to `main` by Tudor on 2026-10-14 in PR #84 (https://github.com/TudorFnsn/Shortcraft/pull/84); the bar passes on `main` after the merge. Screenshots per route are in `docs/design/boxes/`, named after their canvas board.
 
 The owner asked for the whole redesign in **one PR**. No API, credit, billing, provider or migration changes; every page keeps its data flow and server rendering.
 
@@ -347,6 +347,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · a passwo
 
 ## 7. Changelog
 
+- **2026-10-15** — Journey B is shipped: Tudor merged PR #84 on 2026-10-14 with no review comments, and format, lint, typecheck, tests and `next build` pass on `main` after the merge. S4 is marked superseded by B11. Every item in §4 is now shipped or superseded, so the routine has no approved work left. The seven B choices in §8 and the Later list need Tudor. (Design CEO, routine)
 - **2026-10-14** — Journey B built end to end in PR #84 (`ceo-design/boxes`), B1–B11 ticked: Boxes tokens, fonts and mark; the gsap motion kit; primitives; shell; landing, ideas, keyword, legal, 404 and error; sign-in; Create and its four sheets; Your videos, player and voiceover editor; My voices and Create a voice; pricing. Check: axe 0 violations on 15 routes × light/dark × 1440/390, keyboard pass on every sheet, no-JS and reduced-motion pass, Lighthouse landing 93–95 (main 97), CLS 0. Seven canvas-vs-B.2/AA choices are listed in §8 for Tudor. (Design CEO, routine)
 
 - **2026-10-14** — Tudor approved the B0 Boxes canvas and all five recommendations. §4 B now holds the full system (tokens, type, shape, motion), a flow-by-flow table covering every route and state, and a one-PR implementation plan (B1–B11). The charter rows for "home", scope and theme are updated. (Design CEO, interactive)
@@ -384,7 +385,7 @@ Home dashboard · fuller onboarding (beyond the one-tap first video) · a passwo
 
 ## 8. Decision log
 
-- **B build choices for Tudor** (2026-10-14, routine, PR #84). Where the canvas and B.2 or AA disagreed, B.2 and AA won; each can be flipped in one place:
+- **B build choices for Tudor** (2026-10-14, routine, PR #84; merged as built on 2026-10-14, no answers yet). Where the canvas and B.2 or AA disagreed, B.2 and AA won; each can be flipped in one place:
   1. **Ember corner contrast.** White on the ember gradient's orange start (`#F07142`) is 2.94:1, just under 3:1 for large text, so B.1's "white on ember at 24px+" is not quite AA at the very top-left. Tokens are unchanged; [recommend starting `--grad-ember` at `#EC6A3C`, which keeps the look and clears 3:1].
   2. **Small text on ember** (the "New video" and "Your channel is" eyebrows, Create's setting pills) sits in the dark pill or is set at 19px bold, not 15–16px white as drawn.
   3. **Sky box text.** Stacked names are navy (weight 200, picked 900) instead of 55% white (1.5:1); in dark mode the sky box uses white text (canvas blush 4.36:1, light-blue eyebrow 3.32:1).
