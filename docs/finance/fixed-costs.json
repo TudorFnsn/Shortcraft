@@ -1,0 +1,14 @@
+{
+  "_note": "Monthly fixed costs in USD. null = unknown (owner fills in from invoices). Never guess; the finance report lists nulls as unknown.",
+  "items": {
+    "vercel": null,
+    "supabase": null,
+    "elevenlabs_plan": null,
+    "fal_minimum_or_prepaid": null,
+    "anthropic_minimum": null,
+    "resend": null,
+    "sentry": null,
+    "domain": null,
+    "other_saas": null
+  }
+}
