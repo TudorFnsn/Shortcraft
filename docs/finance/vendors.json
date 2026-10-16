@@ -1,0 +1,50 @@
+{
+  "_readme": "Owner-maintained vendor ledger for the CFO routine and scripts/finance-report.mts. monthlyUsd null = not supplied yet (the routine will ask). Variable costs are measured from render_jobs.api_cost_usd, so their monthlyUsd stays null. Update when a plan or invoice changes.",
+  "vendors": [
+    {
+      "vendor": "Vercel",
+      "kind": "fixed",
+      "monthlyUsd": null,
+      "note": "Hosting plan + usage (list_billing_charges via the Vercel connector can fill this)"
+    },
+    {
+      "vendor": "Supabase",
+      "kind": "fixed",
+      "monthlyUsd": null,
+      "note": "Project ShortCraft, eu-west-1: plan + compute + storage/egress"
+    },
+    { "vendor": "Sentry", "kind": "fixed", "monthlyUsd": null },
+    {
+      "vendor": "ElevenLabs",
+      "kind": "fixed",
+      "monthlyUsd": null,
+      "note": "Subscription tier (custom-voice slots) on top of per-character usage"
+    },
+    {
+      "vendor": "Resend / email provider",
+      "kind": "fixed",
+      "monthlyUsd": null,
+      "note": "Lifecycle email"
+    },
+    { "vendor": "Domain + DNS", "kind": "fixed", "monthlyUsd": null },
+    {
+      "vendor": "Anthropic API",
+      "kind": "variable",
+      "monthlyUsd": null,
+      "note": "Script writer; tokens recorded per job in costUsd"
+    },
+    {
+      "vendor": "fal.ai",
+      "kind": "variable",
+      "monthlyUsd": null,
+      "note": "FLUX images + premium Kling video"
+    },
+    { "vendor": "ElevenLabs usage", "kind": "variable", "monthlyUsd": null },
+    {
+      "vendor": "Stripe fees",
+      "kind": "variable",
+      "monthlyUsd": null,
+      "note": "Already netted out of revenue in margin.ts assumptions"
+    }
+  ]
+}
