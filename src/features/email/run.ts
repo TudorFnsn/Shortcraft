@@ -8,7 +8,13 @@
  * nothing.
  */
 import { logger } from '@/lib/logger';
-import { planLifecycleEmails, type Audience, type LifecycleKind } from './lifecycle';
+import {
+  LIFECYCLE_KINDS,
+  balanceCandidates,
+  planLifecycleEmails,
+  type Audience,
+  type LifecycleKind,
+} from './lifecycle';
 import type { EmailSender } from './sender';
 import { renderLifecycleEmail } from './templates';
 import { unsubscribeUrl } from './unsubscribe';
@@ -56,13 +62,16 @@ export async function runLifecycleEmails(
   const audience = await deps.source.loadAudience(now);
 
   const balances = new Map<string, number>();
-  for (const userId of new Set(audience.subscriptions.map((s) => s.userId))) {
+  for (const userId of balanceCandidates(audience)) {
     balances.set(userId, await deps.source.balance(userId));
   }
   const plan = planLifecycleEmails(audience, balances, now);
   const report: LifecycleRunReport = {
     dryRun: deps.sender === null,
-    planned: { first_video: 0, unused_credits: 0 },
+    planned: Object.fromEntries(LIFECYCLE_KINDS.map((k) => [k, 0])) as Record<
+      LifecycleKind,
+      number
+    >,
     sent: 0,
     duplicate: 0,
     failed: 0,
