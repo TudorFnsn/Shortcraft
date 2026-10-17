@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-14
+> Last updated: 2026-10-17
 
 ---
 
@@ -321,9 +321,13 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
 - **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
 
+- **Finance CFO routine** (2026-10-17, owner-requested): daily cloud routine "Shortcraft Finance CFO" (07:00 UTC, PR-gated, branches `cfo/*`) with a master agent that splits work across revenue, cost, vendor-scout, pricing, builder and auditor sub-agents. Works the `FinancePlan.md` roadmap: MRR and unit economics every run, cash first, cheaper/better vendors. Setup values + prompt: `docs/routines/finance-cfo.md`; **not created yet, the owner creates it on claude.ai**. Read-only report: `npx tsx scripts/finance-report.mts`. It may edit `config/models.ts` costs, the finance feature and provider adapters; price or credit changes need Tudor's approval; the CEO routine leaves finance items to it.
+
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-17** — Finance track: `FinancePlan.md` (charter, data-access matrix, agent roles, triage, roadmap F0–F11), `docs/routines/finance-cfo.md` (routine setup + prompt), `features/finance/unit-economics.ts` + `scripts/finance-report.mts` (MRR, ARPU, cost per finished video, burn ratio, realised margin; read-only). Baseline from the catalog: the Anthropic script is ~57% of a 15 s Standard video ($0.04 of $0.07); fal.ai is cheap where Standard uses it (FLUX schnell images) and costly in Premium (Kling video). No runtime change, no migration, no dependency. +6 tests. (Finance CFO, interactive)
 
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
