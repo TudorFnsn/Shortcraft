@@ -11,14 +11,14 @@
 
 ## 1. Charter (owner-configured 2026-10-17, do not change without Tudor)
 
-| Question  | Owner's answer                                                                                                                                              |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Goal      | **Maximum profit, cash return first.** Raise MRR, cut cost per video, never sell a video below its cost.                                                    |
-| Always    | Check the **MRR ratio** (below) every run, then propose or implement the change with the best cash return.                                                  |
-| Scope     | Pricing, plans, credits, trial, upsells, annual billing, churn/dunning; vendor choice (video, image, voice, LLM, render, hosting); every recurring payment. |
-| Fresh tech| Scout cheaper and newer models and tools every run. fal.ai video is suspected to be expensive: find cheaper equivalents and prove them with a measured test. |
-| Autonomy  | **PR-gated.** Branches `ceo-finance/<slug>`; never merge. Reads are free; any write to Stripe, Supabase data, Vercel or a vendor needs the owner's OK.      |
-| Cadence   | Daily cloud routine **"Shortcraft Finance CEO"** (master agent + parallel sub-agents, see `docs/routines/finance-ceo.md`). Weekly deep-dive on Mondays.      |
+| Question   | Owner's answer                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Goal       | **Maximum profit, cash return first.** Raise MRR, cut cost per video, never sell a video below its cost.                                                     |
+| Always     | Check the **MRR ratio** (below) every run, then propose or implement the change with the best cash return.                                                   |
+| Scope      | Pricing, plans, credits, trial, upsells, annual billing, churn/dunning; vendor choice (video, image, voice, LLM, render, hosting); every recurring payment.  |
+| Fresh tech | Scout cheaper and newer models and tools every run. fal.ai video is suspected to be expensive: find cheaper equivalents and prove them with a measured test. |
+| Autonomy   | **PR-gated.** Branches `ceo-finance/<slug>`; never merge. Reads are free; any write to Stripe, Supabase data, Vercel or a vendor needs the owner's OK.       |
+| Cadence    | Daily cloud routine **"Shortcraft Finance CEO"** (master agent + parallel sub-agents, see `docs/routines/finance-ceo.md`). Weekly deep-dive on Mondays.      |
 
 ### Ground rules
 
@@ -32,17 +32,17 @@
 
 ## 2. KPIs the routine reports every run
 
-| KPI                          | Definition                                                                                  | Source                               |
-| ---------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------ |
-| **MRR**                      | Sum of active subscription monthly-equivalent prices (annual ÷ 12), net of discounts        | Stripe (read-only)                   |
-| **Net new MRR**             | New + expansion − contraction − churned, over 7 and 30 days                                 | Stripe                               |
-| **MRR ratio**                | `MRR ÷ monthly cost base` (all recurring + usage spend). Target **≥ 3**; below 1 is an alarm | Stripe + cost ledger (§3)            |
-| **Gross margin / video**     | `(net revenue per credit × credits burned) − api_cost_usd`, by plan and quality tier        | `render_jobs.api_cost_usd` + credits |
-| **Cost per finished video**  | Mean and p95 `api_cost_usd`, split by step: script, image, video, voice, render             | Supabase (read-only)                 |
-| **Tokens per video**         | Script LLM input/output tokens and TTS characters per finished video, with their cost       | Orchestrator metering                |
-| **Burn vs revenue**          | Total vendor spend this month vs revenue collected                                          | Vendor dashboards, §3                |
-| **Paid churn / trial → paid**| Monthly paid churn; share of trials that convert                                            | Stripe + `scripts/metrics-report.mts`|
-| **Credit breakage**          | Credits sold but unused at period end (pure margin) vs credits burned                       | Ledger                               |
+| KPI                           | Definition                                                                                   | Source                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------- |
+| **MRR**                       | Sum of active subscription monthly-equivalent prices (annual ÷ 12), net of discounts         | Stripe (read-only)                    |
+| **Net new MRR**               | New + expansion − contraction − churned, over 7 and 30 days                                  | Stripe                                |
+| **MRR ratio**                 | `MRR ÷ monthly cost base` (all recurring + usage spend). Target **≥ 3**; below 1 is an alarm | Stripe + cost ledger (§3)             |
+| **Gross margin / video**      | `(net revenue per credit × credits burned) − api_cost_usd`, by plan and quality tier         | `render_jobs.api_cost_usd` + credits  |
+| **Cost per finished video**   | Mean and p95 `api_cost_usd`, split by step: script, image, video, voice, render              | Supabase (read-only)                  |
+| **Tokens per video**          | Script LLM input/output tokens and TTS characters per finished video, with their cost        | Orchestrator metering                 |
+| **Burn vs revenue**           | Total vendor spend this month vs revenue collected                                           | Vendor dashboards, §3                 |
+| **Paid churn / trial → paid** | Monthly paid churn; share of trials that convert                                             | Stripe + `scripts/metrics-report.mts` |
+| **Credit breakage**           | Credits sold but unused at period end (pure margin) vs credits burned                        | Ledger                                |
 
 Report the MRR ratio first, with its change since the last run. If it fell, say why.
 
@@ -52,17 +52,17 @@ Report the MRR ratio first, with its change since the last run. If it fell, say 
 
 The routine keeps this table current; unknown rows are questions for the owner (§7).
 
-| Vendor              | What for                         | Billing model             | Monthly cost | Source of truth        | Status |
-| ------------------- | -------------------------------- | ------------------------- | ------------ | ---------------------- | ------ |
-| fal.ai              | FLUX images, Kling premium video | Per image / per second    | unknown      | `api_cost_usd`, fal usage page | needs owner export |
-| Anthropic           | Script writer (Sonnet 5.5)       | Per token                 | unknown      | Console usage          | needs owner export |
-| ElevenLabs          | Voiceover, voice design          | Plan + characters         | unknown      | Dashboard              | needs owner export |
-| Vercel              | Hosting, cron, analytics         | Plan + usage              | unknown      | Vercel connector       | readable |
-| Supabase            | DB, auth, storage                | Plan + usage              | unknown      | Supabase connector     | readable |
-| Stripe              | Payment fees                     | % + fixed per charge      | unknown      | Stripe connector       | needs login |
-| Resend              | Lifecycle email                  | Plan                      | unknown      | Dashboard              | needs owner export |
-| Sentry              | Error tracking                   | Plan                      | unknown      | Dashboard              | needs owner export |
-| Domain, other SaaS  | -                                | Annual                    | unknown      | Owner                  | ask |
+| Vendor             | What for                         | Billing model          | Monthly cost | Source of truth                | Status             |
+| ------------------ | -------------------------------- | ---------------------- | ------------ | ------------------------------ | ------------------ |
+| fal.ai             | FLUX images, Kling premium video | Per image / per second | unknown      | `api_cost_usd`, fal usage page | needs owner export |
+| Anthropic          | Script writer (Sonnet 5.5)       | Per token              | unknown      | Console usage                  | needs owner export |
+| ElevenLabs         | Voiceover, voice design          | Plan + characters      | unknown      | Dashboard                      | needs owner export |
+| Vercel             | Hosting, cron, analytics         | Plan + usage           | unknown      | Vercel connector               | readable           |
+| Supabase           | DB, auth, storage                | Plan + usage           | unknown      | Supabase connector             | readable           |
+| Stripe             | Payment fees                     | % + fixed per charge   | unknown      | Stripe connector               | needs login        |
+| Resend             | Lifecycle email                  | Plan                   | unknown      | Dashboard                      | needs owner export |
+| Sentry             | Error tracking                   | Plan                   | unknown      | Dashboard                      | needs owner export |
+| Domain, other SaaS | -                                | Annual                 | unknown      | Owner                          | ask                |
 
 ---
 

@@ -73,13 +73,13 @@ blocked; the owner owes an answer. Stay silent if nothing changed.
 
 ## Access (what to connect so the routine can do its job)
 
-| Need                      | How                                                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Stripe MRR, churn, fees   | claude.ai Connectors, Stripe. It currently needs authorising. Use a **restricted read-only key** or live-mode read access once live. |
-| Per-video cost, ledger    | Supabase connector (the `.mcp.json` server failed with a proxy tunnel error in the cloud; the claude.ai connector is the fallback). |
-| Hosting spend             | Vercel connector (`list_billing_charges`, usage).                                                                                   |
-| Vendor bills              | No connector for fal.ai, Anthropic, ElevenLabs, Resend, Sentry. The owner drops monthly CSV exports in `docs/finance/` (no secrets), or pastes totals into FinancePlan.md section 3. Optional: read-only usage API keys as routine environment variables. |
-| Real price measurements   | Routine environment variable `FAL_KEY` with a small prepaid cap, used only by `scripts/live-providers-smoke.mts`.                    |
-| Network                   | Routine environment must allow the vendor domains (fal.ai, replicate.com, elevenlabs.io, anthropic.com, vendor pricing pages).        |
+| Need                    | How                                                                                                                                                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stripe MRR, churn, fees | claude.ai Connectors, Stripe. It currently needs authorising. Use a **restricted read-only key** or live-mode read access once live.                                                                                                                      |
+| Per-video cost, ledger  | Supabase connector (the `.mcp.json` server failed with a proxy tunnel error in the cloud; the claude.ai connector is the fallback).                                                                                                                       |
+| Hosting spend           | Vercel connector (`list_billing_charges`, usage).                                                                                                                                                                                                         |
+| Vendor bills            | No connector for fal.ai, Anthropic, ElevenLabs, Resend, Sentry. The owner drops monthly CSV exports in `docs/finance/` (no secrets), or pastes totals into FinancePlan.md section 3. Optional: read-only usage API keys as routine environment variables. |
+| Real price measurements | Routine environment variable `FAL_KEY` with a small prepaid cap, used only by `scripts/live-providers-smoke.mts`.                                                                                                                                         |
+| Network                 | Routine environment must allow the vendor domains (fal.ai, replicate.com, elevenlabs.io, anthropic.com, vendor pricing pages).                                                                                                                            |
 
 Helpful additions: a **PostHog or Plausible** connector (conversion by page), **Sentry** (failed renders cost money), a **Google Sheets** connector for the owner's bills, and the `anthropic-skills:xlsx` skill for finance exports.
