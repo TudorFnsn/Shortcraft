@@ -8,6 +8,8 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
+> Finance track: `FinancePlan.md` (Finance CEO routine, `.claude/routines/finance-ceo.md`): MRR ratio, unit economics, provider costs.
+>
 > Last updated: 2026-10-14
 
 ---
