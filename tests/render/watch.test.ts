@@ -7,7 +7,11 @@ import {
   watchUrlFor,
   WATCH_URL_TTL_SEC,
 } from '@/features/render/watch';
-import { InMemoryMediaStore } from '@/features/providers/live/media-store';
+import {
+  ASSET_REFRESH_TTL_SEC,
+  freshAssetUrl,
+  InMemoryMediaStore,
+} from '@/features/providers/live/media-store';
 
 const ORIGIN = 'https://abc.supabase.co';
 const SIGNED = `${ORIGIN}/storage/v1/object/sign/media/renders/job-1_render.mp4?token=expired`;
@@ -261,5 +265,29 @@ describe('thumbnailUrlFor', () => {
       ok: false,
       reason: 'not_playable',
     });
+  });
+});
+
+describe('freshAssetUrl', () => {
+  it('re-signs an expired URL from our bucket by its object path', async () => {
+    const sign = vi.fn(async (path: string, ttl: number) => `${ORIGIN}/fresh/${path}?ttl=${ttl}`);
+    const stale = `${ORIGIN}/storage/v1/object/sign/media/images/job-1_images_s1.jpg?token=expired`;
+    expect(await freshAssetUrl(stale, { signedUrl: sign }, 'media', ORIGIN)).toBe(
+      `${ORIGIN}/fresh/images/job-1_images_s1.jpg?ttl=${ASSET_REFRESH_TTL_SEC}`,
+    );
+    expect(sign).toHaveBeenCalledWith('images/job-1_images_s1.jpg', ASSET_REFRESH_TTL_SEC);
+  });
+
+  it('leaves anything else alone: other origins, other buckets, mocks, files', async () => {
+    const sign = vi.fn(async () => 'signed');
+    for (const url of [
+      'https://elsewhere.test/storage/v1/object/sign/media/a.jpg?token=x',
+      `${ORIGIN}/storage/v1/object/sign/other/a.jpg?token=x`,
+      'mock://image/1',
+      'file:///tmp/a.png',
+    ]) {
+      expect(await freshAssetUrl(url, { signedUrl: sign }, 'media', ORIGIN)).toBe(url);
+    }
+    expect(sign).not.toHaveBeenCalled();
   });
 });
