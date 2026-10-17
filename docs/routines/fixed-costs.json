@@ -1,0 +1,11 @@
+{
+  "_note": "Monthly fixed costs in USD, one line per vendor. Owner keeps this current; the FinOps routine reads it and proposes edits by PR. 0 = free tier / unknown.",
+  "vercel": 0,
+  "supabase": 0,
+  "elevenlabs_plan": 0,
+  "resend": 0,
+  "sentry": 0,
+  "domain": 0,
+  "anthropic_minimum": 0,
+  "fal_minimum": 0
+}
