@@ -9,7 +9,7 @@
  */
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
 import { DEFAULT_VOICE_SETTINGS, isUserVoiceId, type VoiceSettings } from '@/config/voices';
-import { estimateRevoiceCredits } from './pricing';
+import { estimateRevoiceCredits, estimateSceneRedoCredits } from './pricing';
 import type { RenderJobRecord, RenderRepository, SceneRecord } from './repository';
 import { resolveVoice } from './voice';
 
@@ -118,7 +118,15 @@ export interface EditorView {
   /** The voice the video uses now (the look's default when none was picked). */
   voiceId: string;
   voiceSettings: VoiceSettings;
-  scenes: { idx: number; narration: string; maxLength: number }[];
+  scenes: {
+    idx: number;
+    narration: string;
+    maxLength: number;
+    /** The picture description, for "Redo this scene" (POST /api/jobs/:id/redo-scene). */
+    imagePrompt: string;
+    /** Fixed price to redo this scene's picture (and clip, on Premium). */
+    redoCredits: number;
+  }[];
   /** Re-voice price for the text as it is; the editor recomputes it as lines change. */
   revoiceCredits: number;
 }
@@ -137,6 +145,8 @@ export function editorView(job: RenderJobRecord, scenes: readonly SceneRecord[])
       idx: s.idx,
       narration: s.narration,
       maxLength: maxNarrationLength(s.narration),
+      imagePrompt: s.imagePrompt,
+      redoCredits: estimateSceneRedoCredits(job.modelTier, s.durationSec),
     })),
     revoiceCredits: estimateRevoiceCredits(ordered.map((s) => s.narration)),
   };

@@ -54,6 +54,7 @@ import type {
 } from './repository';
 import { isUserVoiceId } from '@/config/voices';
 import type { UserVoiceStore } from '@/features/voice/my-voices';
+import { isSceneRedo, sceneRedoCredits } from './redo-scene';
 import { resolveVoice, type OwnVoice } from './voice';
 
 export interface OrchestratorDeps {
@@ -140,13 +141,21 @@ async function step(
   if (isTerminal(job.status)) return ok({ job, waiting: false });
 
   if (job.status === 'draft') {
-    // A re-voiced copy already has its scenes (pictures and clips reused): it
-    // holds the fixed re-voice price and starts at the voiceover.
-    const revoice = job.parentJobId !== null;
-    const estimate = revoice
-      ? estimateRevoiceCredits((await repo.listScenes(job.id)).map((s) => s.narration))
-      : estimateJobCredits({ targetDurationSec: job.targetDurationSec, modelTier: job.modelTier });
-    const firstStep: RenderStatus = revoice ? 'voiceover' : 'scripting';
+    // A child job already has its scenes. A scene redo (some scenes not rendered)
+    // holds the redo price and starts at the images; a re-voiced copy (pictures
+    // and clips reused) holds the re-voice price and starts at the voiceover.
+    const scenes = job.parentJobId !== null ? await repo.listScenes(job.id) : [];
+    const redo = isSceneRedo(job, scenes);
+    const revoice = job.parentJobId !== null && !redo;
+    const estimate = redo
+      ? sceneRedoCredits(job, scenes)
+      : revoice
+        ? estimateRevoiceCredits(scenes.map((s) => s.narration))
+        : estimateJobCredits({
+            targetDurationSec: job.targetDurationSec,
+            modelTier: job.modelTier,
+          });
+    const firstStep: RenderStatus = redo ? 'images' : revoice ? 'voiceover' : 'scripting';
     const reserved = await reserveForJob(credits, job.userId, job.id, estimate);
     if (!reserved.ok) {
       await repo.updateJob(job.id, { status: 'failed', error: reserved.error.code });
@@ -279,6 +288,8 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
     }
 
     case 'voiceover': {
+      // A scene redo keeps its source's voiceover (the narration didn't change).
+      if (job.parentJobId !== null && job.voiceoverUrl) return false;
       const voice = getVoiceProvider();
       const scenes = await repo.listScenes(job.id);
       const narrator = resolveVoice(job, await ownVoiceOf(deps, job));
@@ -326,7 +337,7 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
       });
 
       // The hold is the ceiling: an overrun is our margin leak, never the user's debt.
-      // A re-voice is a fixed quote (its text was known up front): it bills the hold.
+      // A child job (re-voice or scene redo) is a fixed quote, known up front: it bills the hold.
       const billed =
         job.parentJobId !== null
           ? job.estimatedCredits

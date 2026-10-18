@@ -23,6 +23,7 @@ import {
   estimateSceneCount,
   MAX_SCENE_SEC,
   revoiceBill,
+  sceneRedoBill,
   VOICE_DESIGN_COST_USD_ESTIMATE,
   VOICE_DESIGN_ROUND_CREDITS,
 } from '@/features/render/pricing';
@@ -61,6 +62,8 @@ export interface JobShape {
   revoice?: true;
   /** One Voice Design round (3 samples), not a video. */
   voiceDesign?: true;
+  /** One scene of a finished video redone (Studio): its picture/clip + final cut. */
+  sceneRedo?: true;
 }
 
 export interface JobBill {
@@ -82,6 +85,7 @@ export function jobBill(shape: JobShape, models: readonly ModelSpec[] = MODELS):
   const scenes = estimateSceneCount(shape.targetDurationSec);
   // Narration is at most every scene at full length (the re-voice editor caps growth).
   if (shape.revoice) return revoiceBill(scenes * MAX_SCENE_SEC, models);
+  if (shape.sceneRedo) return sceneRedoBill(shape.modelTier, MAX_SCENE_SEC, models);
   if (shape.voiceDesign) {
     return { credits: VOICE_DESIGN_ROUND_CREDITS, costUsd: VOICE_DESIGN_COST_USD_ESTIMATE };
   }
@@ -110,6 +114,10 @@ export function allowedShapes(plan: Plan): JobShape[] {
   // Any finished video can be re-voiced, on every plan.
   for (let sec = MIN_VIDEO_SEC; sec <= plan.limits.maxVideoDurationSec; sec++) {
     shapes.push({ targetDurationSec: sec, modelTier: 'standard', revoice: true });
+  }
+  // One scene of any finished video can be redone, at any tier the plan allows.
+  for (const modelTier of plan.limits.modelTiers) {
+    shapes.push({ targetDurationSec: MAX_SCENE_SEC, modelTier, sceneRedo: true });
   }
   // Every plan can design voices (saving one is a slot price, not an API cost).
   shapes.push({ targetDurationSec: 0, modelTier: 'standard', voiceDesign: true });

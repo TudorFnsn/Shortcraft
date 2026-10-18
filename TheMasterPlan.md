@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-14
+> Last updated: 2026-10-18
 
 ---
 
@@ -209,7 +209,7 @@ Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design 
 ### LATER — Phase 4: Retention & ARPU
 
 - [ ] Characters (consistent reference across scenes).
-- [ ] Studio (edit/regenerate one scene). The re-voice child job (Voice Studio V3) is the first slice of it: same copy-scenes-and-resume-at-a-step mechanism.
+- [~] Studio (edit/regenerate one scene). The re-voice child job (Voice Studio V3) is the first slice of it: same copy-scenes-and-resume-at-a-step mechanism. **Redo one scene, backend built** _(2026-10-18, PR `ceo/redo-scene`)_: `POST /api/jobs/:id/redo-scene { idx, imagePrompt? }` (owner-only, source `done`, plan must still allow the source's tier/length, an edited description goes through the prompt screen) creates a child job that copies every scene, keeps the source's voiceover + word timings, clears the chosen scene and starts at `images`, so only that picture (and its AI clip on Premium) plus the final cut run. Fixed quote `estimateSceneRedoCredits` on the re-voice scale (13,000 cr/$): **170 credits** for a Standard scene, **≤9,815** for a Premium one (vs 2,024 / 26,504 to remake a 15s video). A margin-gate job shape per allowed tier (gate unchanged: Starter 5.62x, Pro 3.00x, Ultra 3.23x). `GET /api/jobs/:id/scenes` now also returns each scene's `imagePrompt` and `redoCredits`. Errors: 400 `invalid_input` (no such scene, empty/over-1,000-char description), 403 `plan_limit`, 404, 409 `not_ready`, 422 `moderation_blocked`; an unaffordable redo fails with nothing charged, like re-voice. **Design handoff:** a "Redo this scene" button per scene in the player's editor (description prefilled from `imagePrompt`, price from `redoCredits`); the child shows as "v2" like a re-voice. Videos older than 24h need PR #89 (fresh signed URLs at render time) for the reused pictures and voiceover. Not run live (no secrets in the routine). Next slices: redo a scene's narration + picture together; regenerate the hook only.
 - [ ] Series (recurring cast + story bible).
 - [ ] AI Agent (chat that calls the existing pipeline — no second pipeline).
 - [ ] Direct posting to TikTok/YouTube/IG (apply for TikTok Content Posting API early — weeks of lead time).
@@ -325,6 +325,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-18** — Studio "Redo one scene" backend (retention/ARPU): `POST /api/jobs/:id/redo-scene` makes a new version with one scene redrawn (optionally from an edited description), reusing every other scene and the voiceover; fixed quote (170 credits Standard, ≤9,815 Premium); new margin-gate shape (gate unchanged); editor data gains `imagePrompt` + `redoCredits` per scene. No migration (reuses `parent_job_id`), no UI (Design track). +11 tests (531). (CEO routine)
+
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
 - **2026-10-14** — SEO keyword pages (distribution, §6.3): `/ai-tiktok-video-generator` and `/faceless-video-generator`, data-driven from `config/keyword-pages.ts` (title/description/H1, steps, featured themes, FAQ) through one shared component; FAQPage JSON-LD (`faqJsonLd`, script-safe); sitemap + `/ideas` hub links. Tests check lengths, uniqueness against theme guides, theme ids, route folders and JSON-LD escaping. +8 tests (493). (CEO routine)
@@ -397,6 +399,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **A scene redo is a child job told apart by its unrendered scene, not a new column** (2026-10-18) → the re-voice mechanism (copy scenes, start mid-pipeline, bill a fixed hold) already does everything a redo needs; a child whose copied scenes include one not `done` is a redo (starts at `images`), otherwise a re-voice (starts at `voiceover`), so no migration and no new job state. The redo keeps the source's voiceover because the narration is unchanged (re-narrating would cost voice and could shift captions). Priced from API cost at the re-voice scale (13,000 cr/$) instead of per-step credits, because a single image + render at step rates (80 + 100 credits for ~$0.013) would sit close to Pro's 3x floor; 170 credits for a Standard scene is cheap enough to feel like "fix it" rather than "pay again". It is the first ARPU lever inside the product that a creator reaches for after the video is made: a bad picture becomes a 170-credit fix instead of a 2,000-credit remake or a churned user.
 
 - **Keyword pages are root-level static routes driven by one config, not a `[slug]` catch-all** (2026-10-14) → short keyword URLs (`/faceless-video-generator`) rank and read best, and a root dynamic segment would shadow future top-level routes; a two-line `page.tsx` per slug keeps every page static and explicit, and a test fails if a config entry has no route. Copy may only claim shipped features (no "unlimited", no posting integrations) so a search visitor never meets a broken promise at sign-up.
 - **A voice design round costs 325 credits, not ~100** (2026-10-13, adjusts decision 7 of the Voice Studio entry; owner to confirm) → a round of 3 samples costs us about $0.025 (ElevenLabs bills the sample text for each preview; estimate, to be replaced by the smoke script's measurement). At ~100 credits that is $0.00025 per credit, 3× above what any plan can afford at the 3x floor, so a creator rerolling all month would sink every plan. Priced at the same 13,000 credits per $ as re-voice, a round is 325 credits (~1/10 of one 15s video), which still keeps rerolls cheap and passes the gate. Saved voices store no provider id client-side; the tables are service-role only (stricter than the plan's owner-only RLS), so the ElevenLabs ids never leave the server.
