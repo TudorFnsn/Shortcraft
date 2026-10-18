@@ -49,7 +49,9 @@ const [subs, jobs] = await Promise.all([
 const priceByPlan = new Map<string, number>(
   Object.values(PLANS).map((p) => [p.id, p.priceCents / 100]),
 );
-const live = subs.filter((s) => isLiveSubscription({ planId: String(s.plan_id ?? ''), status: String(s.status ?? '') }));
+const live = subs.filter((s) =>
+  isLiveSubscription({ planId: String(s.plan_id ?? ''), status: String(s.status ?? '') }),
+);
 const mrrEur = live.reduce((sum, s) => sum + (priceByPlan.get(String(s.plan_id)) ?? 0), 0);
 
 const since = Date.now() - 30 * 86_400_000;
