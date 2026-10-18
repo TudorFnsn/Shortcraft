@@ -1,0 +1,42 @@
+{
+  "_readme": "Recurring bills the database can't see, in USD per month. Owner-maintained; the Finance routine reads it and asks for any null. null = unknown (reported as unknown, never as zero). adSpendUsd30d = paid acquisition over the last 30 days. Do NOT list fal.ai or Anthropic usage here: per-job API spend is already metered in render_jobs.api_cost_usd. Reconcile it against the vendor invoices instead (FinancePlan.md \u00a74).",
+  "updated": null,
+  "adSpendUsd30d": null,
+  "fixedCosts": [
+    {
+      "id": "vercel",
+      "label": "Vercel (Hobby is free; Pro is $20/seat)",
+      "monthlyUsd": null
+    },
+    {
+      "id": "supabase",
+      "label": "Supabase (Free or Pro $25)",
+      "monthlyUsd": null
+    },
+    {
+      "id": "elevenlabs",
+      "label": "ElevenLabs plan (voices, custom-voice slots)",
+      "monthlyUsd": null
+    },
+    {
+      "id": "resend",
+      "label": "Resend (lifecycle email)",
+      "monthlyUsd": null
+    },
+    {
+      "id": "sentry",
+      "label": "Sentry",
+      "monthlyUsd": null
+    },
+    {
+      "id": "domain",
+      "label": "Domain, amortised per month",
+      "monthlyUsd": null
+    },
+    {
+      "id": "stripe-monthly",
+      "label": "Stripe fixed monthly fees (Tax, Billing), if any",
+      "monthlyUsd": null
+    }
+  ]
+}
