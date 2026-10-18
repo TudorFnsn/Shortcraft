@@ -1,0 +1,14 @@
+{
+  "_note": "Monthly fixed costs in USD, filled in by the owner. null = not provided yet. The CFO routine reads this and asks for any null line. Do not put secrets here.",
+  "items": {
+    "vercel": null,
+    "supabase": null,
+    "elevenlabs_plan": null,
+    "fal_minimum_or_topup": null,
+    "anthropic_minimum": null,
+    "resend": null,
+    "sentry": null,
+    "domain": null,
+    "other_tools": null
+  }
+}
