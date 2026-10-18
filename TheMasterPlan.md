@@ -320,10 +320,13 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
 - **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
+- **Finance CFO routine (2026-10-18, to be created by Tudor):** master agent + sub-agents (revenue, cost, provider scout, pricing, implementer) for MRR, cost per video and cash return. Plan and rules in `FinancePlan.md`; paste-ready prompt in `docs/routines/finance-cfo.md`. PR-gated on `ceo-finance/*`; prices, provider switches and spend need Tudor's OK.
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-18** — Finance track: `FinancePlan.md`, Finance CFO routine prompt (`docs/routines/finance-cfo.md`), `features/metrics/finance.ts` + `scripts/finance-report.mts` (MRR, net MRR, API cost per video and cost share; read-only). +2 tests. No runtime change. (interactive)
 
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
