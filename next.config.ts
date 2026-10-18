@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     '/api/jobs': FFMPEG,
     '/api/cron/advance-jobs': FFMPEG,
     '/api/jobs/[id]/revoice': FFMPEG,
+    '/api/jobs/[id]/redo-scene': FFMPEG,
   },
 };
 
