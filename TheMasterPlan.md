@@ -75,6 +75,7 @@ src/features/
   billing/         stripe customer, checkout, webhook handler, event + credit-grant ledgers (idempotency), entitlements (plan limits), margin gate
   auth/            server-side session helper
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
+  finance/         unit economics (MRR, cost per finished video by tier, waste, cash after fixed costs)
   metrics/         north-star report math (weekly paying-retained creators, activation, trial→paid, failure rate)
   email/           lifecycle email: planner (who gets which reminder), templates, Resend sender, signed unsubscribe links, daily run
   seo/             canonical site URL, sitemap entries, robots rules (copy per theme in config/theme-guides.ts)
@@ -82,7 +83,7 @@ src/app/           landing, login, create, gallery, pricing, terms, privacy, ide
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
 supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc, 0007_pg_cron_sweep, 0008_posted_at, 0009_lifecycle_email, 0010_voice_studio, 0011_voice_previews
-scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only)
+scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only), finance-report.mts (MRR, cost per video, cash; read-only)
 ```
 
 ---
@@ -320,11 +321,13 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
 - **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
+- **Finance CEO routine (to create, 2026-10-19):** daily cloud routine "Shortcraft Finance CEO" (Opus 5.5, 12:00 UTC, PR-gated, `ceo-finance/*`) is a master agent that splits work across ledger, cost, vendor and revenue subagents to raise MRR and cut cost per video. Charter, rules, roadmap and the routine prompt are in **`FinancePlan.md`** (§7); it never merges, spends or writes to Stripe/DB. Routine id: _pending, the owner creates it from §7_.
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-19** — Finance track: `FinancePlan.md` (charter, master-agent split, vendor watchlist, roadmap F0–F6, routine prompt), read-only `scripts/finance-report.mts` and pure `features/finance/unit-economics.ts` (MRR/ARR, net revenue, cost per finished video by tier, wasted spend, fixed costs from `config/fixed-costs.ts`, cash after costs, break-even). Finding: tokens/seconds per job are not stored, only `api_cost_usd` (F2 proposes a `usage` column). +5 tests. (Finance CEO, interactive)
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
 - **2026-10-14** — SEO keyword pages (distribution, §6.3): `/ai-tiktok-video-generator` and `/faceless-video-generator`, data-driven from `config/keyword-pages.ts` (title/description/H1, steps, featured themes, FAQ) through one shared component; FAQPage JSON-LD (`faqJsonLd`, script-safe); sitemap + `/ideas` hub links. Tests check lengths, uniqueness against theme guides, theme ids, route folders and JSON-LD escaping. +8 tests (493). (CEO routine)
