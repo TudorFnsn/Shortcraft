@@ -7,6 +7,7 @@
 import { getCurrentUser } from '@/features/auth/session';
 import { createCheckoutSession } from '@/features/billing/checkout';
 import { CheckoutBody, checkoutConsentMetadata } from '@/features/billing/consent';
+import { claimReferralSafely } from '@/features/referrals/claim';
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -24,6 +25,10 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // Email sign-ups keep a friend's invite code in their metadata; attribute it
+  // before paying so the webhook can reward both sides (best-effort).
+  await claimReferralSafely(user.id, user.user_metadata?.ref);
 
   const origin = new URL(request.url).origin;
   const result = await createCheckoutSession({

@@ -5,6 +5,8 @@
  *  - checkout.session.completed: first purchase — grant credits from the line
  *    items' price metadata (top-up OR the subscription's first month), and
  *    record the subscription + plan.
+ *    A first subscription by an invited friend also pays the referral
+ *    rewards (features/referrals), keyed per friend so they pay out once.
  *  - invoice.paid (billing_reason=subscription_cycle): renewals — grant that
  *    plan's monthly credits (looked up from our config by the profile's plan).
  *  - customer.subscription.updated / .deleted: sync plan + status (upgrades,
@@ -31,6 +33,8 @@ import {
 import { processStripeEventOnce, SupabaseStripeEventLedger } from './event-ledger';
 import { currentSubscriptionFor, subscriptionRowFromStripe } from './subscription-sync';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
+import { rewardReferral } from '@/features/referrals/referral';
+import { SupabaseReferralRepository } from '@/features/referrals/referral.supabase';
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -116,6 +120,15 @@ async function applyStripeEvent(
         isSub ? 'monthly_grant' : 'topup',
         eventGrantKey(event.id, 'checkout'),
       );
+      if (isSub) {
+        // After the plan's own grant: a referral failure throws, the event is
+        // retried, and the keyed grants above and here stay exactly-once.
+        const rewards = await rewardReferral(
+          { referrals: new SupabaseReferralRepository(admin), grants },
+          userId,
+        );
+        if (rewards.length) log.info('referral rewarded', { userId, grants: rewards.length });
+      }
       log.info('checkout completed', { userId, credits, isSub, planId });
       break;
     }
