@@ -1,0 +1,11 @@
+vendor,item,category,billing,monthly_usd,plan_or_tier,usage_note,source,as_of
+Vercel,Hosting + functions,infra,monthly,,,,,
+Supabase,Database + auth + storage,infra,monthly,,,,,
+Anthropic,Script writer (API),cogs,usage,,,,,
+fal.ai,Images + premium video (API),cogs,usage,,,,,
+ElevenLabs,Voiceover + custom voices,cogs,monthly+usage,,,,,
+Resend,Lifecycle email,infra,monthly,,,,,
+Sentry,Error tracking,infra,monthly,,,,,
+Domain,shortcraft domain,infra,yearly,,,,,
+Stripe,Fees (1.5% + 0.25 EUR est.),fees,usage,,,,,
+Ads,Paid acquisition,growth,usage,,,,,
