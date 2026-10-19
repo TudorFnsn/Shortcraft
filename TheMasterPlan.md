@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-14
+> Last updated: 2026-10-19
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 493 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 535 unit/integration tests green (2026-10-19).
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -77,11 +77,12 @@ src/features/
   moderation/      prompt screen (PromptModerator port + local rule-based screen)
   metrics/         north-star report math (weekly paying-retained creators, activation, trial→paid, failure rate)
   email/           lifecycle email: planner (who gets which reminder), templates, Resend sender, signed unsubscribe links, daily run
+  referrals/       invite-a-friend: codes, cookie-less attribution (claim), one-time rewards on a friend's first subscription, Supabase/in-memory repos
   seo/             canonical site URL, sitemap entries, robots rules (copy per theme in config/theme-guides.ts)
 src/app/           landing, login, create, gallery, pricing, terms, privacy, ideas + ideas/[theme] (public SEO pages), sitemap.ts, robots.ts, api/{jobs,jobs/[id]/video,jobs/[id]/thumbnail,checkout,webhooks/stripe,billing/portal,health}
 src/utils/supabase supabase clients (server/browser/admin) + proxy session refresh
 src/utils/stripe   stripe client
-supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc, 0007_pg_cron_sweep, 0008_posted_at, 0009_lifecycle_email, 0010_voice_studio, 0011_voice_previews
+supabase/migrations 0001_init, 0002_stripe_events, 0003_credit_idempotency, 0004_async_pipeline, 0005_hardening, 0006_rls_auto_enable_rpc, 0007_pg_cron_sweep, 0008_posted_at, 0009_lifecycle_email, 0010_voice_studio, 0011_voice_previews, 0012_user_voices, 0013_referrals
 scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/prices), margin-report.mts (margin gate), metrics-report.mts (north star, read-only)
 ```
 
@@ -213,7 +214,7 @@ Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design 
 - [ ] Series (recurring cast + story bible).
 - [ ] AI Agent (chat that calls the existing pipeline — no second pipeline).
 - [ ] Direct posting to TikTok/YouTube/IG (apply for TikTok Content Posting API early — weeks of lead time).
-- [ ] Affiliate program (typically the best-paying channel in this niche).
+- [~] Affiliate program (typically the best-paying channel in this niche). **First slice, credit-only referrals, backend built** _(2026-10-19, PR `ceo/referrals`; needs migration 0013)_: every account gets a code (`profiles.referral_code`); `/r/<code>` opens sign-up with the code carried in the URL (no cookie, so no consent banner needed); it is claimed once the friend is signed in (Google: `/auth/callback`; email: sign-up metadata, claimed at `POST /api/checkout`), only for a never-paid account and never for yourself, first claim wins. When the friend's **first subscription** checkout completes, the webhook grants **10,000 credits to the inviter and 5,000 to the friend** (`referral_bonus`, ledger-keyed per friend, so replays never pay twice; at most 20 rewarded friends per inviter). Referral credits are free credit: not a paid reason, so they keep the watermark and never count as payments in the metrics. Worst case a referred Starter sale stays above 3x (tested). Terms §4 + Privacy §2 updated (versions 2026-10-19). Claims are best-effort and can't break sign-in, checkout or the webhook, including before 0013 is applied. **Design handoff:** `GET /api/referrals` → `{ code, link, invited, rewarded, rewards: { you, friend }, maxRewarded }` (`code`/`link` null before 0013); the "Invite friends" card (account menu or Your videos) and a "Your friend gave you 5,000 credits" line on sign-up when `?ref=` is present are Design's. **Owner:** apply 0013; confirm the amounts (§11). Next slice: cash affiliate (30% recurring) for creators with an audience, via a partner tool rather than our own payouts.
 - [ ] Yearly plans.
 
 **Out of scope (deliberate):** "buy followers / Boost" (violates platform + Stripe rules), self-hosted GPUs/model training, mobile app, microservices, timeline editor.
@@ -308,7 +309,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 - **Env:** `.env.local` (gitignored) holds Supabase URL/anon/service-role, Stripe test secret + webhook secret, `ANTHROPIC_API_KEY` + `ELEVENLABS_API_KEY` (tested live); `FAL_KEY` pending. `MOCK_PROVIDERS=true` by default. Supabase Storage bucket `media` (private) exists. Live provider env: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` (required for live script/voice), optional `ANTHROPIC_SCRIPT_MODEL` (default `claude-sonnet-5-5`), `ANTHROPIC_WORKSPACE_ID` (only for an organization-level key not scoped to a workspace; sent as the `anthropic-workspace-id` header), `ELEVENLABS_VOICE_ID` (default: ElevenLabs stock voice), `FAL_KEY` (required for live images + Premium video), optional `FAL_VIDEO_MODEL` (default `fal-ai/kling-video/v2.5-turbo/pro/image-to-video`), `SUPABASE_MEDIA_BUCKET` (default `media`). Lifecycle email (Production only): `RESEND_API_KEY`, `EMAIL_FROM` (verified sender), `EMAIL_LINK_SECRET` (signs unsubscribe links; rotating it breaks links in already-sent emails). Error tracking: `NEXT_PUBLIC_SENTRY_DSN` (public by design; unset = Sentry off).
 - **ElevenLabs (Voice Studio V4):** the production key (Vercel `ELEVENLABS_API_KEY`) needs Text to Speech plus Text to Voice and Voices write for "Create your own voice". Each saved voice takes one custom-voice slot on our ElevenLabs plan; check the plan's slot count against expected saved voices before launch. There is no in-app account deletion yet: when deleting an account by hand, delete its voices first (`DELETE /api/voices/:id`, or in the ElevenLabs dashboard), since the rows cascade but the ElevenLabs voices don't.
-- **DB migrations:** `0001_init` → `0004_async_pipeline` applied (0004 verified via the Supabase connector, 2026-10-09); `0005_hardening` applied (owner, 2026-10-09, verified); `0006_rls_auto_enable_rpc` applied (owner, 2026-10-09, verified). They were applied through the SQL Editor, so Supabase's migration history (`list_migrations`) is empty. That's harmless, but check the schema, not the history, to verify. **Unverified (2026-10-13):** `0007_pg_cron_sweep`, `0008_posted_at` (Library "Posted?" writes fail without it) and `0009_lifecycle_email` (the lifecycle cron fails without it); `0010_voice_studio` applied by the owner (2026-10-13); `0011_voice_previews` is new (apply before the voiceover editor ships; until then only `POST /api/voice/preview` fails); `0012_user_voices` is new (apply before the My voices UI ships; until then only `/api/voices*` fail, and jobs never carry a `u_` voice); the Supabase connector couldn't connect from the cloud session to check.
+- **DB migrations:** `0001_init` → `0004_async_pipeline` applied (0004 verified via the Supabase connector, 2026-10-09); `0005_hardening` applied (owner, 2026-10-09, verified); `0006_rls_auto_enable_rpc` applied (owner, 2026-10-09, verified). They were applied through the SQL Editor, so Supabase's migration history (`list_migrations`) is empty. That's harmless, but check the schema, not the history, to verify. **Unverified (2026-10-13):** `0007_pg_cron_sweep`, `0008_posted_at` (Library "Posted?" writes fail without it) and `0009_lifecycle_email` (the lifecycle cron fails without it); `0010_voice_studio` applied by the owner (2026-10-13); `0011_voice_previews` is new (apply before the voiceover editor ships; until then only `POST /api/voice/preview` fails); `0012_user_voices` is new (apply before the My voices UI ships; until then only `/api/voices*` fail, and jobs never carry a `u_` voice); `0013_referrals` is new (PR `ceo/referrals`; until applied, invites are simply not recorded or rewarded, nothing fails); the Supabase connector couldn't connect from the cloud session to check.
 - **Connected tools (claude.ai connectors, 2026-10-09):** **Supabase** (project `ShortCraft`, ref `iqvrovjwoavvmhaithwn`, eu-west-1): tables, SQL, migrations, advisors, logs, branches, edge functions. **Stripe** (account "Shortcraft sandbox", `acct_1UKkSC0LHtTQ4zpU`, test mode only): API read/write, docs search, Sigma analytics. **Rule:** agents may run read-only checks; any write (migration, data change, Stripe object, live mode) needs the owner's explicit OK first. No Vercel/Sentry/PostHog connector yet.
 - **Cron:** every minute from Supabase `pg_cron` (job `shortcraft-advance-jobs`, migration 0007) → `GET /api/cron/advance-jobs` with `Authorization: Bearer <CRON_SECRET>`; app URL + secret live in Supabase Vault (`shortcraft_app_url`, `shortcraft_cron_secret`). Backstop: daily Vercel cron (`vercel.json`, 04:00 UTC). A second pg_cron job prunes `cron.job_run_details` to 7 days. Pause the sweep: `select cron.unschedule('shortcraft-advance-jobs')`. Locally, the route answers without `CRON_SECRET` in development, and `after()` usually finishes jobs on its own.
 - **Supabase for local Claude Code:** `.mcp.json` registers the Supabase MCP server for project `iqvrovjwoavvmhaithwn` (no secrets in the file). Each developer authenticates once in a regular terminal: `claude /mcp` → `supabase` → Authenticate (OAuth in the browser). The Supabase agent skills (`supabase`, `supabase-postgres-best-practices`) are vendored in `.claude/skills/` and pinned in `skills-lock.json`; update with `npx skills update -p`. They are excluded from Prettier so they stay byte-identical. Cloud sessions use the claude.ai Supabase connector instead.
@@ -324,6 +325,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-19** — Referral program backend (distribution, first slice of the affiliate item): `/r/<code>` invite links, cookie-less attribution through sign-up (`ref` in the carry), claims at the OAuth callback and checkout, 10,000 + 5,000 credits when an invited friend's first subscription is paid (idempotent, capped at 20 per inviter, never counted as a payment), `GET /api/referrals` for the Design track, migration 0013 (code, inviter, `referral_bonus` ledger reason), Terms + Privacy updated, `/r/` kept out of robots. +15 tests (535). (CEO, routine)
 
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
@@ -397,6 +400,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 ---
 
 ## 11. Decision log (why, not just what)
+
+- **Referrals pay credits, only when the friend subscribes, with no cookie** (2026-10-19; amounts are an owner call) → distribution is the weaker of our two levers and our users are the cheapest channel we have. Credits, not cash, so there are no payouts, tax forms or fraud losses to manage (cash affiliates come later, through a partner tool). Paying only on the friend's first subscription means free sign-ups can't be farmed, and a self-referral ring costs a real €14.99 per reward (capped at 20). 15,000 bonus credits cost us ~$0.25–0.31 on Standard (measured 2026-10-08 renders) and still leave a referred Starter sale above the 3x target if everything were spent on the worst job (tested). The code rides in the URL instead of a cookie, so attribution needs no consent banner (ePrivacy); the trade-off is that an invite opened on one device and paid on another isn't credited. Referral credits are not a payment: they don't remove the watermark and don't count in trial→paid.
 
 - **Keyword pages are root-level static routes driven by one config, not a `[slug]` catch-all** (2026-10-14) → short keyword URLs (`/faceless-video-generator`) rank and read best, and a root dynamic segment would shadow future top-level routes; a two-line `page.tsx` per slug keeps every page static and explicit, and a test fails if a config entry has no route. Copy may only claim shipped features (no "unlimited", no posting integrations) so a search visitor never meets a broken promise at sign-up.
 - **A voice design round costs 325 credits, not ~100** (2026-10-13, adjusts decision 7 of the Voice Studio entry; owner to confirm) → a round of 3 samples costs us about $0.025 (ElevenLabs bills the sample text for each preview; estimate, to be replaced by the smoke script's measurement). At ~100 credits that is $0.00025 per credit, 3× above what any plan can afford at the 3x floor, so a creator rerolling all month would sink every plan. Priced at the same 13,000 credits per $ as re-voice, a round is 325 credits (~1/10 of one 15s video), which still keeps rerolls cheap and passes the gate. Saved voices store no provider id client-side; the tables are service-role only (stricter than the plan's owner-only RLS), so the ElevenLabs ids never leave the server.

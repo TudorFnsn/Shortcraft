@@ -14,7 +14,13 @@
  */
 
 export type CreditReason =
-  'trial_grant' | 'monthly_grant' | 'topup' | 'reserve' | 'settle_adjust' | 'refund';
+  | 'trial_grant'
+  | 'monthly_grant'
+  | 'topup'
+  | 'referral_bonus'
+  | 'reserve'
+  | 'settle_adjust'
+  | 'refund';
 
 export interface CreditTx {
   id: string;
