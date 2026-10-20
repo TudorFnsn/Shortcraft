@@ -91,9 +91,10 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 ## 5. Metrics log (append newest on top; paste `finance-report --json` highlights)
 
-| Date       | Net revenue 30d | API cost 30d | Fixed   | Profit | Cost ratio | Notes                                                                                  |
-| ---------- | --------------- | ------------ | ------- | ------ | ---------- | -------------------------------------------------------------------------------------- |
-| 2026-10-20 | not measured    | not measured | unknown | n/a    | n/a        | No DB or Stripe access in the setup session. First run of `finance-report` fills this. |
+| Date               | Net revenue 30d                                   | API cost 30d                                                       | Fixed   | Profit | Cost ratio       | Notes                                                                                                                                  |
+| ------------------ | ------------------------------------------------- | ------------------------------------------------------------------ | ------- | ------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-20         | ~$52 (2 Pro subs, list-price estimate, no Stripe) | $8.19 (15 done jobs, ~$0.55 avg; 18 jobs, 0 prior-period baseline) | unknown | n/a    | ~0.16 (API only) | Via Supabase connector (script's network is blocked). Failed jobs 3, $0.00 wasted. Gate PASS (Pro 3.00x). 6 users, no top-ups checked. |
+| 2026-10-20 (setup) | not measured                                      | not measured                                                       | unknown | n/a    | n/a              | No DB or Stripe access in the setup session. First run of `finance-report` fills this.                                                 |
 
 ---
 
@@ -154,5 +155,7 @@ Read FinancePlan.md (charter, rules, backlog), TheMasterPlan.md §7-§9, and AGE
 ```
 
 ## 11. Changelog (newest on top)
+
+- **2026-10-20** — First live numbers via Supabase connector: 2 active Pro subs, $8.19 API cost over 30d (15 done, 3 failed at $0), gate PASS. `finance-report.mts` fails here with `fetch failed` (sandbox proxy blocks Supabase REST); use the connector. Stripe still unauthorized. No backlog item started (F1 needs migration OK, F2 needs Tudor). (Finance CEO)
 
 - **2026-10-20** — Finance track started: this plan, `features/finance/unit-economics.ts` (+5 tests), `scripts/finance-report.mts`, `config/fixed-costs.ts`. No DB access from the setup session, so no live numbers yet. (Finance CEO, setup)
