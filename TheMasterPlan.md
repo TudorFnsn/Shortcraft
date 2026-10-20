@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-14
+> Last updated: 2026-10-20
 
 ---
 
@@ -37,7 +37,7 @@ gross margin/video, paid churn.
 
 - Next.js 16 (App Router) + TS strict (`noUncheckedIndexedAccess`) + Tailwind v4, on Node 24.
 - Typed env (zod, mock-friendly), `Result<T,E>`, structured logger.
-- Vitest + Prettier + strict tsconfig. 493 unit/integration tests green.
+- Vitest + Prettier + strict tsconfig. 527 unit/integration tests green.
 
 **Phase 1 — Monetizable MVP ✅ (verified end-to-end, live)**
 
@@ -214,7 +214,7 @@ Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design 
 - [ ] AI Agent (chat that calls the existing pipeline — no second pipeline).
 - [ ] Direct posting to TikTok/YouTube/IG (apply for TikTok Content Posting API early — weeks of lead time).
 - [ ] Affiliate program (typically the best-paying channel in this niche).
-- [ ] Yearly plans.
+- [~] **Yearly plans** (ARPU + lower churn: a yearly subscriber can't churn for 12 months). **Slice 1 done (2026-10-20, PR `ceo/yearly-plans`): catalog + margin gate only, nothing sold yet.** `Plan.yearlyPriceCents` (null = not sold yearly), `planLookupKey` (`<plan>_monthly` / `<plan>_yearly`), `planIntervals`, `yearlySavingCents`; the margin gate assesses every yearly price as its own product (12 × monthly credits for one payment) and the report prints it. **Starter yearly €149.90 (two months free), 4.77x, passes. Pro and Ultra are not sold yearly yet:** at the catalog's premium cost a yearly price must be at least **€356.06 for Pro (1.1% off)** and **€889.68 for Ultra (7.3% off)** to pass 3x (see §11). **Owner:** confirm Starter at €149.90 and choose for Pro/Ultra (see §11). **Next slices:** (2) credits arrive **monthly** on a yearly plan (daily cron grants `monthlyCredits` on each monthly anniversary inside the paid year; ledger key `stripe:yearly:<sub>:<periodStart>:<month>`; needs `subscriptions.billing_interval` + `current_period_start`, additive migration after 0013); `invoice.paid` keeps granting month 0 of each year; (3) `stripe-setup.mts` creates `<plan>_yearly` prices (`recurring: year`, metadata `credits` = one month) **only after slice 2 is merged**, or a yearly buyer gets one month of credits for a year's payment; (4) a Monthly / Yearly toggle on `/pricing` (Design track: canvas first) and the yearly price in `config/legal.ts`.
 
 **Out of scope (deliberate):** "buy followers / Boost" (violates platform + Stripe rules), self-hosted GPUs/model training, mobile app, microservices, timeline editor.
 
@@ -325,6 +325,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-10-20** — Yearly plans, slice 1 (catalog + margin gate, nothing sold yet): `yearlyPriceCents` per plan (Starter €149.90 = two months free; Pro/Ultra null), lookup-key and saving helpers, yearly rows in the margin gate and `margin-report.mts`. Found: Pro's 3.00x leaves room for only a 1.1% yearly discount and Ultra's 3.23x for 7.3%, so "two months free" is Starter-only until the premium-video cost is measured. +8 tests. Seven earlier CEO PRs (#82, #85–#91) are still open, so this one touches no file they change except this plan. (CEO, routine)
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
 - **2026-10-14** — SEO keyword pages (distribution, §6.3): `/ai-tiktok-video-generator` and `/faceless-video-generator`, data-driven from `config/keyword-pages.ts` (title/description/H1, steps, featured themes, FAQ) through one shared component; FAQPage JSON-LD (`faqJsonLd`, script-safe); sitemap + `/ideas` hub links. Tests check lengths, uniqueness against theme guides, theme ids, route folders and JSON-LD escaping. +8 tests (493). (CEO routine)
@@ -398,6 +399,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **Yearly plans: two months free on Starter only; credits paid out monthly, never 12 months up front** (2026-10-20, CEO routine; **owner to confirm**, it is a price) → the margin gate counts a yearly price as 12 monthly grants for one payment, so a discount comes straight off the multiple. Starter has room (5.62x → 4.77x). Pro sits at 3.00x and Ultra at 3.23x because premium AI video is priced at a conservative $0.12/s (Kling lists ~$0.07/s), so "two months free" would put them at 2.5x / 2.7x. Options for Pro/Ultra: **(a, recommended)** wait for the measured fal cost (owner action in Phase 2); at ~$0.07/s both clear 3x with two months free, and the gate will show it; (b) sell them yearly now at the floor (Pro €356.06, Ultra €889.68: weak offers); (c) give yearly plans fewer premium credits (confusing). Monthly payout: up-front credits would make one refund or chargeback cost up to 12 months of API spend, and the cron needed for monthly payout is small.
 - **Keyword pages are root-level static routes driven by one config, not a `[slug]` catch-all** (2026-10-14) → short keyword URLs (`/faceless-video-generator`) rank and read best, and a root dynamic segment would shadow future top-level routes; a two-line `page.tsx` per slug keeps every page static and explicit, and a test fails if a config entry has no route. Copy may only claim shipped features (no "unlimited", no posting integrations) so a search visitor never meets a broken promise at sign-up.
 - **A voice design round costs 325 credits, not ~100** (2026-10-13, adjusts decision 7 of the Voice Studio entry; owner to confirm) → a round of 3 samples costs us about $0.025 (ElevenLabs bills the sample text for each preview; estimate, to be replaced by the smoke script's measurement). At ~100 credits that is $0.00025 per credit, 3× above what any plan can afford at the 3x floor, so a creator rerolling all month would sink every plan. Priced at the same 13,000 credits per $ as re-voice, a round is 325 credits (~1/10 of one 15s video), which still keeps rerolls cheap and passes the gate. Saved voices store no provider id client-side; the tables are service-role only (stricter than the plan's owner-only RLS), so the ElevenLabs ids never leave the server.
 - **Re-voice is priced from its own API cost at 13,000 credits per $, not at per-step credit rates** (2026-10-13, adjusts decision 3 of the Voice Studio entry) → a re-voice bills only voice + final cut, the two steps with the most API cost per credit (voice 8 cr/s for $0.00075/s, render 100 cr for $0.01). At those rates a re-voice costs $0.0000956 per credit, above Pro's 3x limit of $0.000083, so a Pro creator re-voicing all month would put Pro at ~2.6x. Pricing it at 13,000 cr/$ (the plan's option-C scale plus headroom) keeps every plan ≥3x: ~423 credits for a 30s video instead of ~340, still ~7.7× cheaper than a remake (3,240). It is a fixed quote, since the text is known before the run: the hold is what the creator pays. Revisit with measured costs.

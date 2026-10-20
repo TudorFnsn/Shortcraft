@@ -12,12 +12,21 @@
 
 export type PlanId = 'starter' | 'pro' | 'ultra';
 
+export type BillingInterval = 'month' | 'year';
+
 export interface Plan {
   id: PlanId;
   name: string;
   /** Monthly price in EUR cents. */
   priceCents: number;
-  /** Credits granted each billing cycle. */
+  /**
+   * Yearly price in EUR cents, or null while the plan isn't sold yearly. A yearly
+   * subscriber still receives `monthlyCredits` once a month (never 12 months up
+   * front), so a refund or chargeback can never cost more than one month of API
+   * spend. Every yearly price must pass the margin gate on its own.
+   */
+  yearlyPriceCents: number | null;
+  /** Credits granted each month (each billing cycle on monthly plans). */
   monthlyCredits: number;
   limits: {
     maxVideoDurationSec: number;
@@ -39,6 +48,10 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'starter',
     name: 'Starter',
     priceCents: 1499,
+    // Two months free. Pro and Ultra can't offer that yet: at the catalog's
+    // premium-video cost they sit at 3.0x / 3.2x, so any real discount fails the
+    // margin gate (see TheMasterPlan §11, 2026-10-20).
+    yearlyPriceCents: 14_990,
     monthlyCredits: 30_000,
     limits: {
       maxVideoDurationSec: 30,
@@ -56,6 +69,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'pro',
     name: 'Pro',
     priceCents: 2999,
+    yearlyPriceCents: null,
     monthlyCredits: 100_000,
     limits: {
       maxVideoDurationSec: 90,
@@ -73,6 +87,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'ultra',
     name: 'Ultra',
     priceCents: 7999,
+    yearlyPriceCents: null,
     monthlyCredits: 250_000,
     limits: {
       maxVideoDurationSec: 120,
@@ -107,6 +122,18 @@ export const TOPUP_PACKS: readonly TopUpPack[] = [
     stripePriceId: null,
   },
 ];
+
+/** Stripe price lookup_key for a plan and billing interval (`pro_monthly`, `starter_yearly`). */
+export const planLookupKey = (planId: PlanId, interval: BillingInterval): string =>
+  `${planId}_${interval === 'month' ? 'monthly' : 'yearly'}`;
+
+/** Billing intervals a plan is sold on. */
+export const planIntervals = (plan: Plan): BillingInterval[] =>
+  plan.yearlyPriceCents === null ? ['month'] : ['month', 'year'];
+
+/** Yearly saving vs twelve monthly payments, in EUR cents (0 when not sold yearly). */
+export const yearlySavingCents = (plan: Plan): number =>
+  plan.yearlyPriceCents === null ? 0 : 12 * plan.priceCents - plan.yearlyPriceCents;
 
 export const isTierAllowed = (plan: Plan, tier: 'standard' | 'premium'): boolean =>
   plan.limits.modelTiers.includes(tier);
