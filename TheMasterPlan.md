@@ -319,11 +319,14 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 - **Repo:** github.com/TudorFnsn/Shortcraft (branch-per-feature → fast-forward `main`).
 - **Demo account (sandbox):** a pre-confirmed test user exists for walkthroughs.
 - **CEO routine:** daily cloud routine `trig_01HJ4PZK4zLRutuBCtMST2Wx` (Opus 5.5, 06:00 UTC) runs the heartbeat loop at PR-gated autonomy — reviews this plan, opens a PR for the day's highest-leverage win, updates this file, and reports a digest. It never merges or touches live secrets. **Before picking an item it lists open + recently closed PRs** — an item with an open PR is in review, not available (unmerged PRs don't show in `main`'s copy of this file; skipping this check produced duplicate PRs #4/#6 for one roadmap item). Manage: https://claude.ai/code/routines/trig_01HJ4PZK4zLRutuBCtMST2Wx
+- **Finance CEO routine (designed 2026-10-20, not yet scheduled):** daily PR-gated routine for cost, pricing and MRR, charter + sub-agent split + routine prompt in `FinancePlan.md` (§8). Owner creates it at claude.ai/code/routines (Opus 5.5, 07:00 UTC) by pasting that prompt, and grants the data access listed in `FinancePlan.md` §6. It works on `ceo-finance/*` branches and leaves UI files to the Design CEO.
 - **Design CEO routine:** daily cloud routine `trig_01T9k9zrSgLbcPa6noXKAr8P` "Shortcraft Design CEO" (Opus 5.5, 09:00 UTC, PR-gated) works only the `DesignPlan.md` roadmap, on `ceo-design/*` branches, and only in UI files (see `DesignPlan.md` §5). The main CEO routine leaves those files alone while a `ceo-design/*` PR is open. Pause it once D4 ships.
 
 ---
 
 ## 10. Changelog (append newest on top; every change lands a line here)
+
+- **2026-10-20** — Finance track: `FinancePlan.md` (charter, master-agent split into five workstreams, measurement gaps, ranked cost/revenue ideas, connector asks, routine prompt), `scripts/finance-report.mts` + `features/finance/unit-economics.ts` (MRR, cost per video by tier, failed-render waste, margin) and `config/ops-costs.ts`. +6 tests. Gap found: per-step cost and token usage are not stored. (Finance CEO, interactive)
 
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
