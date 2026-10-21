@@ -13,7 +13,7 @@ import { siteConfig } from './site';
 
 /** Bump when the Terms change materially; recorded with every checkout consent. */
 export const TERMS_VERSION = '2026-10-10';
-export const PRIVACY_VERSION = '2026-10-13';
+export const PRIVACY_VERSION = '2026-10-21';
 
 /** True until the operator fields below are real and the text has been reviewed. */
 export const LEGAL_DRAFT = true;
@@ -59,7 +59,11 @@ export const SUBPROCESSORS = [
   { name: 'Supabase', purpose: 'accounts, database and file storage (EU, Ireland)' },
   { name: 'Vercel', purpose: 'hosting and running the app, and measuring page speed (no cookies)' },
   { name: 'Stripe', purpose: 'payments, invoices and subscriptions' },
-  { name: 'Anthropic', purpose: 'writing video scripts from your topic' },
+  {
+    name: 'Anthropic',
+    purpose:
+      'writing video scripts from your topic, and screening topics and lines for our content rules',
+  },
   { name: 'ElevenLabs', purpose: 'generating voiceovers from the script' },
   { name: 'fal.ai', purpose: 'generating scene images and AI video clips' },
   { name: 'Resend', purpose: 'sending our reminder emails (your email address only)' },

@@ -9,6 +9,7 @@ function env(patch: Partial<Env>): Env {
     SUPABASE_MEDIA_BUCKET: 'media',
     ALLOW_LIVE_PROVIDERS_IN_PREVIEW: false,
     GOOGLE_AUTH_ENABLED: false,
+    MODERATION_LLM: false,
     ...patch,
   };
 }
