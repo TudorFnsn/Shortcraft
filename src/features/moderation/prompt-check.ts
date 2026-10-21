@@ -11,13 +11,22 @@
  * content involving minors, explicit sexual content, self-harm instructions,
  * weapon/drug synthesis instructions and calls for violence against a group.
  * Educational topics ("suicide prevention", "history of the atomic bomb") pass.
- * An LLM classifier for the grey zone plugs in behind the same `PromptModerator`
- * port once live providers are on.
+ * The grey zone (real people, harassment, scams) is the LLM classifier's job
+ * (`providers/live/anthropic-moderation.ts`), layered after this screen in
+ * `moderator.ts`.
  */
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
 
 export type ModerationCategory =
-  'minor_sexual' | 'sexual_explicit' | 'self_harm' | 'weapons' | 'violent_hate';
+  | 'minor_sexual'
+  | 'sexual_explicit'
+  | 'self_harm'
+  | 'weapons'
+  | 'violent_hate'
+  // Grey zone: only the LLM classifier returns these (no reliable word list exists).
+  | 'real_person'
+  | 'harassment'
+  | 'scam';
 
 /** Port: anything that can veto a user's prompt before we spend money on it. */
 export interface PromptModerator {
@@ -102,7 +111,16 @@ const REASONS: Record<ModerationCategory, string> = {
     "Shortcraft doesn't make videos that give self-harm instructions. If you're struggling, please reach out to a local crisis line.",
   weapons: "Shortcraft doesn't make instructions for weapons, explosives or drugs.",
   violent_hate: "Shortcraft doesn't make videos that call for violence against a group.",
+  real_person:
+    "Shortcraft doesn't make videos that put made-up words, acts or sexual content on a real person.",
+  harassment: "Shortcraft doesn't make videos that target or demean a specific person.",
+  scam: "Shortcraft doesn't make videos with false health or money claims, fake giveaways or impersonation.",
 };
+
+/** The `moderation_blocked` error for a category. Same shape for every moderator. */
+export function moderationBlocked(category: ModerationCategory) {
+  return err({ ...appError('moderation_blocked', REASONS[category]), category });
+}
 
 /** First matching category, or null if the text passes. Pure, for tests and reuse. */
 export function screenPrompt(text: string): ModerationCategory | null {
@@ -156,10 +174,6 @@ export function screenScenePrompts(
 export const ruleBasedModerator: PromptModerator = {
   async check(text) {
     const category = screenPrompt(text);
-    if (!category) return ok(undefined);
-    return err({ ...appError('moderation_blocked', REASONS[category]), category });
+    return category ? moderationBlocked(category) : ok(undefined);
   },
 };
-
-/** The moderator the app uses. Swap/compose here (e.g. rules → LLM) — not at call sites. */
-export const getPromptModerator = (): PromptModerator => ruleBasedModerator;

@@ -18,7 +18,7 @@ import { isThemeId } from '@/config/themes';
 import { VoiceFields, voiceChoice } from '@/features/render/voice';
 import { PLANS } from '@/config/plans';
 import { checkPlanLimits } from '@/features/billing/entitlements';
-import { getPromptModerator } from '@/features/moderation/prompt-check';
+import { getPromptModerator } from '@/features/moderation/moderator';
 import { logger } from '@/lib/logger';
 
 const Body = z.object({

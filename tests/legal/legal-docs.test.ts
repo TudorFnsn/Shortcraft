@@ -88,6 +88,7 @@ describe('Privacy Policy', () => {
     const liveDir = 'src/features/providers/live';
     const vendors: Array<[file: string, name: string]> = [
       ['anthropic-script.ts', 'Anthropic'],
+      ['anthropic-moderation.ts', 'Anthropic'],
       ['elevenlabs-voice.ts', 'ElevenLabs'],
       ['fal-image.ts', 'fal.ai'],
       ['fal-video.ts', 'fal.ai'],

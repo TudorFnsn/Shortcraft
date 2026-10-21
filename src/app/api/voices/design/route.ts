@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import { getCurrentUser } from '@/features/auth/session';
-import { getPromptModerator } from '@/features/moderation/prompt-check';
+import { getPromptModerator } from '@/features/moderation/moderator';
 import { getVoiceDesigner } from '@/features/providers/registry';
 import { getStore } from '@/features/render/store';
 import { DESCRIPTION_MAX, designVoice } from '@/features/voice/my-voices';
