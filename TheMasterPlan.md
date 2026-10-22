@@ -8,7 +8,11 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-14
+> Last updated: see `git log -1 -- TheMasterPlan.md` (no date here: every PR edited
+> this line, which put every other open PR in conflict).
+>
+> **Changelog lines go in `docs/changelog/` as one file per PR, not in §10** (see
+> `docs/changelog/README.md`); only a fold PR edits §10's list.
 
 ---
 
@@ -105,6 +109,8 @@ scripts/           smoke.mts (live pipeline), stripe-setup.mts (create products/
 - [x] **DB hardening from the Supabase advisors** _(PR `ceo/db-hardening`, 2026-10-09)_: migration `0005_hardening` revokes `EXECUTE` on `handle_new_user()` (definer trigger function exposed as an RPC; not exploitable, but flagged), rewrites the six RLS policies to `(select auth.uid())` (evaluated once per query, not per row) and indexes `assets.job_id`. The migrations test now also requires a revoke for definer trigger functions and fails on any policy with a bare `auth.uid()`. **Applied by Tudor (SQL Editor) and verified 2026-10-09**: all six policies use `(select auth.uid())`, `handle_new_user` is no longer executable by `anon`/`authenticated` (signup trigger still enabled), `assets_job_idx` exists; advisors re-run: the `auth_rls_initplan` and unindexed-FK warnings are gone. (The connector's `apply_migration` timed out twice from the cloud session; nothing was half-applied, as it runs in one transaction.)
 - [x] ~~Leaked-password protection~~ **not available on the Supabase free plan** (Pro-only feature; owner, 2026-10-09). Accepted: the last advisor warning stays until we upgrade. Mitigation if needed earlier: enforce a minimum password length/complexity in Auth settings (free).
 - [x] **`rls_auto_enable()` identified** (2026-10-09, read-only): it backs the `ensure_rls` event trigger, which turns on RLS for every new `public` table (Supabase dashboard's automatic-RLS setting). Keep it. Migration `0006_rls_auto_enable_rpc` only revokes its RPC exposure (advisor warning; not exploitable, since event-trigger functions can't run via RPC). **Applied by Tudor and verified 2026-10-09:** not executable by `anon`/`authenticated`, `ensure_rls` still enabled, advisor warning gone.
+
+- [~] **Delivery: unblock the PR queue** _(PR `ceo/changelog-fragments`, 2026-10-22)_: 10 PRs open (#82, #85–#92, #94), 8 conflicting with `main` only on the changelog/"Last updated" lines (#82 also on UI files). Changelog lines now live in `docs/changelog/` (decision §11). **Owner:** merge this PR first; the next routine runs then merge `main` into each open PR (merge commit, no rebase) and turn its changelog line into a fragment, so the rest merge in any order. #82 (S4 check) is superseded by Boxes per #87: close it unless something in it is still wanted.
 
 ### NEXT — Phase 2: Real providers (make videos real + lock margins)
 
@@ -324,8 +330,15 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ---
 
-## 10. Changelog (append newest on top; every change lands a line here)
+## 10. Changelog (newest on top; every change lands a line here)
 
+New entries arrive as fragments in `docs/changelog/` and are folded in below the
+marker by `npx tsx scripts/changelog.mts --fold` (its own PR). Pending, not yet
+folded: `npx tsx scripts/changelog.mts`.
+
+<!-- changelog:fold-here -->
+
+- **2026-10-22** — Delivery: changelog fragments. 8 of 10 open PRs conflicted with `main`, all on the top line of §10 and "Last updated". PRs now add their line as `docs/changelog/YYYY-MM-DD-<slug>.md`; `scripts/changelog.mts` validates and prints them, `--fold` moves them into §10 (this entry was folded that way); a test fails CI on a malformed fragment; "Last updated" no longer holds a date. No product change. +12 tests (537). (CEO routine)
 - **2026-10-20** — Finance track: `FinancePlan.md` (charter, sub-agent split, cost model, backlog F1–F10, routine prompt), `features/finance/unit-economics.ts` + `scripts/finance-report.mts` (read-only MRR, API spend, cost per video by tier, profit), `config/fixed-costs.ts` (owner fills in). +5 tests. (Finance CEO, setup)
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
@@ -400,6 +413,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **Changelog lines are files, not edits to §10** (2026-10-22, CEO routine) → on 2026-10-22, 10 PRs were open and 8 conflicted with `main`, every one on the same two lines: the top of §10 and "Last updated". Each merge re-conflicted the rest, so the owner faced a manual rebase per PR and the queue stopped moving (nothing product-side merged since 2026-10-14). A new file per PR can never conflict, keeps the history readable (the script prints pending entries), and costs one small fold PR a week. Rejected: `merge=union` in `.gitattributes` (GitHub's merge button ignores custom merge drivers) and dropping the changelog (it is how the next routine run learns what happened). Roadmap, risk and decision edits stay in TheMasterPlan.md: they touch different lines per feature and rarely collide.
 - **Keyword pages are root-level static routes driven by one config, not a `[slug]` catch-all** (2026-10-14) → short keyword URLs (`/faceless-video-generator`) rank and read best, and a root dynamic segment would shadow future top-level routes; a two-line `page.tsx` per slug keeps every page static and explicit, and a test fails if a config entry has no route. Copy may only claim shipped features (no "unlimited", no posting integrations) so a search visitor never meets a broken promise at sign-up.
 - **A voice design round costs 325 credits, not ~100** (2026-10-13, adjusts decision 7 of the Voice Studio entry; owner to confirm) → a round of 3 samples costs us about $0.025 (ElevenLabs bills the sample text for each preview; estimate, to be replaced by the smoke script's measurement). At ~100 credits that is $0.00025 per credit, 3× above what any plan can afford at the 3x floor, so a creator rerolling all month would sink every plan. Priced at the same 13,000 credits per $ as re-voice, a round is 325 credits (~1/10 of one 15s video), which still keeps rerolls cheap and passes the gate. Saved voices store no provider id client-side; the tables are service-role only (stricter than the plan's owner-only RLS), so the ElevenLabs ids never leave the server.
 - **Re-voice is priced from its own API cost at 13,000 credits per $, not at per-step credit rates** (2026-10-13, adjusts decision 3 of the Voice Studio entry) → a re-voice bills only voice + final cut, the two steps with the most API cost per credit (voice 8 cr/s for $0.00075/s, render 100 cr for $0.01). At those rates a re-voice costs $0.0000956 per credit, above Pro's 3x limit of $0.000083, so a Pro creator re-voicing all month would put Pro at ~2.6x. Pricing it at 13,000 cr/$ (the plan's option-C scale plus headroom) keeps every plan ≥3x: ~423 credits for a 30s video instead of ~340, still ~7.7× cheaper than a remake (3,240). It is a fixed quote, since the text is known before the run: the hold is what the creator pays. Revisit with measured costs.
