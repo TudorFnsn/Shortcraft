@@ -93,6 +93,7 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 | Date       | Net revenue 30d | API cost 30d | Fixed   | Profit | Cost ratio | Notes                                                                                  |
 | ---------- | --------------- | ------------ | ------- | ------ | ---------- | -------------------------------------------------------------------------------------- |
+| 2026-10-22 | not measured (2 `pro` subs in DB; Stripe connector sees only a test-mode account, so likely test data) | $8.19 (15 done jobs, ~$0.55/video; 3 failed jobs cost $0, no leak) | unknown | n/a | n/a | Sandbox cannot reach Supabase directly (`fetch failed`), so numbers came from the Supabase connector. Margin gate PASS (Pro 3.00x). Sub-agent fan-out skipped: pre-revenue, nothing to audit yet. |
 | 2026-10-20 | not measured    | not measured | unknown | n/a    | n/a        | No DB or Stripe access in the setup session. First run of `finance-report` fills this. |
 
 ---
@@ -155,4 +156,5 @@ Read FinancePlan.md (charter, rules, backlog), TheMasterPlan.md §7-§9, and AGE
 
 ## 11. Changelog (newest on top)
 
+- **2026-10-22** — First measured run via Supabase connector: 18 jobs / $8.19 in 30d, 15 done (~$0.55 each, above the ~$0.07-$1.10 model range), failed jobs cost $0. Gate PASS. Direct DB access from the routine sandbox fails; Stripe connector is test-mode only. (Finance CEO)
 - **2026-10-20** — Finance track started: this plan, `features/finance/unit-economics.ts` (+5 tests), `scripts/finance-report.mts`, `config/fixed-costs.ts`. No DB access from the setup session, so no live numbers yet. (Finance CEO, setup)
