@@ -93,6 +93,7 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 | Date       | Net revenue 30d | API cost 30d | Fixed   | Profit | Cost ratio | Notes                                                                                  |
 | ---------- | --------------- | ------------ | ------- | ------ | ---------- | -------------------------------------------------------------------------------------- |
+| 2026-11-04 | ~$52 MRR est. (2 Pro subs x $26.24 net, not Stripe-verified) | $6.23 (14 jobs) | unknown | ~+$46 before fixed | ~0.12 | Via Supabase connector (script fetch blocked in sandbox). 0 failed jobs, no spike (weekly spend $1.96 / $3.96 / $2.21 / $0.06). Gate PASS (Pro 3.00x). Stripe still unauthenticated; fixed costs still null. No sub-agents launched: 6 users, too little data to justify. |
 | 2026-10-20 | not measured    | not measured | unknown | n/a    | n/a        | No DB or Stripe access in the setup session. First run of `finance-report` fills this. |
 
 ---
@@ -155,4 +156,5 @@ Read FinancePlan.md (charter, rules, backlog), TheMasterPlan.md §7-§9, and AGE
 
 ## 11. Changelog (newest on top)
 
+- **2026-11-04** — First measured run: metrics row added. Instruments: connector worked, scripts' direct fetch did not. No pricing/provider change proposed. (Finance CEO)
 - **2026-10-20** — Finance track started: this plan, `features/finance/unit-economics.ts` (+5 tests), `scripts/finance-report.mts`, `config/fixed-costs.ts`. No DB access from the setup session, so no live numbers yet. (Finance CEO, setup)
