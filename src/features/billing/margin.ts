@@ -191,6 +191,8 @@ function assess(
 export interface MarginReport {
   ok: boolean;
   plans: ProductMargin[];
+  /** Yearly prices: one year of monthly credits against the single yearly payment. */
+  yearly: ProductMargin[];
   topUps: ProductMargin[];
   /** API cost of a new signup burning the whole trial (acquisition cost, not gated). */
   trialCostUsd: number;
@@ -213,6 +215,22 @@ export function assessMargins(catalog: MarginCatalog = {}): MarginReport {
   const planResults = plans.map((p) =>
     assess(p.id, p.name, p.monthlyCredits, p.priceCents, worstCase(allowedShapes(p), models), a),
   );
+  // One payment buys twelve monthly grants, so only one Stripe fixed fee is
+  // saved while the discount comes straight off the multiple.
+  const yearlyResults = plans.flatMap((p) =>
+    p.yearlyPriceCents === null
+      ? []
+      : [
+          assess(
+            `${p.id}_yearly`,
+            `${p.name} (yearly)`,
+            12 * p.monthlyCredits,
+            p.yearlyPriceCents,
+            worstCase(allowedShapes(p), models),
+            a,
+          ),
+        ],
+  );
 
   // Top-up credits can be spent under any plan, so price them at the worst shape overall.
   const anyPlanWorst = worstCase(plans.flatMap(allowedShapes), models);
@@ -225,8 +243,9 @@ export function assessMargins(catalog: MarginCatalog = {}): MarginReport {
   const trialCostUsd = trialCredits * worstCase(allowedShapes(freePlan), models).usdPerCredit;
 
   return {
-    ok: [...planResults, ...topUpResults].every((r) => r.passes),
+    ok: [...planResults, ...yearlyResults, ...topUpResults].every((r) => r.passes),
     plans: planResults,
+    yearly: yearlyResults,
     topUps: topUpResults,
     trialCostUsd,
   };
@@ -234,7 +253,7 @@ export function assessMargins(catalog: MarginCatalog = {}): MarginReport {
 
 /** One-line summary of failing products, for errors and logs. */
 export function describeFailures(report: MarginReport): string {
-  return [...report.plans, ...report.topUps]
+  return [...report.plans, ...report.yearly, ...report.topUps]
     .filter((r) => !r.passes)
     .map(
       (r) =>
