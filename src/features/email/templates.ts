@@ -4,6 +4,7 @@
  */
 import { siteConfig } from '@/config/site';
 import { createHref, dailyIdeas, dayKey } from '@/components/ideas';
+import { PLANS } from '@/config/plans';
 import { ONE_VIDEO_CREDITS, type PlannedEmail } from './lifecycle';
 
 export interface EmailContent {
@@ -45,6 +46,22 @@ export function renderLifecycleEmail(
           `Need an idea? Try today's: “${idea.topic}” (${idea.themeLabel}). Pick a length, press Generate, and it's ready in about a minute, with script, voice and captions done for you.`,
         ],
         cta,
+        opts.unsubscribeUrl,
+      ),
+    };
+  }
+
+  if (email.kind === 'trial_spent') {
+    const plan = PLANS.starter;
+    const videos = Math.floor(plan.monthlyCredits / ONE_VIDEO_CREDITS);
+    return {
+      subject: 'Your first video is done. Keep the streak going?',
+      ...layout(
+        [
+          `You made your first ${siteConfig.name} video and used your free trial credits on it. Nice start.`,
+          `Channels grow by posting often. ${plan.name} is €${(plan.priceCents / 100).toFixed(2)} a month for ${plan.monthlyCredits.toLocaleString('en-US')} credits (enough for about ${videos} videos of 15 seconds), with no "Made with Shortcraft" mark. Cancel any time.`,
+        ],
+        { label: 'See plans', url: `${opts.siteUrl}/pricing` },
         opts.unsubscribeUrl,
       ),
     };

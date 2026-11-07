@@ -13,7 +13,7 @@ import { siteConfig } from './site';
 
 /** Bump when the Terms change materially; recorded with every checkout consent. */
 export const TERMS_VERSION = '2026-10-10';
-export const PRIVACY_VERSION = '2026-10-13';
+export const PRIVACY_VERSION = '2026-10-16';
 
 /** True until the operator fields below are real and the text has been reviewed. */
 export const LEGAL_DRAFT = true;
@@ -203,7 +203,7 @@ export const PRIVACY: LegalDocument = {
         'To provide the service you signed up for: making your videos, keeping your account and credits, and billing (GDPR Art. 6(1)(b), contract).',
         'To keep tax and accounting records (Art. 6(1)(c), legal obligation).',
         'To keep the service secure, prevent abuse and fix errors (Art. 6(1)(f), legitimate interests).',
-        'To send a few reminders about the service you use: one if you haven’t made your first video a day after signing up, and at most one a week if you pay for a plan, haven’t made a video that week and still have credits (Art. 6(1)(f), legitimate interests). Every reminder has a one-click unsubscribe link.',
+        'To send a few reminders about the service you use: one if you haven’t made your first video a day after signing up, one when your free trial credits run out after your first video (with what a plan costs), and at most one a week if you pay for a plan, haven’t made a video that week and still have credits (Art. 6(1)(f), legitimate interests). Every reminder has a one-click unsubscribe link.',
         'We do not sell your data, show ads, or use your content to train AI models.',
       ],
     },
