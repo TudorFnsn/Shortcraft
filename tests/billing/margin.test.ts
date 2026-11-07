@@ -16,6 +16,7 @@ import {
   estimateSceneCount,
   MAX_SCENE_SEC,
   revoiceBill,
+  sceneRedoBill,
   VOICE_DESIGN_ROUND_CREDITS,
 } from '@/features/render/pricing';
 import { assertMarginGate } from '@/features/providers/registry';
@@ -35,7 +36,9 @@ describe('jobBill', () => {
         ? VOICE_DESIGN_ROUND_CREDITS
         : shape.revoice
           ? revoiceBill(estimateSceneCount(shape.targetDurationSec) * MAX_SCENE_SEC).credits
-          : estimateJobCredits(shape);
+          : shape.sceneRedo
+            ? sceneRedoBill(shape.modelTier, MAX_SCENE_SEC).credits
+            : estimateJobCredits(shape);
       expect(jobBill(shape).credits).toBe(expected);
     }
   });
@@ -52,11 +55,14 @@ describe('jobBill', () => {
 });
 
 describe('allowedShapes', () => {
-  it('covers every length and tier a plan unlocks, a re-voice of each length and a voice design round', () => {
+  it('covers every length and tier a plan unlocks, a re-voice of each length, a scene redo per tier and a voice design round', () => {
     const shapes = allowedShapes(PLANS.starter);
     const lengths = PLANS.starter.limits.maxVideoDurationSec - MIN_VIDEO_SEC + 1;
     expect(shapes.every((s) => s.modelTier === 'standard')).toBe(true);
-    expect(shapes.filter((s) => !s.revoice && !s.voiceDesign)).toHaveLength(lengths);
+    expect(shapes.filter((s) => !s.revoice && !s.voiceDesign && !s.sceneRedo)).toHaveLength(
+      lengths,
+    );
+    expect(shapes.filter((s) => s.sceneRedo)).toHaveLength(1);
     expect(shapes.filter((s) => s.revoice)).toHaveLength(lengths);
     expect(shapes.filter((s) => s.voiceDesign)).toHaveLength(1);
     expect(allowedShapes(PLANS.pro).some((s) => s.modelTier === 'premium')).toBe(true);
@@ -92,10 +98,10 @@ describe('assessMargins', () => {
     expect(report.ok).toBe(true);
     expect(describeFailures(report)).toBe('');
     // Starter: €14.99 for 30k credits at its worst shape's cost per credit (a
-    // re-voice or voice design: their fixed 13k credits per $ is below these
-    // models' 20k credits per $).
+    // re-voice, scene redo or voice design: their fixed 13k credits per $ is
+    // below these models' 20k credits per $).
     const worst = worstCase(allowedShapes(PLANS.starter), cheapModels);
-    expect(worst.shape.revoice || worst.shape.voiceDesign).toBe(true);
+    expect(worst.shape.revoice || worst.shape.voiceDesign || worst.shape.sceneRedo).toBe(true);
     const starter = report.plans.find((p) => p.id === 'starter');
     expect(starter?.multiple).toBeCloseTo(14.99 / (30_000 * worst.usdPerCredit));
   });
