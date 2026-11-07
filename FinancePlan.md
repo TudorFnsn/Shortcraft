@@ -93,6 +93,7 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 | Date       | Net revenue 30d | API cost 30d | Fixed   | Profit | Cost ratio | Notes                                                                                  |
 | ---------- | --------------- | ------------ | ------- | ------ | ---------- | -------------------------------------------------------------------------------------- |
+| 2026-11-07 | ~$52 est. (2 active Pro subs x $26.24 net; Stripe not readable) | $6.23 (14 jobs, all done, avg $0.445/video) | unknown | n/a | ~0.12 (excl. fixed) | Via Supabase connector (script blocked: sandbox fetch fails). Gate PASS (Pro 3.00x). 0 failed jobs, no wasted spend. 6 users, 18 jobs lifetime. Avg $0.445/video is ~6x the $0.07 Standard estimate, so premium clips dominate spend: F3/F4 matter. No prior week to compare. |
 | 2026-10-20 | not measured    | not measured | unknown | n/a    | n/a        | No DB or Stripe access in the setup session. First run of `finance-report` fills this. |
 
 ---
@@ -155,4 +156,5 @@ Read FinancePlan.md (charter, rules, backlog), TheMasterPlan.md §7-§9, and AGE
 
 ## 11. Changelog (newest on top)
 
+- **2026-11-07** — First live numbers via Supabase SQL (see §5). No PR: yearly plans (F7) is in review as #92; F1 needs migration OK. Stripe connector still unauthorised, fixed costs still empty. (Finance CEO)
 - **2026-10-20** — Finance track started: this plan, `features/finance/unit-economics.ts` (+5 tests), `scripts/finance-report.mts`, `config/fixed-costs.ts`. No DB access from the setup session, so no live numbers yet. (Finance CEO, setup)
