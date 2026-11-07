@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getVoice } from '@/config/voices';
-import { estimateRevoiceCredits } from '@/features/render/pricing';
+import { estimateRevoiceCredits, estimateSceneRedoCredits } from '@/features/render/pricing';
 import { InMemoryStore } from '@/features/render/repository.memory';
 import { editorView, maxNarrationLength } from '@/features/render/revoice';
 import {
@@ -85,8 +85,20 @@ describe('editorView', () => {
     expect(view.voiceId).toBe('callum'); // the horror look's default
     expect(view.voiceSettings).toEqual({ speed: 'normal', delivery: 'natural' });
     expect(view.scenes).toEqual([
-      { idx: 0, narration: 'First line.', maxLength: maxNarrationLength('First line.') },
-      { idx: 1, narration: 'Second line.', maxLength: maxNarrationLength('Second line.') },
+      {
+        idx: 0,
+        narration: 'First line.',
+        maxLength: maxNarrationLength('First line.'),
+        imagePrompt: '',
+        redoCredits: estimateSceneRedoCredits('standard', 6),
+      },
+      {
+        idx: 1,
+        narration: 'Second line.',
+        maxLength: maxNarrationLength('Second line.'),
+        imagePrompt: '',
+        redoCredits: estimateSceneRedoCredits('standard', 6),
+      },
     ]);
     expect(view.revoiceCredits).toBe(estimateRevoiceCredits(['First line.', 'Second line.']));
     expect(editorView(job, scenes).editable).toBe(false);

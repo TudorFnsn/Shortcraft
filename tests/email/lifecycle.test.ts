@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { SUBPROCESSORS } from '@/config/legal';
+import { PRIVACY, SUBPROCESSORS } from '@/config/legal';
+import { PLANS } from '@/config/plans';
 import {
   DAY_MS,
   ONE_VIDEO_CREDITS,
+  balanceCandidates,
   planLifecycleEmails,
   type Audience,
   type AudienceUser,
@@ -25,7 +27,13 @@ const user = (id: string, ageDays: number, patch: Partial<AudienceUser> = {}): A
   ...patch,
 });
 
-const empty: Audience = { users: [], doneJobs: [], subscriptions: [], recentSends: [] };
+const empty: Audience = {
+  users: [],
+  doneJobs: [],
+  subscriptions: [],
+  recentSends: [],
+  paidUserIds: [],
+};
 const RICH = ONE_VIDEO_CREDITS * 5;
 
 describe('planLifecycleEmails: first_video', () => {
@@ -68,6 +76,7 @@ describe('planLifecycleEmails: unused_credits', () => {
     const users = ['idle', 'active', 'broke', 'canceled', 'new-sub', 'nudged', 'nudged-long-ago'];
     const plan = planLifecycleEmails(
       {
+        ...empty,
         users: users.map((id) => user(id, 60)),
         doneJobs: [
           { userId: 'idle', createdAt: daysAgo(7.5) },
@@ -108,6 +117,75 @@ describe('planLifecycleEmails: unused_credits', () => {
   });
 });
 
+describe('planLifecycleEmails: trial_spent', () => {
+  const LOW = ONE_VIDEO_CREDITS - 1;
+
+  it('emails never-paid users whose trial ran out a day or more after their video, once', () => {
+    const ids = [
+      'due',
+      'too-soon',
+      'still-has-credits',
+      'paid-topup',
+      'subscriber',
+      'no-video',
+      'opted-out',
+      'already-sent',
+      'unknown-balance',
+    ];
+    const plan = planLifecycleEmails(
+      {
+        ...empty,
+        users: ids.map((id) => user(id, 5, id === 'opted-out' ? { optedOut: true } : {})),
+        doneJobs: ids
+          .filter((id) => id !== 'no-video')
+          .map((id) => ({ userId: id, createdAt: daysAgo(id === 'too-soon' ? 0.5 : 2) })),
+        subscriptions: [
+          { userId: 'subscriber', planId: 'starter', status: 'active', createdAt: daysAgo(1) },
+        ],
+        recentSends: [{ userId: 'already-sent', kind: 'trial_spent', createdAt: daysAgo(1) }],
+        paidUserIds: ['paid-topup'],
+      },
+      new Map(
+        ids
+          .filter((id) => id !== 'unknown-balance')
+          .map((id) => [id, id === 'still-has-credits' ? ONE_VIDEO_CREDITS : LOW]),
+      ),
+      NOW,
+    );
+    expect(plan.filter((p) => p.kind === 'trial_spent')).toEqual([
+      {
+        userId: 'due',
+        email: 'due@example.com',
+        kind: 'trial_spent',
+        periodKey: 'once',
+        balance: LOW,
+      },
+    ]);
+  });
+
+  it('never also sends first_video: that one needs no finished video', () => {
+    const plan = planLifecycleEmails(
+      { ...empty, users: [user('a', 3)], doneJobs: [{ userId: 'a', createdAt: daysAgo(2) }] },
+      new Map([['a', 0]]),
+      NOW,
+    );
+    expect(plan.map((p) => p.kind)).toEqual(['trial_spent']);
+  });
+
+  it('asks for balances of subscribers and never-paid users with a video only', () => {
+    const ids = balanceCandidates({
+      ...empty,
+      doneJobs: [
+        { userId: 'trial', createdAt: daysAgo(2) },
+        { userId: 'payer', createdAt: daysAgo(2) },
+      ],
+      subscriptions: [{ userId: 'sub', planId: 'pro', status: 'active', createdAt: daysAgo(30) }],
+      paidUserIds: ['payer', 'sub'],
+    });
+    expect(ids.sort()).toEqual(['sub', 'trial']);
+  });
+});
+
 describe('templates', () => {
   const opts = { siteUrl: 'https://shortcraft.app', unsubscribeUrl: 'https://u.test/x', now: NOW };
 
@@ -129,6 +207,21 @@ describe('templates', () => {
     );
     expect(c.subject).toContain(RICH.toLocaleString('en-US'));
     expect(c.text).toContain('about 5 more 15-second videos');
+  });
+
+  it('trial_spent links to pricing with the Starter price and credits', () => {
+    const c = renderLifecycleEmail(
+      { userId: 'a', email: 'a@x', kind: 'trial_spent', periodKey: 'once', balance: 0 },
+      opts,
+    );
+    const starter = PLANS.starter;
+    expect(c.text).toContain('See plans: https://shortcraft.app/pricing');
+    expect(c.text).toContain(`€${(starter.priceCents / 100).toFixed(2)} a month`);
+    expect(c.text).toContain(starter.monthlyCredits.toLocaleString('en-US'));
+    expect(c.text).toContain(
+      `about ${Math.floor(starter.monthlyCredits / ONE_VIDEO_CREDITS)} videos of 15 seconds`,
+    );
+    expect(c.html).toContain('Unsubscribe');
   });
 
   it('escapes HTML in the content', () => {
@@ -261,5 +354,12 @@ describe('ResendEmailSender', () => {
 describe('privacy policy', () => {
   it('lists Resend as a processor', () => {
     expect(SUBPROCESSORS.map((s) => s.name)).toContain('Resend');
+  });
+
+  it('describes every reminder we send, including the trial-spent one', () => {
+    const text = JSON.stringify(PRIVACY);
+    expect(text).toContain('first video a day after signing up');
+    expect(text).toContain('free trial credits run out');
+    expect(text).toContain('at most one a week');
   });
 });

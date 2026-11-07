@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { THEMES } from '@/config/themes';
 import { THEME_GUIDES } from '@/config/theme-guides';
 import { lookFor } from '@/components/ideas';
+import { PLANS } from '@/config/plans';
 import { KEYWORD_PAGES, keywordPage } from '@/config/keyword-pages';
 import {
   DISALLOWED_PATHS,
@@ -112,6 +113,16 @@ describe('keyword pages', () => {
     for (const p of KEYWORD_PAGES) {
       expect(p.themeIds.length).toBeGreaterThan(0);
       for (const id of p.themeIds) expect(THEMES.some((t) => t.id === id)).toBe(true);
+    }
+  });
+
+  it("quote every plan's real length limit on the Shorts page", () => {
+    const answer = keywordPage('ai-youtube-shorts-generator').faq.find((f) =>
+      f.q.startsWith('How long'),
+    )?.a;
+    for (const plan of Object.values(PLANS)) {
+      const { maxVideoDurationSec: max } = plan.limits;
+      expect(answer).toMatch(new RegExp(`\\b${max}( seconds)? on ${plan.name}\\b`));
     }
   });
 

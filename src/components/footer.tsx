@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { siteConfig } from '@/config/site';
+import { CARRIED_IDEA_MAX_CHARS, siteConfig } from '@/config/site';
 import { getCurrentUser } from '@/features/auth/session';
 import { FooterSwitch } from './footer-switch';
 import { Note } from './ui/note';
@@ -53,7 +53,7 @@ export async function Footer() {
             id="footer-idea"
             name="idea"
             type="text"
-            maxLength={300}
+            maxLength={CARRIED_IDEA_MAX_CHARS}
             placeholder="Why honey never spoils"
             className="field-line px-1 py-2.5 text-[24px] text-white sm:text-[28px]"
           />
