@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { PLANS } from '@/config/plans';
 import { getCurrentUser } from '@/features/auth/session';
 import { checkPlanLimits } from '@/features/billing/entitlements';
-import { getPromptModerator } from '@/features/moderation/prompt-check';
+import { getPromptModerator } from '@/features/moderation/moderator';
 import { advanceJob, driveJob } from '@/features/render/orchestrator';
 import { createSceneRedoJob, planSceneRedo } from '@/features/render/redo-scene';
 import { getStore } from '@/features/render/store';
