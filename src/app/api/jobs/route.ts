@@ -17,12 +17,13 @@ import { getUserVoiceStore } from '@/features/voice/store';
 import { isThemeId } from '@/config/themes';
 import { VoiceFields, voiceChoice } from '@/features/render/voice';
 import { PLANS } from '@/config/plans';
+import { TOPIC_MAX_CHARS } from '@/config/site';
 import { checkPlanLimits } from '@/features/billing/entitlements';
 import { getPromptModerator } from '@/features/moderation/prompt-check';
 import { logger } from '@/lib/logger';
 
 const Body = z.object({
-  topic: z.string().min(3).max(300),
+  topic: z.string().min(3).max(TOPIC_MAX_CHARS),
   themeId: z.string().refine(isThemeId, 'unknown theme'),
   targetDurationSec: z.number().int().min(6).max(120),
   modelTier: z.enum(['standard', 'premium']).default('standard'),
