@@ -93,6 +93,7 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 | Date       | Net revenue 30d | API cost 30d | Fixed   | Profit | Cost ratio | Notes                                                                                  |
 | ---------- | --------------- | ------------ | ------- | ------ | ---------- | -------------------------------------------------------------------------------------- |
+| 2026-11-08 | ~$52.5 (2 Pro subs, via Supabase connector; est. from margin.ts) | $4.22 (11 jobs, 0 failed) | unknown | n/a | ~0.08 before fixed costs | Sandbox cannot reach Supabase directly (scripts fail: fetch failed); numbers via connector SQL. Gate PASS (Pro 3.00x). Sub 7f5aca59 period ended 2026-11-05 but still `active`: check renewal webhook / Stripe. Stripe connector still unauthorised. |
 | 2026-10-20 | not measured    | not measured | unknown | n/a    | n/a        | No DB or Stripe access in the setup session. First run of `finance-report` fills this. |
 
 ---
