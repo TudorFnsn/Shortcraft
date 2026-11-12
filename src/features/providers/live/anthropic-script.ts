@@ -178,6 +178,10 @@ export function createAnthropicScriptProvider(
         kind: 'completed',
         output: toScriptOutput(parsed),
         costUsd: costUsdFor(response.model, response.usage),
+        usage: {
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+        },
       };
     },
 

@@ -22,6 +22,8 @@ if (existsSync(envFile)) {
 const { computeFinance } = await import('@/features/finance/unit-economics');
 const { FIXED_COSTS } = await import('@/config/fixed-costs');
 const { createSupabaseAdminClient } = await import('@/utils/supabase/admin');
+const { summarizeBreakdowns } = await import('@/features/finance/cost-breakdown');
+type CostBreakdown = import('@/features/finance/cost-breakdown').CostBreakdown;
 
 const admin = createSupabaseAdminClient();
 const PAGE = 1000;
@@ -42,9 +44,20 @@ async function selectAll(
   }
 }
 
+const JOB_COLUMNS = 'status, model_tier, api_cost_usd, actual_credits, created_at';
+/** Jobs with their per-step cost (0014); without it on a database that predates it. */
+async function selectJobs() {
+  try {
+    return await selectAll('render_jobs', `${JOB_COLUMNS}, cost_breakdown`);
+  } catch (e) {
+    if (!String(e).includes('cost_breakdown')) throw e;
+    return selectAll('render_jobs', JOB_COLUMNS);
+  }
+}
+
 const [subs, jobs, topups] = await Promise.all([
   selectAll('subscriptions', 'plan_id, status, created_at'),
-  selectAll('render_jobs', 'status, model_tier, api_cost_usd, actual_credits, created_at'),
+  selectJobs(),
   selectAll('credit_transactions', 'delta, created_at', { column: 'reason', value: 'topup' }),
 ]);
 
@@ -65,8 +78,16 @@ const report = computeFinance({
   fixedCosts: FIXED_COSTS,
 });
 
+// Per-step split of the window's jobs (only those rendered after 0014 have one).
+const since = Date.now() - report.windowDays * 86_400_000;
+const steps = summarizeBreakdowns(
+  jobs
+    .filter((j) => new Date(String(j.created_at)).getTime() >= since)
+    .map((j) => (j as { cost_breakdown?: CostBreakdown }).cost_breakdown),
+);
+
 if (process.argv.includes('--json')) {
-  console.log(JSON.stringify(report, null, 2));
+  console.log(JSON.stringify({ ...report, steps }, null, 2));
   process.exit(0);
 }
 
@@ -90,3 +111,21 @@ console.log(
   `Profit (30d):        ${usd(report.profitUsd)}   cost ratio ${report.costRatio ?? 'n/a'} (below 1 = profit)\n`,
 );
 console.table(report.tiers);
+
+console.log(
+  `\nCost by step (${steps.jobsWithBreakdown} jobs with a breakdown, ${usd(steps.usd)}):`,
+);
+if (steps.steps.length === 0) console.log('  none yet (needs migration 0014 and new renders)');
+else
+  console.table(
+    steps.steps.map((s) => ({
+      step: s.step,
+      providers: s.providers.join(', '),
+      usd: usd(s.usd),
+      share: `${Math.round(s.share * 100)}%`,
+      perJob: usd(s.usdPerJob),
+      usage: Object.entries(s.usage)
+        .map(([k, v]) => `${k} ${v}`)
+        .join(', '),
+    })),
+  );

@@ -189,6 +189,7 @@ export function createFalVideoProvider(
       status: 'succeeded',
       output: { kind: 'video', videoUrl, durationSec: p.billedSec },
       costUsd: p.billedSec * usdPerSec,
+      usage: { clipSec: p.billedSec },
     };
   };
 
@@ -224,7 +225,12 @@ export function createFalVideoProvider(
       for (;;) {
         const res = await check(pending);
         if (res.status === 'succeeded') {
-          return { kind: 'completed', output: res.output, costUsd: res.costUsd };
+          return {
+            kind: 'completed',
+            output: res.output,
+            costUsd: res.costUsd,
+            usage: res.usage,
+          };
         }
         if (res.status === 'failed') throw new Error(res.reason);
         await sleep(pollIntervalMs);
