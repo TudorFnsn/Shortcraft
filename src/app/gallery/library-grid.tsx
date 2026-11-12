@@ -13,6 +13,7 @@ import { Box } from '@/components/ui/box';
 import { buttonClasses } from '@/components/ui/button';
 import { Note } from '@/components/ui/note';
 import { onRadioKeyDown } from '@/components/ui/radio-keys';
+import { postCaption } from '@/features/posting/caption';
 import {
   STEP_COUNT,
   STEP_LABELS,
@@ -275,7 +276,7 @@ export function LibraryGrid({
           posted={Boolean(posted.log[open.id])}
           onTogglePosted={() => posted.toggle(open.id)}
           onClose={() => setOpenId(null)}
-          onCopied={() => flash('Title copied')}
+          onCopied={() => flash('Caption copied. Paste it into your post')}
           onEditVoiceover={() => {
             setOpenId(null);
             setEditingId(open.id);
@@ -638,10 +639,15 @@ function PlayerSheet({
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => void navigator.clipboard?.writeText(card.title).then(onCopied)}
+                onClick={() =>
+                  void navigator.clipboard
+                    ?.writeText(postCaption({ title: card.title, themeId: card.themeId }))
+                    .then(onCopied)
+                }
+                title="Title and hashtags, ready to paste into TikTok, Reels or Shorts"
                 className={buttonClasses({ variant: 'secondary', className: 'min-h-12' })}
               >
-                Copy title
+                Copy caption
               </button>
               <button
                 type="button"
