@@ -8,7 +8,7 @@
 > Operating model: see `~/.claude/the-master-plan-workflow.md` (the CEO + dev-team
 > "heartbeat" that drives this project).
 >
-> Last updated: 2026-10-14
+> Last updated: 2026-11-12
 
 ---
 
@@ -212,6 +212,7 @@ Branch `ceo/voice-studio`, one PR, commits in order. UI steps follow the Design 
 - [ ] Studio (edit/regenerate one scene). The re-voice child job (Voice Studio V3) is the first slice of it: same copy-scenes-and-resume-at-a-step mechanism.
 - [ ] Series (recurring cast + story bible).
 - [ ] AI Agent (chat that calls the existing pipeline — no second pipeline).
+- [~] **Copy caption** _(PR `ceo/post-caption`, 2026-11-12)_: the player's "Copy title" is now "Copy caption": title (cut at 150 chars on a word) + three hashtags per look + `#AIgenerated`, ready to paste into TikTok/Reels/Shorts (`features/posting/caption.ts`, pure, tested; every catalog look must have tags). First slice of making the post step one tap. Next: per-platform variants once we see which platform creators post to.
 - [ ] Direct posting to TikTok/YouTube/IG (apply for TikTok Content Posting API early — weeks of lead time).
 - [ ] Affiliate program (typically the best-paying channel in this niche).
 - [ ] Yearly plans.
@@ -326,6 +327,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-11-12** — Copy caption in the player (title + look hashtags + `#AIgenerated`) replaces Copy title, so posting needs no typing. New files only plus one button in `library-grid.tsx` (no overlap with the 14 open PRs). +8 tests (533). (CEO, routine)
 - **2026-10-20** — Finance track: `FinancePlan.md` (charter, sub-agent split, cost model, backlog F1–F10, routine prompt), `features/finance/unit-economics.ts` + `scripts/finance-report.mts` (read-only MRR, API spend, cost per video by tier, profit), `config/fixed-costs.ts` (owner fills in). +5 tests. (Finance CEO, setup)
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)
@@ -400,6 +402,7 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 11. Decision log (why, not just what)
 
+- **Copied captions always end with `#AIgenerated`** (2026-11-12) → TikTok, YouTube and Meta require AI-made realistic content to be disclosed and can suppress or strike posts that aren't; a default tag protects our creators' accounts (and our reputation) at no cost. Hashtags are a fixed list per look, not LLM-written: free, instant, deterministic and reviewable. Revisit if creators ask for trend-aware tags.
 - **Keyword pages are root-level static routes driven by one config, not a `[slug]` catch-all** (2026-10-14) → short keyword URLs (`/faceless-video-generator`) rank and read best, and a root dynamic segment would shadow future top-level routes; a two-line `page.tsx` per slug keeps every page static and explicit, and a test fails if a config entry has no route. Copy may only claim shipped features (no "unlimited", no posting integrations) so a search visitor never meets a broken promise at sign-up.
 - **A voice design round costs 325 credits, not ~100** (2026-10-13, adjusts decision 7 of the Voice Studio entry; owner to confirm) → a round of 3 samples costs us about $0.025 (ElevenLabs bills the sample text for each preview; estimate, to be replaced by the smoke script's measurement). At ~100 credits that is $0.00025 per credit, 3× above what any plan can afford at the 3x floor, so a creator rerolling all month would sink every plan. Priced at the same 13,000 credits per $ as re-voice, a round is 325 credits (~1/10 of one 15s video), which still keeps rerolls cheap and passes the gate. Saved voices store no provider id client-side; the tables are service-role only (stricter than the plan's owner-only RLS), so the ElevenLabs ids never leave the server.
 - **Re-voice is priced from its own API cost at 13,000 credits per $, not at per-step credit rates** (2026-10-13, adjusts decision 3 of the Voice Studio entry) → a re-voice bills only voice + final cut, the two steps with the most API cost per credit (voice 8 cr/s for $0.00075/s, render 100 cr for $0.01). At those rates a re-voice costs $0.0000956 per credit, above Pro's 3x limit of $0.000083, so a Pro creator re-voicing all month would put Pro at ~2.6x. Pricing it at 13,000 cr/$ (the plan's option-C scale plus headroom) keeps every plan ≥3x: ~423 credits for a 30s video instead of ~340, still ~7.7× cheaper than a remake (3,240). It is a fixed quote, since the text is known before the run: the hold is what the creator pays. Revisit with measured costs.
