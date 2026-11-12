@@ -326,6 +326,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-11-12** — Finance track: per-step API cost on render jobs (FinancePlan F1, migration 0014 `render_jobs.cost_breakdown`, applied by Tudor; safe to deploy before it). Finance run also found: migration 0007 (pg_cron sweep) is not applied in prod, the 2 "active" Pro subs need checking in Stripe, and there have been 0 renders since 10-19. +6 tests (531). (Finance CEO, routine)
+
 - **2026-10-20** — Finance track: `FinancePlan.md` (charter, sub-agent split, cost model, backlog F1–F10, routine prompt), `features/finance/unit-economics.ts` + `scripts/finance-report.mts` (read-only MRR, API spend, cost per video by tier, profit), `config/fixed-costs.ts` (owner fills in). +5 tests. (Finance CEO, setup)
 - **2026-10-14** — Design track: the Boxes redesign is built (B1–B11) and in review as PR #84 (`ceo-design/boxes`): every route restyled, gsap motion kit, light by default with Dark and System. UI only, 520 tests pass. (Design CEO, routine)
 - **2026-10-14** — Design track: Tudor approved the Boxes redesign (lil-boxes.com look) for every page in one PR. Plan, flow coverage and steps in DesignPlan §4 B. No code yet. (Design CEO, interactive)

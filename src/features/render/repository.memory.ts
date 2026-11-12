@@ -84,6 +84,7 @@ export class InMemoryStore implements RenderRepository, CreditRepository, PlanRe
       chargedCredits: 0,
       actualCredits: 0,
       apiCostUsd: 0,
+      costBreakdown: {},
       error: null,
       postedAt: null,
       voiceId: input.voiceId ?? null,

@@ -17,12 +17,20 @@ export interface ProviderJob {
   providerJobId: string;
 }
 
+/**
+ * Billable units a call used, as the vendor bills them (e.g. `inputTokens`,
+ * `chars`, `megapixels`, `clipSec`). Optional: recorded per step in
+ * `render_jobs.cost_breakdown` for provider comparisons.
+ */
+export type ProviderUsage = Readonly<Record<string, number>>;
+
 export type ProviderOutcome<Output> =
-  { kind: 'completed'; output: Output; costUsd: number } | { kind: 'async'; job: ProviderJob };
+  | { kind: 'completed'; output: Output; costUsd: number; usage?: ProviderUsage }
+  | { kind: 'async'; job: ProviderJob };
 
 export type ProviderPollResult<Output> =
   | { status: 'pending' }
-  | { status: 'succeeded'; output: Output; costUsd: number }
+  | { status: 'succeeded'; output: Output; costUsd: number; usage?: ProviderUsage }
   | { status: 'failed'; reason: string };
 
 /** Passed into every run so calls are idempotent and traceable. */
