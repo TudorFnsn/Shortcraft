@@ -16,6 +16,7 @@ import {
   estimateSceneCount,
   MAX_SCENE_SEC,
   revoiceBill,
+  sceneRedoBill,
   VOICE_DESIGN_ROUND_CREDITS,
 } from '@/features/render/pricing';
 import { assertMarginGate } from '@/features/providers/registry';
@@ -35,7 +36,9 @@ describe('jobBill', () => {
         ? VOICE_DESIGN_ROUND_CREDITS
         : shape.revoice
           ? revoiceBill(estimateSceneCount(shape.targetDurationSec) * MAX_SCENE_SEC).credits
-          : estimateJobCredits(shape);
+          : shape.sceneRedo
+            ? sceneRedoBill(shape.modelTier, MAX_SCENE_SEC).credits
+            : estimateJobCredits(shape);
       expect(jobBill(shape).credits).toBe(expected);
     }
   });
@@ -52,11 +55,14 @@ describe('jobBill', () => {
 });
 
 describe('allowedShapes', () => {
-  it('covers every length and tier a plan unlocks, a re-voice of each length and a voice design round', () => {
+  it('covers every length and tier a plan unlocks, a re-voice of each length, a scene redo per tier and a voice design round', () => {
     const shapes = allowedShapes(PLANS.starter);
     const lengths = PLANS.starter.limits.maxVideoDurationSec - MIN_VIDEO_SEC + 1;
     expect(shapes.every((s) => s.modelTier === 'standard')).toBe(true);
-    expect(shapes.filter((s) => !s.revoice && !s.voiceDesign)).toHaveLength(lengths);
+    expect(shapes.filter((s) => !s.revoice && !s.voiceDesign && !s.sceneRedo)).toHaveLength(
+      lengths,
+    );
+    expect(shapes.filter((s) => s.sceneRedo)).toHaveLength(1);
     expect(shapes.filter((s) => s.revoice)).toHaveLength(lengths);
     expect(shapes.filter((s) => s.voiceDesign)).toHaveLength(1);
     expect(allowedShapes(PLANS.pro).some((s) => s.modelTier === 'premium')).toBe(true);
@@ -92,10 +98,10 @@ describe('assessMargins', () => {
     expect(report.ok).toBe(true);
     expect(describeFailures(report)).toBe('');
     // Starter: €14.99 for 30k credits at its worst shape's cost per credit (a
-    // re-voice or voice design: their fixed 13k credits per $ is below these
-    // models' 20k credits per $).
+    // re-voice, scene redo or voice design: their fixed 13k credits per $ is
+    // below these models' 20k credits per $).
     const worst = worstCase(allowedShapes(PLANS.starter), cheapModels);
-    expect(worst.shape.revoice || worst.shape.voiceDesign).toBe(true);
+    expect(worst.shape.revoice || worst.shape.voiceDesign || worst.shape.sceneRedo).toBe(true);
     const starter = report.plans.find((p) => p.id === 'starter');
     expect(starter?.multiple).toBeCloseTo(14.99 / (30_000 * worst.usdPerCredit));
   });
@@ -124,6 +130,33 @@ describe('assessMargins', () => {
     }
   });
 
+  it('assesses each yearly price as twelve monthly grants for one payment', () => {
+    const plan = { ...PLANS.pro, yearlyPriceCents: 10 * PLANS.pro.priceCents };
+    const report = assessMargins({ models: cheapModels, assumptions: noFees, plans: [plan] });
+    const [monthly] = report.plans;
+    const [yearly] = report.yearly;
+    expect(yearly?.id).toBe('pro_yearly');
+    expect(yearly?.credits).toBe(12 * plan.monthlyCredits);
+    // Without fees, "two months free" scales the multiple by exactly 10/12.
+    expect(yearly?.multiple).toBeCloseTo((monthly?.multiple ?? 0) * (10 / 12));
+  });
+
+  it('fails the gate when a yearly discount drops a plan below the target', () => {
+    // Pro at today's catalog sits at ~3.0x monthly, so two months free cannot pass.
+    const report = assessMargins({
+      plans: [{ ...PLANS.pro, yearlyPriceCents: 10 * PLANS.pro.priceCents }],
+    });
+    expect(report.plans.every((p) => p.passes)).toBe(true);
+    expect(report.yearly[0]?.passes).toBe(false);
+    expect(report.ok).toBe(false);
+    expect(describeFailures(report)).toContain('Pro (yearly)');
+  });
+
+  it('skips plans that are not sold yearly', () => {
+    const report = assessMargins({ plans: [{ ...PLANS.ultra, yearlyPriceCents: null }] });
+    expect(report.yearly).toEqual([]);
+  });
+
   it('reports the trial burn cost', () => {
     const report = assessMargins({ models: cheapModels, trialCredits: 3000 });
     const worst = worstCase(allowedShapes(PLANS.starter), cheapModels);
@@ -134,8 +167,13 @@ describe('assessMargins', () => {
 describe('shipped catalog', () => {
   // Guards owner-approved pricing (2026-10-05): any catalog or plan edit that
   // drops a product below 3x must be a deliberate decision, not a side effect.
-  it('passes the margin gate for every plan and top-up', () => {
+  it('passes the margin gate for every plan, yearly price and top-up', () => {
     const report = assessMargins();
+    expect(report.yearly.map((y) => y.id)).toEqual(
+      Object.values(PLANS)
+        .filter((p) => p.yearlyPriceCents !== null)
+        .map((p) => `${p.id}_yearly`),
+    );
     expect(describeFailures(report)).toBe('');
     expect(report.ok).toBe(true);
     expect(() => assertMarginGate(report)).not.toThrow();

@@ -112,3 +112,33 @@ export const VOICE_DESIGN_ROUND_CREDITS = Math.ceil(
   VOICE_DESIGN_COST_USD_ESTIMATE * REVOICE_CREDITS_PER_USD,
 );
 export const SAVE_VOICE_CREDITS = 1_500;
+
+/**
+ * Redo one scene (Studio): a copy of a finished video where one scene gets a
+ * new picture (and, on Premium, a new AI clip). The voiceover is reused, so
+ * only that scene's image/clip and the final cut run. Priced like re-voice,
+ * from its API cost at the fixed scale, so it clears the margin gate on every
+ * plan (margin.ts checks it as its own job shape). A fixed quote: the scene's
+ * length is known up front.
+ */
+export function sceneRedoBill(
+  modelTier: ModelTier,
+  sceneSec: number,
+  models: readonly ModelSpec[] = MODELS,
+): RevoiceBill {
+  const pick = (kind: ModelSpec['kind']) =>
+    models.find((m) => m.kind === kind && m.tier === modelTier) ??
+    models.find((m) => m.kind === kind);
+  const image = pick('image');
+  const video = pick('video');
+  const render = models.find((m) => m.kind === 'render');
+  if (!image || !video || !render) throw new Error('scene redo needs image, video and render');
+  const seconds = Math.min(Math.max(sceneSec, 0), MAX_SCENE_SEC);
+  const costUsd = image.costUsdPerUnit + seconds * video.costUsdPerUnit + render.costUsdPerUnit;
+  return { credits: Math.ceil(costUsd * REVOICE_CREDITS_PER_USD), costUsd };
+}
+
+/** Credits to redo one scene of `sceneSec` seconds at `modelTier`. */
+export function estimateSceneRedoCredits(modelTier: ModelTier, sceneSec: number): number {
+  return sceneRedoBill(modelTier, sceneSec).credits;
+}
