@@ -58,7 +58,10 @@ async function selectJobs() {
 const [subs, jobs, topups] = await Promise.all([
   selectAll('subscriptions', 'plan_id, status, created_at'),
   selectJobs(),
-  selectAll('credit_transactions', 'delta, created_at', { column: 'reason', value: 'topup' }),
+  selectAll('credit_transactions', 'delta, created_at, idempotency_key', {
+    column: 'reason',
+    value: 'topup',
+  }),
 ]);
 
 const report = computeFinance({
@@ -74,6 +77,7 @@ const report = computeFinance({
   topups: topups.map((t) => ({
     credits: Number(t.delta),
     createdAt: new Date(String(t.created_at)),
+    idempotencyKey: t.idempotency_key == null ? null : String(t.idempotency_key),
   })),
   fixedCosts: FIXED_COSTS,
 });
@@ -98,7 +102,7 @@ console.log(
 );
 console.log(`MRR net (VAT+fees):  ${usd(report.mrrNetUsd)}`);
 console.log(
-  `Top-ups net (30d):   ${usd(report.topupNetUsd)}${report.unpricedTopups ? ` (+${report.unpricedTopups} unpriced)` : ''}`,
+  `Top-ups net (30d):   ${usd(report.topupNetUsd)}${report.unpricedTopups ? ` (+${report.unpricedTopups} unpriced)` : ''}${report.manualTopups ? `  (${report.manualTopups} manual grants, not revenue)` : ''}`,
 );
 console.log(`Net revenue:         ${usd(report.netRevenueUsd)}`);
 console.log(
