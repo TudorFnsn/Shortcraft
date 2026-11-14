@@ -4,7 +4,7 @@
 > `TheMasterPlan.md` (which wins on product and priority; this file wins on cost, pricing and
 > cash). Every finance PR updates this file (metrics log + backlog + changelog) in the same change.
 >
-> Last updated: 2026-11-13 (second run: no change in usage; F13 in review)
+> Last updated: 2026-11-14 (third run: no change in usage; F1 + F13 in review)
 
 ---
 
@@ -93,6 +93,7 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 | Date       | Net revenue 30d                   | API cost 30d | Fixed                                                    | Profit | Cost ratio | Notes                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------- | --------------------------------- | ------------ | -------------------------------------------------------- | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-11-14 | $52.47 (MRR only, **unverified**) | $0.06        | $0 known (5 unknown)                                     | $52.41 | 0.001      | Via Supabase connector (scripts: `fetch failed` to `*.supabase.co`; Stripe connector unauthorised). Same 2 Pro subs (A now 9 days past its 11-05 period end). 1 job in window (standard $0.058; the $1.92 premium aged out), 0 failed. **0 renders in 26 days, 0 sign-ins in 30 days**, 0 new users (6 total). No ledger rows in 7 days. Gate PASS (Pro 3.00x).                                                                |
 | 2026-11-13 | $52.47 (MRR only, **unverified**) | $1.98        | $0 known (5 unknown)                                     | $50.49 | 0.038      | Via Supabase connector again (scripts still blocked by network policy; Stripe connector still unauthorised). Same 2 Pro subs (A still "active" 8 days past its 11-05 period end). 2 jobs in window (1 standard $0.058, 1 premium $1.92), 0 failed, **0 renders in 25 days**, 0 new users in 7 days (6 total). All 5 `topup` rows ever (20K, 20K, 10K, 10K, 27K) have **no Stripe key**: none is a sale. Gate PASS (Pro 3.00x). |
 | 2026-11-12 | $52.47 (MRR only, **unverified**) | $2.16        | $0 known (Vercel Hobby, Supabase likely Free; 5 unknown) | $50.31 | 0.041      | Via Supabase connector. 2 Pro subs "active", but sub A's period ended 11-05 and sub B has no period end; Stripe connector unauthorised, so real MRR may be €0. 3 top-ups in window are 10K/10K/27K (not packs): manual grants, $0 counted. 7 jobs in window (6 standard $0.041 avg, 1 premium $1.92), 0 failed, **0 renders since 10-19**. Gate PASS (Pro 3.00x).                                                              |
 | 2026-10-20 | not measured                      | not measured | unknown                                                  | n/a    | n/a        | No DB or Stripe access in the setup session. First run of `finance-report` fills this.                                                                                                                                                                                                                                                                                                                                         |
@@ -167,6 +168,8 @@ Read FinancePlan.md (charter, rules, backlog), TheMasterPlan.md §7-§9, and AGE
 ```
 
 ## 11. Changelog (newest on top)
+
+- **2026-11-14** — Third run, no change in usage (0 renders in 26 days, no user has signed in for 30 days). No sub-agents and no new PR: nothing moved since the 11-12 research, and 11 PRs already wait for review. Blockers are all Tudor's: verify the 2 Pro subs in Stripe (F11), reconnect Stripe + fill fixed costs (F2), outreach (F12), merge #98/#100. (Finance CEO, routine)
 
 - **2026-11-13** — Second run, no usage change (0 renders in 25 days). Sub-agent fan-out skipped: nothing moved since the 11-12 research, so it would re-buy the same answers. F13 built on `ceo-finance/manual-grants`: reports now tell a Stripe-written top-up (`stripe:` idempotency key) from a hand-inserted one (`isStripeGrantKey`), so manual grants are never priced as pack sales (`manualTopups` in `finance-report`) or counted as conversions (`metrics-report`); migration 0015 adds ledger reason `admin_grant`; `scripts/grant-credits.mts` (dry run by default, idempotent) for future hand grants. `hasPaid`/watermark unchanged for existing rows. +1 test (527 on main). (Finance CEO, routine)
 
