@@ -119,6 +119,7 @@ export function createFalImageProvider(
         kind: 'completed',
         output,
         costUsd: billedMegapixels(width, height) * model.costUsdPerUnit,
+        usage: { images: 1, megapixels: billedMegapixels(width, height) },
       };
     },
 

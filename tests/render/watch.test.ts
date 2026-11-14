@@ -34,6 +34,7 @@ function job(patch: Partial<RenderJobRecord> = {}): RenderJobRecord {
     chargedCredits: 0,
     actualCredits: 0,
     apiCostUsd: 0,
+    costBreakdown: {},
     error: null,
     postedAt: null,
     voiceId: null,
