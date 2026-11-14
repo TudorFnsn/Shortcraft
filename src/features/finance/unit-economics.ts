@@ -8,12 +8,14 @@
  * - **MRR (net):** the same after VAT and Stripe fees (`netRevenueUsd`), USD.
  * - **Top-up revenue:** paid `topup` grants in the window, priced by matching
  *   the credits to a `TOPUP_PACKS` entry (unmatched grants are counted, not priced).
+ *   Rows whose idempotency key is not a Stripe key were granted by hand: they
+ *   are counted as `manualTopups` and never priced, even if they match a pack.
  * - **API cost:** `render_jobs.api_cost_usd` of jobs created in the window.
  *   Failed jobs keep their cost: it is money spent with no video delivered.
  * - **Cost ratio:** (API + fixed costs) / net revenue. Below 1 = profit.
  */
 import { PLANS, TOPUP_PACKS } from '@/config/plans';
-import { isLiveSubscription } from '@/features/billing/entitlements';
+import { isLiveSubscription, isStripeGrantKey } from '@/features/billing/entitlements';
 import { netRevenueUsd } from '@/features/billing/margin';
 
 export const WINDOW_DAYS = 30;
@@ -31,8 +33,11 @@ export interface FinanceInput {
   now: Date;
   subscriptions: ReadonlyArray<{ planId: string; status: string }>;
   jobs: readonly FinanceJob[];
-  /** Paid `topup` ledger rows (credits granted). */
-  topups: ReadonlyArray<{ credits: number; createdAt: Date }>;
+  /**
+   * `topup` ledger rows (credits granted). `idempotencyKey`: the row's key;
+   * null or non-Stripe = a manual grant. Omitted = assume paid (legacy callers).
+   */
+  topups: ReadonlyArray<{ credits: number; createdAt: Date; idempotencyKey?: string | null }>;
   /** Fixed monthly costs in USD; null = unknown. */
   fixedCosts: ReadonlyArray<{ id: string; monthlyUsd: number | null }>;
 }
@@ -58,6 +63,8 @@ export interface FinanceReport {
   mrrNetUsd: number;
   topupNetUsd: number;
   unpricedTopups: number;
+  /** `topup` rows in the window not written by the Stripe webhook (no revenue). */
+  manualTopups: number;
   netRevenueUsd: number;
   apiCostUsd: number;
   fixedCostsUsd: number;
@@ -86,8 +93,13 @@ export function computeFinance(input: FinanceInput): FinanceReport {
 
   let topupNetUsd = 0;
   let unpricedTopups = 0;
+  let manualTopups = 0;
   for (const t of input.topups) {
     if (t.createdAt.getTime() < since) continue;
+    if (t.idempotencyKey !== undefined && !isStripeGrantKey(t.idempotencyKey)) {
+      manualTopups += 1;
+      continue;
+    }
     const pack = TOPUP_PACKS.find((p) => p.credits === t.credits);
     if (pack) topupNetUsd += netRevenueUsd(pack.priceCents);
     else unpricedTopups += 1;
@@ -147,6 +159,7 @@ export function computeFinance(input: FinanceInput): FinanceReport {
     mrrNetUsd: round(mrrNetUsd, 2),
     topupNetUsd: round(topupNetUsd, 2),
     unpricedTopups,
+    manualTopups,
     netRevenueUsd: round(net, 2),
     apiCostUsd: round(apiCostUsd, 2),
     fixedCostsUsd: round(fixedCostsUsd, 2),

@@ -68,6 +68,14 @@ export function checkPlanLimits(plan: Plan, req: JobRequest): Result<void, AppEr
 /** Ledger reasons that mean the user paid us: a subscription grant or a top-up. */
 export const PAID_GRANT_REASONS = ['monthly_grant', 'topup'] as const;
 
+/**
+ * True when a ledger row's idempotency key was written by the Stripe webhook
+ * (`credit-grant.ts` keys every paid grant `stripe:...`). A paid-reason row
+ * without one was inserted by hand, so reports must not count it as revenue.
+ */
+export const isStripeGrantKey = (key: string | null | undefined): boolean =>
+  typeof key === 'string' && key.startsWith('stripe:');
+
 /** Port: resolve a user's current plan (Supabase in prod, in-memory in tests). */
 export interface PlanRepository {
   planOf(userId: string): Promise<PlanId>;
