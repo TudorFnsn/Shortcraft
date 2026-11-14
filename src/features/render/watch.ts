@@ -4,46 +4,17 @@
  * hit a dead link. Instead we recover the object's storage path from that URL
  * and mint a fresh short-lived URL on every click, after checking ownership.
  */
-import type { SignedUrlOptions } from '@/features/providers/live/media-store';
+import {
+  storagePathFromSignedUrl,
+  type SignedUrlOptions,
+} from '@/features/providers/live/media-store';
 import type { RenderJobRecord, SceneRecord } from './repository';
 
 /** Long enough to watch or download, short enough that a shared link dies. */
 export const WATCH_URL_TTL_SEC = 60 * 60;
 
-/**
- * Object path inside `bucket` from a Supabase Storage signed URL
- * (`<origin>/storage/v1/object/sign/<bucket>/<path>?token=…`). Returns null for
- * anything else: another origin, another bucket, mock URLs, or a path that
- * tries to climb out of the bucket.
- */
-export function storagePathFromSignedUrl(
-  url: string,
-  bucket: string,
-  storageOrigin: string,
-): string | null {
-  let parsed: URL;
-  let origin: string;
-  try {
-    parsed = new URL(url);
-    origin = new URL(storageOrigin).origin;
-  } catch {
-    return null;
-  }
-  if (parsed.protocol !== 'https:' || parsed.origin !== origin) return null;
-
-  const prefix = `/storage/v1/object/sign/${bucket}/`;
-  if (!parsed.pathname.startsWith(prefix)) return null;
-
-  let path: string;
-  try {
-    path = decodeURIComponent(parsed.pathname.slice(prefix.length));
-  } catch {
-    return null;
-  }
-  const segments = path.split('/');
-  if (segments.some((s) => s === '' || s === '.' || s === '..')) return null;
-  return path;
-}
+// Lives with the media store (the renderer needs it too); re-exported for existing callers.
+export { storagePathFromSignedUrl };
 
 const DOWNLOAD_FALLBACK = 'shortcraft-video';
 const DOWNLOAD_MAX_SLUG = 60;

@@ -83,6 +83,7 @@ describe('fal video adapter', () => {
       kind: 'completed',
       output: { kind: 'video', videoUrl: `memory://${path}`, durationSec: 5 },
       costUsd: 5 * (FAL_VIDEO_USD_PER_SEC[DEFAULT_FAL_VIDEO_MODEL] ?? 0),
+      usage: { clipSec: 5 },
     });
   });
 
@@ -124,6 +125,7 @@ describe('fal video adapter', () => {
       status: 'succeeded',
       output: { kind: 'video', videoUrl: `memory://${path}`, durationSec: 5 },
       costUsd: 5 * (FAL_VIDEO_USD_PER_SEC[DEFAULT_FAL_VIDEO_MODEL] ?? 0),
+      usage: { clipSec: 5 },
     });
     expect(store.objects.has(path)).toBe(true);
   });

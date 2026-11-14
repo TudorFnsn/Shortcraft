@@ -88,6 +88,30 @@ describe('in-house render adapter', () => {
     expect(readdirSync(tmpRoot)).toEqual([]);
   });
 
+  it('downloads each asset from the fresh URL it is given, keeping the stored extension', async () => {
+    const store = new InMemoryMediaStore();
+    const fetchMock = okFetch();
+    const seen: LocalRenderInput[] = [];
+    const freshUrl = vi.fn(async (url: string) => `https://fresh.test/${encodeURIComponent(url)}`);
+    const provider = createInhouseRenderProvider(model, {
+      store: () => store,
+      fetch: fetchMock as unknown as typeof fetch,
+      render: fakeRender(seen),
+      tmpRoot: mkdtempSync(join(tmpdir(), 'render-test-')),
+      freshUrl,
+    });
+
+    await provider.run(input, ctx);
+
+    expect(freshUrl).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls.every((c) => String(c[0]).startsWith('https://fresh.test/'))).toBe(
+      true,
+    );
+    expect(seen[0]?.voiceoverPath.endsWith('voiceover.mp3')).toBe(true);
+    expect(seen[0]?.clipPaths[0]?.endsWith('clip0.jpg')).toBe(true);
+    expect(seen[0]?.clipPaths[1]?.endsWith('clip1.mp4')).toBe(true);
+  });
+
   it('charges the flat catalog price per render', () => {
     const provider = createInhouseRenderProvider(model, { store: () => new InMemoryMediaStore() });
     expect(provider.costCredits(input)).toBe(model.creditsPerUnit);

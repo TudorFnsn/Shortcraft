@@ -3,11 +3,13 @@
  * Supabase redirects here with `?code=` (PKCE); we exchange it for a session
  * (set as cookies by the server client) and redirect to the safe `next` path.
  * New accounts get their trial credits from the existing `handle_new_user`
- * trigger, exactly like email sign-ups.
+ * trigger, exactly like email sign-ups. A friend's invite code carried in
+ * `next` is claimed here (best-effort; see features/referrals).
  */
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { loginAfterOAuthError, safeNextPath } from '@/features/auth/oauth';
+import { loginAfterOAuthError, refFromNext, safeNextPath } from '@/features/auth/oauth';
+import { claimReferralSafely } from '@/features/referrals/claim';
 import { createSupabaseServerClient } from '@/utils/supabase/server';
 
 export async function GET(request: Request) {
@@ -24,8 +26,9 @@ export async function GET(request: Request) {
 
   try {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw new Error(error.message);
+    if (data.user) await claimReferralSafely(data.user.id, refFromNext(next));
   } catch (e) {
     // Expired/reused code, a verifier cookie from another browser, or no Supabase config.
     logger.warn('oauth code exchange failed', { error: (e as Error).message });

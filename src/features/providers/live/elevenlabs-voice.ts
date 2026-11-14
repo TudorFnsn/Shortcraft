@@ -140,7 +140,12 @@ export function createElevenLabsVoiceProvider(
         durationMs: Math.round(lastEnd * 1000),
         words,
       };
-      return { kind: 'completed', output, costUsd: input.text.length * USD_PER_CHAR };
+      return {
+        kind: 'completed',
+        output,
+        costUsd: input.text.length * USD_PER_CHAR,
+        usage: { chars: input.text.length },
+      };
     },
 
     poll: async (_job: ProviderJob) => notAsync(),

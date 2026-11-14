@@ -23,6 +23,7 @@ import {
   estimateSceneCount,
   MAX_SCENE_SEC,
   revoiceBill,
+  sceneRedoBill,
   VOICE_DESIGN_COST_USD_ESTIMATE,
   VOICE_DESIGN_ROUND_CREDITS,
 } from '@/features/render/pricing';
@@ -61,6 +62,8 @@ export interface JobShape {
   revoice?: true;
   /** One Voice Design round (3 samples), not a video. */
   voiceDesign?: true;
+  /** One scene of a finished video redone (Studio): its picture/clip + final cut. */
+  sceneRedo?: true;
 }
 
 export interface JobBill {
@@ -82,6 +85,7 @@ export function jobBill(shape: JobShape, models: readonly ModelSpec[] = MODELS):
   const scenes = estimateSceneCount(shape.targetDurationSec);
   // Narration is at most every scene at full length (the re-voice editor caps growth).
   if (shape.revoice) return revoiceBill(scenes * MAX_SCENE_SEC, models);
+  if (shape.sceneRedo) return sceneRedoBill(shape.modelTier, MAX_SCENE_SEC, models);
   if (shape.voiceDesign) {
     return { credits: VOICE_DESIGN_ROUND_CREDITS, costUsd: VOICE_DESIGN_COST_USD_ESTIMATE };
   }
@@ -110,6 +114,10 @@ export function allowedShapes(plan: Plan): JobShape[] {
   // Any finished video can be re-voiced, on every plan.
   for (let sec = MIN_VIDEO_SEC; sec <= plan.limits.maxVideoDurationSec; sec++) {
     shapes.push({ targetDurationSec: sec, modelTier: 'standard', revoice: true });
+  }
+  // One scene of any finished video can be redone, at any tier the plan allows.
+  for (const modelTier of plan.limits.modelTiers) {
+    shapes.push({ targetDurationSec: MAX_SCENE_SEC, modelTier, sceneRedo: true });
   }
   // Every plan can design voices (saving one is a slot price, not an API cost).
   shapes.push({ targetDurationSec: 0, modelTier: 'standard', voiceDesign: true });
@@ -191,6 +199,8 @@ function assess(
 export interface MarginReport {
   ok: boolean;
   plans: ProductMargin[];
+  /** Yearly prices: one year of monthly credits against the single yearly payment. */
+  yearly: ProductMargin[];
   topUps: ProductMargin[];
   /** API cost of a new signup burning the whole trial (acquisition cost, not gated). */
   trialCostUsd: number;
@@ -213,6 +223,22 @@ export function assessMargins(catalog: MarginCatalog = {}): MarginReport {
   const planResults = plans.map((p) =>
     assess(p.id, p.name, p.monthlyCredits, p.priceCents, worstCase(allowedShapes(p), models), a),
   );
+  // One payment buys twelve monthly grants, so only one Stripe fixed fee is
+  // saved while the discount comes straight off the multiple.
+  const yearlyResults = plans.flatMap((p) =>
+    p.yearlyPriceCents === null
+      ? []
+      : [
+          assess(
+            `${p.id}_yearly`,
+            `${p.name} (yearly)`,
+            12 * p.monthlyCredits,
+            p.yearlyPriceCents,
+            worstCase(allowedShapes(p), models),
+            a,
+          ),
+        ],
+  );
 
   // Top-up credits can be spent under any plan, so price them at the worst shape overall.
   const anyPlanWorst = worstCase(plans.flatMap(allowedShapes), models);
@@ -225,8 +251,9 @@ export function assessMargins(catalog: MarginCatalog = {}): MarginReport {
   const trialCostUsd = trialCredits * worstCase(allowedShapes(freePlan), models).usdPerCredit;
 
   return {
-    ok: [...planResults, ...topUpResults].every((r) => r.passes),
+    ok: [...planResults, ...yearlyResults, ...topUpResults].every((r) => r.passes),
     plans: planResults,
+    yearly: yearlyResults,
     topUps: topUpResults,
     trialCostUsd,
   };
@@ -234,7 +261,7 @@ export function assessMargins(catalog: MarginCatalog = {}): MarginReport {
 
 /** One-line summary of failing products, for errors and logs. */
 export function describeFailures(report: MarginReport): string {
-  return [...report.plans, ...report.topUps]
+  return [...report.plans, ...report.yearly, ...report.topUps]
     .filter((r) => !r.passes)
     .map(
       (r) =>

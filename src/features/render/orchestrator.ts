@@ -31,6 +31,7 @@ import {
 import type {
   ProviderContext,
   ProviderOutcome,
+  ProviderUsage,
   RenderClip,
   VideoOutput,
   WordTiming,
@@ -54,7 +55,9 @@ import type {
 } from './repository';
 import { isUserVoiceId } from '@/config/voices';
 import type { UserVoiceStore } from '@/features/voice/my-voices';
+import { isSceneRedo, sceneRedoCredits } from './redo-scene';
 import { resolveVoice, type OwnVoice } from './voice';
+import { addStepCost, type MeteredCall } from '@/features/finance/cost-breakdown';
 
 export interface OrchestratorDeps {
   repo: RenderRepository;
@@ -85,31 +88,36 @@ export interface StepOutcome {
 }
 
 /** Steps that must finish inline (script, images, voice, render). */
-function inline<T>(outcome: ProviderOutcome<T>): { output: T; costUsd: number } {
+function inline<T>(outcome: ProviderOutcome<T>): {
+  output: T;
+  costUsd: number;
+  usage?: ProviderUsage;
+} {
   if (outcome.kind !== 'completed') {
     throw new Error('this step expects its provider to complete inline');
   }
-  return { output: outcome.output, costUsd: outcome.costUsd };
+  return { output: outcome.output, costUsd: outcome.costUsd, usage: outcome.usage };
 }
 
 const modelIdFor = (kind: 'image' | 'video', tier: ModelTier) => `${kind}-${tier}`;
-const sum = (items: { credits: number; usd: number }[]): [number, number] => [
-  items.reduce((n, i) => n + i.credits, 0),
-  items.reduce((n, i) => n + i.usd, 0),
-];
 const round4 = (n: number): number => Math.round(n * 10_000) / 10_000;
 
 /**
- * Records metered credits + API cost on the job. Called once per step with the
- * step's totals (never from parallel branches, whose writes could land out of order).
+ * Records metered credits + API cost on the job, and the same split by step in
+ * `costBreakdown` (FinancePlan F1). Called once per step with the step's calls
+ * (never from parallel branches, whose writes could land out of order).
  */
 function meter(repo: RenderRepository, job: RenderJobRecord) {
-  return async (credits: number, costUsd: number) => {
-    job.chargedCredits += credits;
-    job.apiCostUsd = round4(job.apiCostUsd + costUsd);
+  return async (step: string, providerId: string, calls: readonly MeteredCall[]) => {
+    for (const c of calls) {
+      job.chargedCredits += c.credits;
+      job.apiCostUsd = round4(job.apiCostUsd + c.usd);
+    }
+    job.costBreakdown = addStepCost(job.costBreakdown, step, providerId, calls);
     await repo.updateJob(job.id, {
       chargedCredits: job.chargedCredits,
       apiCostUsd: job.apiCostUsd,
+      costBreakdown: job.costBreakdown,
     });
   };
 }
@@ -140,13 +148,21 @@ async function step(
   if (isTerminal(job.status)) return ok({ job, waiting: false });
 
   if (job.status === 'draft') {
-    // A re-voiced copy already has its scenes (pictures and clips reused): it
-    // holds the fixed re-voice price and starts at the voiceover.
-    const revoice = job.parentJobId !== null;
-    const estimate = revoice
-      ? estimateRevoiceCredits((await repo.listScenes(job.id)).map((s) => s.narration))
-      : estimateJobCredits({ targetDurationSec: job.targetDurationSec, modelTier: job.modelTier });
-    const firstStep: RenderStatus = revoice ? 'voiceover' : 'scripting';
+    // A child job already has its scenes. A scene redo (some scenes not rendered)
+    // holds the redo price and starts at the images; a re-voiced copy (pictures
+    // and clips reused) holds the re-voice price and starts at the voiceover.
+    const scenes = job.parentJobId !== null ? await repo.listScenes(job.id) : [];
+    const redo = isSceneRedo(job, scenes);
+    const revoice = job.parentJobId !== null && !redo;
+    const estimate = redo
+      ? sceneRedoCredits(job, scenes)
+      : revoice
+        ? estimateRevoiceCredits(scenes.map((s) => s.narration))
+        : estimateJobCredits({
+            targetDurationSec: job.targetDurationSec,
+            modelTier: job.modelTier,
+          });
+    const firstStep: RenderStatus = redo ? 'images' : revoice ? 'voiceover' : 'scripting';
     const reserved = await reserveForJob(credits, job.userId, job.id, estimate);
     if (!reserved.ok) {
       await repo.updateJob(job.id, { status: 'failed', error: reserved.error.code });
@@ -202,7 +218,9 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
       if (flagged) {
         // Record the script's API cost, then fail before any image is generated. The
         // message names the category, never the prompt; the catch refunds the hold.
-        await charge(script.costCredits(input), res.costUsd);
+        await charge('script', script.id, [
+          { credits: script.costCredits(input), usd: res.costUsd, usage: res.usage },
+        ]);
         throw new Error(
           `moderation_blocked: scene ${flagged.sceneIndex + 1} prompt (${flagged.category})`,
         );
@@ -217,7 +235,9 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
           durationSec: s.durationSec,
         })),
       );
-      await charge(script.costCredits(input), res.costUsd);
+      await charge('script', script.id, [
+        { credits: script.costCredits(input), usd: res.costUsd, usage: res.usage },
+      ]);
       return false;
     }
 
@@ -229,10 +249,10 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
           const input = { prompt: scene.imagePrompt, aspectRatio: '9:16' as const };
           const res = inline(await image.run(input, ctx('images', scene.id)));
           await repo.updateScene(scene.id, { imageUrl: res.output.imageUrl });
-          return { credits: image.costCredits(input), usd: res.costUsd };
+          return { credits: image.costCredits(input), usd: res.costUsd, usage: res.usage };
         }),
       );
-      await charge(...sum(costs));
+      if (costs.length > 0) await charge('images', image.id, costs);
       return false;
     }
 
@@ -242,7 +262,7 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
       const video = getVideoProvider(modelIdFor('video', job.modelTier));
       const todo = (await repo.listScenes(job.id)).filter((s) => s.status !== 'done');
       const results = await Promise.all(
-        todo.map(async (scene): Promise<{ pending: boolean; credits: number; usd: number }> => {
+        todo.map(async (scene): Promise<{ pending: boolean } & MeteredCall> => {
           if (!scene.imageUrl) throw new Error(`scene ${scene.id} missing image`);
           const input = {
             imageUrl: scene.imageUrl,
@@ -251,18 +271,19 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
           };
           let output: VideoOutput;
           let costUsd: number;
+          let usage: ProviderUsage | undefined;
           if (scene.videoJob) {
             const res = await video.poll({ providerId: video.id, providerJobId: scene.videoJob });
             if (res.status === 'pending') return { pending: true, credits: 0, usd: 0 };
             if (res.status === 'failed') throw new Error(`scene ${scene.idx}: ${res.reason}`);
-            ({ output, costUsd } = res);
+            ({ output, costUsd, usage } = res);
           } else {
             const res = await video.run(input, ctx('clips', scene.id));
             if (res.kind === 'async') {
               await repo.updateScene(scene.id, { videoJob: res.job.providerJobId });
               return { pending: true, credits: 0, usd: 0 };
             }
-            ({ output, costUsd } = res);
+            ({ output, costUsd, usage } = res);
           }
           await repo.updateScene(scene.id, {
             status: 'done',
@@ -271,14 +292,18 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
               ? { videoUrl: output.videoUrl, clipDurationMs: output.durationSec * 1000 }
               : {}), // a still: the scene image IS the clip
           });
-          return { pending: false, credits: video.costCredits(input), usd: costUsd };
+          return { pending: false, credits: video.costCredits(input), usd: costUsd, usage };
         }),
       );
-      await charge(...sum(results));
+      // Clips still in flight cost nothing yet; they are metered when they land.
+      const landed = results.filter((r) => !r.pending);
+      if (landed.length > 0) await charge('clips', video.id, landed);
       return results.some((r) => r.pending);
     }
 
     case 'voiceover': {
+      // A scene redo keeps its source's voiceover (the narration didn't change).
+      if (job.parentJobId !== null && job.voiceoverUrl) return false;
       const voice = getVoiceProvider();
       const scenes = await repo.listScenes(job.id);
       const narrator = resolveVoice(job, await ownVoiceOf(deps, job));
@@ -293,7 +318,9 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
         voiceoverUrl: res.output.audioUrl,
         words: res.output.words,
       });
-      await charge(voice.costCredits(input), res.costUsd);
+      await charge('voice', voice.id, [
+        { credits: voice.costCredits(input), usd: res.costUsd, usage: res.usage },
+      ]);
       return false;
     }
 
@@ -317,7 +344,9 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
         brandWatermark: !(await deps.plans.hasPaid(job.userId)),
       };
       const res = inline(await render.run(input, ctx('stitching')));
-      await charge(render.costCredits(input), res.costUsd);
+      await charge('render', render.id, [
+        { credits: render.costCredits(input), usd: res.costUsd, usage: res.usage },
+      ]);
       const asset = await repo.saveAsset({
         userId: job.userId,
         jobId: job.id,
@@ -326,7 +355,7 @@ async function runStep(deps: OrchestratorDeps, job: RenderJobRecord): Promise<bo
       });
 
       // The hold is the ceiling: an overrun is our margin leak, never the user's debt.
-      // A re-voice is a fixed quote (its text was known up front): it bills the hold.
+      // A child job (re-voice or scene redo) is a fixed quote, known up front: it bills the hold.
       const billed =
         job.parentJobId !== null
           ? job.estimatedCredits

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { siteConfig } from '@/config/site';
+import { CARRIED_IDEA_MAX_CHARS, siteConfig } from '@/config/site';
 import { THEMES } from '@/config/themes';
 import { PLANS } from '@/config/plans';
 import { KEYWORD_PAGES, keywordPage } from '@/config/keyword-pages';
@@ -87,7 +87,7 @@ export function KeywordPageView({ slug }: { slug: string }) {
               id="kw-idea"
               name="idea"
               type="text"
-              maxLength={300}
+              maxLength={CARRIED_IDEA_MAX_CHARS}
               placeholder={STARTER.topic}
               className="field-line text-ink min-h-11 px-1 py-2.5 text-[24px] sm:text-[28px]"
             />
