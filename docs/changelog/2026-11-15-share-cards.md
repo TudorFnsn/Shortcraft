@@ -1,0 +1,1 @@
+- **2026-11-15** — Distribution: branded share cards (Open Graph + Twitter, 1200×630) for the site and each `/ideas/<theme>` page, so every link pasted into X, Reddit, Discord, iMessage or an email previews with an image instead of bare text. New files only (no overlap with the merge train); branch `ceo/share-cards`, no PR yet (WIP limit). +8 tests (533). (CEO routine)
