@@ -326,6 +326,8 @@ Follow-ups: model the "hero shot" premium variant (AI video on the hook scene on
 
 ## 10. Changelog (append newest on top; every change lands a line here)
 
+- **2026-11-16** — Finance track: daily check, no change (0 renders in 28 days, 30-day API cost $0.06, gate PASS). Logged only. (Finance CEO, routine)
+
 - **2026-11-14** — Finance track: daily check, no change (0 renders in 26 days, 0 sign-ins in 30 days, 30-day API cost $0.06, gate PASS). Logged only. (Finance CEO, routine)
 - **2026-11-13** — Finance track: manual credit grants no longer count as revenue or conversions in the reports (FinancePlan F13, migration 0015 `admin_grant` reason + `scripts/grant-credits.mts`). Usage still 0 renders since 10-19. +1 test. (Finance CEO, routine)
 - **2026-10-20** — Finance track: `FinancePlan.md` (charter, sub-agent split, cost model, backlog F1–F10, routine prompt), `features/finance/unit-economics.ts` + `scripts/finance-report.mts` (read-only MRR, API spend, cost per video by tier, profit), `config/fixed-costs.ts` (owner fills in). +5 tests. (Finance CEO, setup)
