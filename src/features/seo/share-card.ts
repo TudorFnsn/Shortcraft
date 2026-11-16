@@ -11,6 +11,7 @@
 import { siteConfig } from '@/config/site';
 import { THEMES } from '@/config/themes';
 import { lookFor } from '@/components/ideas';
+import { KEYWORD_PAGES } from '@/config/keyword-pages';
 
 /** The size every major platform renders as a large card (1.91:1). */
 export const SHARE_CARD_SIZE = { width: 1200, height: 630 } as const;
@@ -98,6 +99,32 @@ export function themeShareCard(themeId: string): ShareCard | null {
     chips: ideas.map((i) => fitText(i, MAX_CHIP)),
     accent: THEME_ACCENTS[theme.id] ?? SHARE_COLORS.ember,
     alt: `${theme.label} video ideas on ${siteConfig.name}`,
+  };
+}
+
+/**
+ * The card for a keyword landing page (`/<slug>`, config/keyword-pages.ts), or
+ * null for an unknown slug. These are the pages search traffic lands on, so
+ * their links get their own card instead of the generic site one.
+ */
+export function keywordShareCard(slug: string): ShareCard | null {
+  const page = KEYWORD_PAGES.find((p) => p.slug === slug);
+  if (!page) return null;
+  const trial = siteConfig.trialCredits.toLocaleString('en-US');
+  const looks = page.themeIds
+    .map((id) => THEMES.find((t) => t.id === id)?.label)
+    .filter((label): label is string => Boolean(label))
+    .slice(0, 3);
+  return {
+    eyebrow: 'Free to try',
+    headline: fitText(page.heading, MAX_HEADLINE),
+    subline: fitText(
+      `Type an idea, get a narrated, captioned 9:16 video. ${trial} free credits, no card.`,
+      MAX_SUBLINE,
+    ),
+    chips: looks.map((l) => fitText(l, MAX_CHIP)),
+    accent: SHARE_COLORS.sky,
+    alt: `${page.heading} on ${siteConfig.name}`,
   };
 }
 

@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { THEMES } from '@/config/themes';
 import { siteConfig } from '@/config/site';
+import { KEYWORD_PAGES } from '@/config/keyword-pages';
 import {
   MAX_HEADLINE,
   MAX_SUBLINE,
@@ -10,6 +11,7 @@ import {
   SHARE_COLORS,
   fitText,
   inkOn,
+  keywordShareCard,
   siteShareCard,
   themeShareCard,
 } from '@/features/seo/share-card';
@@ -60,6 +62,26 @@ describe('themeShareCard', () => {
   });
 });
 
+describe('keywordShareCard', () => {
+  it('returns null for an unknown keyword page', () => {
+    expect(keywordShareCard('ai-cat-video-generator')).toBeNull();
+  });
+
+  it('has a card for every keyword page, headed by its H1 and fitting the card', () => {
+    for (const page of KEYWORD_PAGES) {
+      const card = keywordShareCard(page.slug);
+      expect(card, page.slug).not.toBeNull();
+      expect(card!.headline, page.slug).toBe(page.heading);
+      expect(card!.headline.length, page.slug).toBeLessThanOrEqual(MAX_HEADLINE);
+      expect(card!.subline.length, page.slug).toBeLessThanOrEqual(MAX_SUBLINE);
+      expect(card!.subline).toContain(siteConfig.trialCredits.toLocaleString('en-US'));
+      expect(card!.chips.length, page.slug).toBeGreaterThan(0);
+      expect(card!.chips.length, page.slug).toBeLessThanOrEqual(3);
+      expect(card!.alt).toContain(siteConfig.name);
+    }
+  });
+});
+
 describe('inkOn', () => {
   it('uses dark text on light accents and white on strong ones', () => {
     expect(inkOn(SHARE_COLORS.yellow)).toBe(SHARE_COLORS.ink);
@@ -69,9 +91,9 @@ describe('inkOn', () => {
 });
 
 describe('route files', () => {
-  it('ship an Open Graph and a Twitter image for the site and the theme pages', () => {
+  it('ship an Open Graph and a Twitter image for the site, theme and keyword pages', () => {
     const app = join(process.cwd(), 'src/app');
-    for (const dir of ['', 'ideas/[theme]']) {
+    for (const dir of ['', 'ideas/[theme]', ...KEYWORD_PAGES.map((p) => p.slug)]) {
       for (const f of ['opengraph-image.tsx', 'twitter-image.tsx']) {
         expect(existsSync(join(app, dir, f)), `${dir}/${f}`).toBe(true);
       }
