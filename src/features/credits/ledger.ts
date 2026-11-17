@@ -13,14 +13,24 @@
  * This module holds the MATH; the atomic persistence wraps these deltas.
  */
 
-export type CreditReason =
-  | 'trial_grant'
-  | 'monthly_grant'
-  | 'topup'
-  | 'referral_bonus'
-  | 'reserve'
-  | 'settle_adjust'
-  | 'refund';
+/**
+ * Every ledger reason, in the order the DB check lists them. Must equal the
+ * `credit_transactions_reason_check` of the newest migration that sets it
+ * (tests/credits/reason-check.test.ts), so a reason the code writes can never
+ * be rejected by the database.
+ */
+export const CREDIT_REASONS = [
+  'trial_grant',
+  'monthly_grant',
+  'topup',
+  'referral_bonus',
+  'admin_grant',
+  'reserve',
+  'settle_adjust',
+  'refund',
+] as const;
+
+export type CreditReason = (typeof CREDIT_REASONS)[number];
 
 export interface CreditTx {
   id: string;
