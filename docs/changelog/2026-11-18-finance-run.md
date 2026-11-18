@@ -1,0 +1,1 @@
+- **2026-11-18** — Finance CEO: daily metrics row. No renders for 30 days. The 2 "active" Pro subs are unverified: sub A is 13 days past its period end with no webhook update. FinancePlan F11 (Stripe check) still waits on Tudor. (Finance CEO, routine)
