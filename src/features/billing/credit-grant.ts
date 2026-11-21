@@ -19,7 +19,8 @@ import type { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import type { PlanId } from '@/config/plans';
 import { upgradeCreditDelta } from './subscription-sync';
 
-export type GrantReason = 'topup' | 'monthly_grant';
+/** `referral_bonus` is free credit, never a payment: it is not in PAID_GRANT_REASONS. */
+export type GrantReason = 'topup' | 'monthly_grant' | 'referral_bonus';
 
 /** Event-scoped grants. One event can make at most one grant per purpose. */
 export type EventGrantPurpose = 'checkout' | 'renewal';

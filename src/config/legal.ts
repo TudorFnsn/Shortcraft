@@ -9,11 +9,12 @@
  * `LEGAL_DRAFT` drives the visible "draft" banner on both pages.
  */
 import { PLANS } from './plans';
+import { REFERRAL } from './referrals';
 import { siteConfig } from './site';
 
 /** Bump when the Terms change materially; recorded with every checkout consent. */
-export const TERMS_VERSION = '2026-10-10';
-export const PRIVACY_VERSION = '2026-10-13';
+export const TERMS_VERSION = '2026-10-19';
+export const PRIVACY_VERSION = '2026-10-21';
 
 /** True until the operator fields below are real and the text has been reviewed. */
 export const LEGAL_DRAFT = true;
@@ -59,7 +60,11 @@ export const SUBPROCESSORS = [
   { name: 'Supabase', purpose: 'accounts, database and file storage (EU, Ireland)' },
   { name: 'Vercel', purpose: 'hosting and running the app, and measuring page speed (no cookies)' },
   { name: 'Stripe', purpose: 'payments, invoices and subscriptions' },
-  { name: 'Anthropic', purpose: 'writing video scripts from your topic' },
+  {
+    name: 'Anthropic',
+    purpose:
+      'writing video scripts from your topic, and screening topics and lines for our content rules',
+  },
   { name: 'ElevenLabs', purpose: 'generating voiceovers from the script' },
   { name: 'fal.ai', purpose: 'generating scene images and AI video clips' },
   { name: 'Resend', purpose: 'sending our reminder emails (your email address only)' },
@@ -101,6 +106,7 @@ export const TERMS: LegalDocument = {
       paragraphs: [
         `Making a video costs credits. ${siteConfig.name} shows the maximum price before you start, holds that amount while the video is made and charges only what was used; the rest is returned. If a video fails, all held credits are returned automatically.`,
         `New accounts get ${siteConfig.trialCredits.toLocaleString('en')} free trial credits. Videos made only with trial credits carry a small "Made with ${siteConfig.name}" watermark; it is removed once you have made any purchase.`,
+        `Invite a friend: when someone signs up through your invite link and then starts a paid plan, you get ${REFERRAL.referrerCredits.toLocaleString('en')} credits and they get ${REFERRAL.refereeCredits.toLocaleString('en')} credits, once per friend and for up to ${REFERRAL.maxRewardedPerReferrer} friends. Accounts that have already paid can't be invited. Invite credits are free credits: they don't remove the trial watermark. Inviting yourself or using fake accounts is not allowed, and we may remove credits earned that way.`,
         'Credits have no cash value, cannot be transferred or exchanged for money, and are only for use on your own account. Credits currently do not expire while your account is open; we will give at least 30 days’ notice before introducing any expiry.',
       ],
     },
@@ -192,6 +198,7 @@ export const PRIVACY: LegalDocument = {
       paragraphs: [
         'Account: your email address and a password (stored only as a secure hash by our authentication provider). If you continue with Google instead, Google shares your name, email address and profile picture with us; we use only the email address, and never get your Google password.',
         'Content: the topics you enter, the scripts, images, clips, voiceovers and videos generated for you, and their settings.',
+        'Invites: if you signed up through a friend’s invite link, we record which account invited you, so we can give you both the invite credits. Your friend only sees how many people joined and how many were rewarded, never who.',
         'Billing: your plan, payments and credit history. Card details are entered on Stripe’s checkout page and never reach our servers.',
         'Technical: logs needed to run and secure the service (for example request times, errors and IP addresses). When a prompt is blocked by our safety screen we log only the category, not the prompt.',
       ],
@@ -203,7 +210,7 @@ export const PRIVACY: LegalDocument = {
         'To provide the service you signed up for: making your videos, keeping your account and credits, and billing (GDPR Art. 6(1)(b), contract).',
         'To keep tax and accounting records (Art. 6(1)(c), legal obligation).',
         'To keep the service secure, prevent abuse and fix errors (Art. 6(1)(f), legitimate interests).',
-        'To send a few reminders about the service you use: one if you haven’t made your first video a day after signing up, and at most one a week if you pay for a plan, haven’t made a video that week and still have credits (Art. 6(1)(f), legitimate interests). Every reminder has a one-click unsubscribe link.',
+        'To send a few reminders about the service you use: one if you haven’t made your first video a day after signing up, one when your free trial credits run out after your first video (with what a plan costs), and at most one a week if you pay for a plan, haven’t made a video that week and still have credits (Art. 6(1)(f), legitimate interests). Every reminder has a one-click unsubscribe link.',
         'We do not sell your data, show ads, or use your content to train AI models.',
       ],
     },

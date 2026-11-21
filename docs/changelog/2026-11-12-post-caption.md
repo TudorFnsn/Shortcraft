@@ -1,0 +1,1 @@
+- **2026-11-12** — Copy caption in the player (title + look hashtags + `#AIgenerated`) replaces Copy title, so posting needs no typing. New files only plus one button in `library-grid.tsx` (no overlap with the 14 open PRs). +8 tests (533). (CEO, routine)

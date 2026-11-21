@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { planTeasers } from '@/components/landing/plan-teaser';
+import { ManagePlanButton } from '@/components/manage-plan-button';
 import { SplitLines } from '@/components/motion/split-lines';
 import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
@@ -26,7 +27,14 @@ const TILT = ['-rotate-1', '', 'rotate-1'] as const;
  * the ember box), the dark top-up box with League Gothic tiles and the refund
  * line. Checkout calls are unchanged.
  */
-export function PricingView({ currentPlan = null }: { currentPlan?: string | null }) {
+export function PricingView({
+  currentPlan = null,
+  canManagePlan = false,
+}: {
+  currentPlan?: string | null;
+  /** True once the account has paid: shows "Manage plan" (Stripe portal: cancel, card, invoices). */
+  canManagePlan?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -230,8 +238,12 @@ export function PricingView({ currentPlan = null }: { currentPlan?: string | nul
           ))}
         </ul>
         <p className="text-ink-muted m-0 w-full text-[15px]">
-          Failed videos refund their credits automatically. Cancel any time from your account.
+          Failed videos refund their credits automatically.{' '}
+          {canManagePlan
+            ? 'Cancel, change your card or get invoices any time with Manage plan.'
+            : 'Cancel any time from this page once you subscribe.'}
         </p>
+        {canManagePlan && <ManagePlanButton />}
       </section>
     </main>
   );

@@ -1,0 +1,1 @@
+- **2026-11-13** — Finance track: manual credit grants no longer count as revenue or conversions in the reports (FinancePlan F13, migration 0015 `admin_grant` reason + `scripts/grant-credits.mts`). Usage still 0 renders since 10-19. +1 test. (Finance CEO, routine)

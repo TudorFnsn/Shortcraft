@@ -7,7 +7,8 @@
  * (the catalog's flat per-render figure). Completes inline; poll/webhook are
  * never used.
  *
- * Assets come from our own media store (signed https URLs). `file://` is read
+ * Assets come from our own media store (signed https URLs, re-signed before
+ * each download via `freshUrl`, since stored ones expire). `file://` is read
  * only when `allowFileUrls` is set (the live smoke script), so in production a
  * bad URL in a job row can never make the renderer read server files.
  */
@@ -78,6 +79,11 @@ export function createInhouseRenderProvider(
     tmpRoot?: string;
     /** Local runs only (smoke script): also read `file://` assets. */
     allowFileUrls?: boolean;
+    /**
+     * Swaps a stored asset URL for a fresh one before downloading it (stored
+     * signed URLs expire after 24h; a re-voiced copy reuses old ones).
+     */
+    freshUrl?: (url: string) => Promise<string>;
   },
 ): RenderProvider {
   const doFetch = deps.fetch ?? fetch;
@@ -95,7 +101,8 @@ export function createInhouseRenderProvider(
         const fetchTo = async (url: string, name: string): Promise<string> => {
           // Runtime temp paths, not project files: keep Turbopack from tracing the repo.
           const path = join(/*turbopackIgnore: true*/ workDir, `${name}.${assetExtension(url)}`);
-          await writeFile(path, await readAsset(url, doFetch, deps.allowFileUrls));
+          const source = deps.freshUrl ? await deps.freshUrl(url) : url;
+          await writeFile(path, await readAsset(source, doFetch, deps.allowFileUrls));
           return path;
         };
         const [voiceoverPath, ...clipPaths] = await Promise.all([

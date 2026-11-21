@@ -6,10 +6,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import { SupabaseStore } from '@/features/render/repository.supabase';
+import { PAID_GRANT_REASONS } from '@/features/billing/entitlements';
 import { LOOKBACK_MS, type Audience, type LifecycleKind } from './lifecycle';
 import type { EmailLog, LifecycleSource } from './run';
 
 const USERS_PAGE = 1000;
+const ROWS_PAGE = 1000;
 
 export class SupabaseLifecycleStore implements LifecycleSource, EmailLog {
   private readonly db: SupabaseClient;
@@ -22,7 +24,7 @@ export class SupabaseLifecycleStore implements LifecycleSource, EmailLog {
 
   async loadAudience(now: Date): Promise<Audience> {
     const since = new Date(now.getTime() - LOOKBACK_MS).toISOString();
-    const [authUsers, optedOut, jobs, subs, sends] = await Promise.all([
+    const [authUsers, optedOut, jobs, subs, sends, paid] = await Promise.all([
       this.listAuthUsers(),
       this.db.from('profiles').select('id').eq('email_opt_out', true),
       this.db
@@ -32,6 +34,7 @@ export class SupabaseLifecycleStore implements LifecycleSource, EmailLog {
         .gte('created_at', since),
       this.db.from('subscriptions').select('user_id, plan_id, status, created_at'),
       this.db.from('email_log').select('user_id, kind, created_at').gte('created_at', since),
+      this.listPaidUserIds(),
     ]);
     for (const r of [optedOut, jobs, subs, sends]) {
       if (r.error) throw new Error(`lifecycle audience: ${r.error.message}`);
@@ -55,7 +58,27 @@ export class SupabaseLifecycleStore implements LifecycleSource, EmailLog {
         kind: r.kind as LifecycleKind,
         createdAt: new Date(r.created_at!),
       })),
+      paidUserIds: paid,
     };
+  }
+
+  /**
+   * Everyone with a plan or top-up grant, paged: the API caps a select at 1,000
+   * rows, and a truncated list would send the upgrade email to a payer.
+   */
+  private async listPaidUserIds(): Promise<string[]> {
+    const ids = new Set<string>();
+    for (let from = 0; ; from += ROWS_PAGE) {
+      const { data, error } = await this.db
+        .from('credit_transactions')
+        .select('id, user_id')
+        .in('reason', [...PAID_GRANT_REASONS])
+        .order('id')
+        .range(from, from + ROWS_PAGE - 1);
+      if (error) throw new Error(`lifecycle paid users: ${error.message}`);
+      for (const r of data as { user_id: string }[]) ids.add(r.user_id);
+      if (data.length < ROWS_PAGE) return [...ids];
+    }
   }
 
   private async listAuthUsers() {

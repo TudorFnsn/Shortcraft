@@ -35,6 +35,13 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   /** Script model override; defaults to Claude Sonnet 5.5 (see anthropic-script.ts). */
   ANTHROPIC_SCRIPT_MODEL: z.string().min(1).optional(),
+  /** Grey-zone prompt classifier model override; defaults to Claude Haiku 5.5 (see anthropic-moderation.ts). */
+  ANTHROPIC_MODERATION_MODEL: z.string().min(1).optional(),
+  /**
+   * Screen prompts with the LLM classifier after the rule screen (live providers
+   * + ANTHROPIC_API_KEY only). Fails open on errors. See features/moderation/moderator.ts.
+   */
+  MODERATION_LLM: bool('false'),
   /** Only for an organization-level key that isn't scoped to a workspace. */
   ANTHROPIC_WORKSPACE_ID: z.string().min(1).optional(),
   FAL_KEY: z.string().min(1).optional(),

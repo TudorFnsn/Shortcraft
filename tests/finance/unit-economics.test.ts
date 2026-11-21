@@ -42,6 +42,21 @@ describe('computeFinance', () => {
     expect(r.unpricedTopups).toBe(1);
   });
 
+  it('never prices a top-up row the Stripe webhook did not write', () => {
+    const r = computeFinance({
+      ...empty,
+      topups: [
+        { credits: 20_000, createdAt: daysAgo(2), idempotencyKey: 'stripe:event:evt_1:checkout' },
+        { credits: 20_000, createdAt: daysAgo(2), idempotencyKey: null },
+        { credits: 27_000, createdAt: daysAgo(2), idempotencyKey: 'admin:beta:u1' },
+        { credits: 20_000, createdAt: daysAgo(45), idempotencyKey: null },
+      ],
+    });
+    expect(r.topupNetUsd).toBe(Number(netRevenueUsd(1200).toFixed(2)));
+    expect(r.manualTopups).toBe(2);
+    expect(r.unpricedTopups).toBe(0);
+  });
+
   it('splits cost per delivered video from money wasted on failures', () => {
     const r = computeFinance({
       ...empty,

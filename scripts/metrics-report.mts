@@ -21,7 +21,7 @@ if (existsSync(envFile)) {
 }
 
 const { computeNorthStar, formatRatio } = await import('@/features/metrics/north-star');
-const { PAID_GRANT_REASONS } = await import('@/features/billing/entitlements');
+const { PAID_GRANT_REASONS, isStripeGrantKey } = await import('@/features/billing/entitlements');
 const { createSupabaseAdminClient } = await import('@/utils/supabase/admin');
 
 const admin = createSupabaseAdminClient();
@@ -49,7 +49,7 @@ const [profiles, jobs, subs, grants] = await Promise.all([
   selectAll<Row>('profiles', 'id, created_at'),
   selectAll<Row>('render_jobs', 'user_id, status, created_at'),
   selectAll<Row>('subscriptions', 'user_id, plan_id, status, created_at'),
-  selectAll<Row>('credit_transactions', 'user_id, created_at', {
+  selectAll<Row>('credit_transactions', 'user_id, created_at, idempotency_key', {
     column: 'reason',
     in: PAID_GRANT_REASONS,
   }),
@@ -69,7 +69,10 @@ const report = computeNorthStar({
     planId: s.plan_id ?? '',
     status: s.status ?? '',
   })),
-  paidGrants: grants.map((g) => ({ userId: g.user_id ?? '', createdAt: date(g.created_at) })),
+  // Manual grants (no Stripe key) are not conversions.
+  paidGrants: grants
+    .filter((g) => isStripeGrantKey(g.idempotency_key))
+    .map((g) => ({ userId: g.user_id ?? '', createdAt: date(g.created_at) })),
 });
 
 if (process.argv.includes('--json')) {

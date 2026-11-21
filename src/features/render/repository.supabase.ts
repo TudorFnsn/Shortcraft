@@ -9,6 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import { appError, err, ok, type AppError, type Result } from '@/lib/result';
 import type { WordTiming } from '@/features/providers/types';
+import type { CostBreakdown } from '@/features/finance/cost-breakdown';
 import type { PlanId } from '@/config/plans';
 import {
   effectivePlanId,
@@ -44,6 +45,7 @@ interface JobRow {
   charged_credits?: number; // 0004
   actual_credits: number;
   api_cost_usd: number;
+  cost_breakdown?: CostBreakdown | null; // 0014
   error: string | null;
   posted_at?: string | null; // 0008
   voice_id?: string | null; // 0010
@@ -85,6 +87,7 @@ const toJob = (r: JobRow): RenderJobRecord => ({
   chargedCredits: Number(r.charged_credits ?? 0),
   actualCredits: Number(r.actual_credits),
   apiCostUsd: Number(r.api_cost_usd),
+  costBreakdown: r.cost_breakdown ?? {},
   error: r.error,
   postedAt: r.posted_at ?? null,
   voiceId: r.voice_id ?? null,
@@ -109,6 +112,16 @@ const toScene = (r: SceneRow): SceneRecord => ({
   status: r.status as SceneRecord['status'],
 });
 
+/** PostgREST "column not in schema cache" (PGRST204) or Postgres undefined_column (42703). */
+export function isMissingColumn(
+  error: { code?: string; message?: string },
+  column: string,
+): boolean {
+  return (
+    (error.code === 'PGRST204' || error.code === '42703') && (error.message ?? '').includes(column)
+  );
+}
+
 /** Map a camelCase job patch to the snake_case DB columns that were provided. */
 function jobPatchToRow(patch: Partial<RenderJobRecord>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
@@ -121,6 +134,7 @@ function jobPatchToRow(patch: Partial<RenderJobRecord>): Record<string, unknown>
   if (patch.chargedCredits !== undefined) row.charged_credits = patch.chargedCredits;
   if (patch.actualCredits !== undefined) row.actual_credits = patch.actualCredits;
   if (patch.apiCostUsd !== undefined) row.api_cost_usd = patch.apiCostUsd;
+  if (patch.costBreakdown !== undefined) row.cost_breakdown = patch.costBreakdown;
   if (patch.error !== undefined) row.error = patch.error;
   row.updated_at = new Date().toISOString();
   return row;
@@ -164,7 +178,14 @@ export class SupabaseStore implements RenderRepository, CreditRepository, PlanRe
   }
 
   async updateJob(id: string, patch: Partial<RenderJobRecord>): Promise<void> {
-    const { error } = await this.db.from('render_jobs').update(jobPatchToRow(patch)).eq('id', id);
+    const update = (p: Partial<RenderJobRecord>) =>
+      this.db.from('render_jobs').update(jobPatchToRow(p)).eq('id', id);
+    let { error } = await update(patch);
+    if (error && patch.costBreakdown !== undefined && isMissingColumn(error, 'cost_breakdown')) {
+      // Deployed before migration 0014: keep rendering, just without the breakdown.
+      const { costBreakdown: _skip, ...rest } = patch;
+      ({ error } = await update(rest));
+    }
     if (error) throw new Error(`updateJob: ${error.message}`);
   }
 

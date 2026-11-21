@@ -2,14 +2,17 @@
  * Lifecycle email: who gets which reminder today. Pure: the caller loads rows
  * and passes `now`, so every decision is reproducible in tests.
  *
- * Two emails, both aimed at the north star (TheMasterPlan §1):
+ * Three emails, all aimed at the north star (TheMasterPlan §1):
  * - **first_video** (activation): a confirmed account 1–6 days old that has
  *   never finished a video. Sent once per account.
+ * - **trial_spent** (trial → paid): an account that has never paid, finished a
+ *   video 1–7 days ago and no longer has credits for another short one. It
+ *   says what a plan costs and links to /pricing. Sent once per account.
  * - **unused_credits** (retention): a live subscriber with no finished video
  *   in the last 7 days who still has credits for at least one short video.
  *   At most once every 7 days, and not in a subscription's first 3 days.
  *
- * Nobody who unsubscribed gets either. Account emails (confirm, password
+ * Nobody who unsubscribed gets any of them. Account emails (confirm, password
  * reset) come from Supabase Auth and are not affected.
  */
 import { isLiveSubscription } from '@/features/billing/entitlements';
@@ -17,11 +20,20 @@ import { estimateJobCredits } from '@/features/render/pricing';
 
 export const DAY_MS = 86_400_000;
 
-export type LifecycleKind = 'first_video' | 'unused_credits';
+export type LifecycleKind = 'first_video' | 'trial_spent' | 'unused_credits';
+
+/** Every kind, in the order the planner emits them (reports count each). */
+export const LIFECYCLE_KINDS: readonly LifecycleKind[] = [
+  'first_video',
+  'trial_spent',
+  'unused_credits',
+];
 
 /** First-video reminders go to accounts between these ages. */
 export const FIRST_VIDEO_MIN_AGE_MS = 1 * DAY_MS;
 export const FIRST_VIDEO_MAX_AGE_MS = 6 * DAY_MS;
+/** Let a trial user enjoy their video for a day before the upgrade email. */
+export const TRIAL_SPENT_DELAY_MS = 1 * DAY_MS;
 /** A subscriber is "inactive" after this long without a finished video. */
 export const INACTIVE_MS = 7 * DAY_MS;
 /** Minimum gap between two unused-credits reminders to the same person. */
@@ -62,6 +74,8 @@ export interface Audience {
   subscriptions: readonly AudienceSubscription[];
   /** Lifecycle emails already sent within LOOKBACK_MS of now. */
   recentSends: readonly { userId: string; kind: LifecycleKind; createdAt: Date }[];
+  /** Users who ever bought a plan or a top-up (`PAID_GRANT_REASONS` in the ledger). */
+  paidUserIds: readonly string[];
 }
 
 export interface PlannedEmail {
@@ -70,13 +84,26 @@ export interface PlannedEmail {
   kind: LifecycleKind;
   /** Idempotency key part: one send per (user, kind, periodKey). */
   periodKey: string;
-  /** unused_credits only: the balance the email quotes. */
+  /** unused_credits and trial_spent: the balance the email is based on. */
   balance?: number;
 }
 
 /**
- * Today's emails. `balances` must hold every live subscriber's balance; a
- * missing balance means "unknown" and that subscriber is skipped.
+ * Whose balance the planner needs: every subscriber, and every never-paid user
+ * with a finished video in range (a trial_spent candidate). Keeps the per-user
+ * balance reads to the few people who can get a balance-based email.
+ */
+export function balanceCandidates(audience: Audience): string[] {
+  const paid = new Set(audience.paidUserIds);
+  const ids = new Set(audience.subscriptions.map((s) => s.userId));
+  for (const j of audience.doneJobs) if (!paid.has(j.userId)) ids.add(j.userId);
+  return [...ids];
+}
+
+/**
+ * Today's emails. `balances` must hold the balance of everyone in
+ * `balanceCandidates`; a missing balance means "unknown" and that user is
+ * skipped for the balance-based emails.
  */
 export function planLifecycleEmails(
   audience: Audience,
@@ -108,6 +135,26 @@ export function planLifecycleEmails(
     if (age < FIRST_VIDEO_MIN_AGE_MS || age >= FIRST_VIDEO_MAX_AGE_MS) continue;
     if (lastDone.has(u.id) || lastSent.has(`${u.id}:first_video`)) continue;
     planned.push({ userId: u.id, email: u.email!, kind: 'first_video', periodKey: 'once' });
+  }
+
+  const paid = new Set(audience.paidUserIds);
+  const subscribed = new Set(
+    audience.subscriptions.filter((s) => isLiveSubscription(s)).map((s) => s.userId),
+  );
+  for (const u of reachable.values()) {
+    if (paid.has(u.id) || subscribed.has(u.id)) continue;
+    const done = lastDone.get(u.id);
+    if (done === undefined || t - done < TRIAL_SPENT_DELAY_MS) continue;
+    if (lastSent.has(`${u.id}:trial_spent`)) continue;
+    const balance = balances.get(u.id);
+    if (balance === undefined || balance >= ONE_VIDEO_CREDITS) continue;
+    planned.push({
+      userId: u.id,
+      email: u.email!,
+      kind: 'trial_spent',
+      periodKey: 'once',
+      balance,
+    });
   }
 
   for (const s of audience.subscriptions) {
