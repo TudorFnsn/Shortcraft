@@ -30,7 +30,7 @@ import { createMockVoiceDesigner, type VoiceDesigner } from '@/features/voice/de
 import { createFalImageProvider, FAL_IMAGE_MODELS } from './live/fal-image';
 import { createFalVideoProvider } from './live/fal-video';
 import { createInhouseRenderProvider } from './live/inhouse-render';
-import { SupabaseMediaStore } from './live/media-store';
+import { freshAssetUrl, SupabaseMediaStore } from './live/media-store';
 import { env, requireEnv } from '@/lib/env';
 import { createSupabaseAdminClient } from '@/utils/supabase/admin';
 import type {
@@ -76,6 +76,11 @@ const liveAdapters = new Map<string, LiveFactory>([
       createInhouseRenderProvider(m, {
         store: mediaStore,
         ffmpegPath: resolveFfmpegPath({ envPath: env.FFMPEG_PATH }),
+        freshUrl: (url) => {
+          const origin = env.NEXT_PUBLIC_SUPABASE_URL;
+          if (!origin) return Promise.resolve(url);
+          return freshAssetUrl(url, mediaStore(), env.SUPABASE_MEDIA_BUCKET, origin);
+        },
       }),
   ],
 ]);

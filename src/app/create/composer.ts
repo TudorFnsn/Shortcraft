@@ -4,6 +4,7 @@
  * should do. Kept free of React so it is unit-tested (tests/ui/create-composer.test.ts).
  */
 import type { ModelTier } from '@/config/models';
+import { CARRIED_IDEA_MAX_CHARS } from '@/config/site';
 import { THEMES, isThemeId } from '@/config/themes';
 import { cheapestPlanAllowing } from '@/features/billing/entitlements';
 import { estimateJobCredits } from '@/features/render/pricing';
@@ -108,7 +109,7 @@ export function initialSelection(input: {
   lastJob: LastJob | null;
 }): Selection & { firstRun: boolean } {
   const { params, lastJob } = input;
-  const ideaParam = first(params.idea)?.slice(0, 300);
+  const ideaParam = first(params.idea)?.slice(0, CARRIED_IDEA_MAX_CHARS);
   const themeParam = first(params.theme);
   const firstRun = lastJob === null;
 

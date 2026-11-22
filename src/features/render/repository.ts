@@ -11,6 +11,7 @@ import type { Result } from '@/lib/result';
 import type { WordTiming } from '@/features/providers/types';
 import type { VoiceSettings } from '@/config/voices';
 import type { RenderStatus } from './machine';
+import type { CostBreakdown } from '@/features/finance/cost-breakdown';
 
 export interface RenderJobRecord {
   id: string;
@@ -30,6 +31,8 @@ export interface RenderJobRecord {
   chargedCredits: number;
   actualCredits: number;
   apiCostUsd: number;
+  /** `apiCostUsd` split by pipeline step, with provider units; {} before 0014. */
+  costBreakdown: CostBreakdown;
   error: string | null;
   /** When the creator marked the finished video as posted (Library streak). */
   postedAt: string | null;

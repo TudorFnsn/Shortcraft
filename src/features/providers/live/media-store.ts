@@ -38,6 +38,60 @@ export function mediaPath(folder: string, idempotencyKey: string, ext: string): 
 /** Long enough for the render step to fetch the file, short enough not to leak forever. */
 export const SIGNED_URL_TTL_SEC = 60 * 60 * 24;
 
+/**
+ * Object path inside `bucket` from a Supabase Storage signed URL
+ * (`<origin>/storage/v1/object/sign/<bucket>/<path>?token=…`). Returns null for
+ * anything else: another origin, another bucket, mock URLs, or a path that
+ * tries to climb out of the bucket.
+ */
+export function storagePathFromSignedUrl(
+  url: string,
+  bucket: string,
+  storageOrigin: string,
+): string | null {
+  let parsed: URL;
+  let origin: string;
+  try {
+    parsed = new URL(url);
+    origin = new URL(storageOrigin).origin;
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'https:' || parsed.origin !== origin) return null;
+
+  const prefix = `/storage/v1/object/sign/${bucket}/`;
+  if (!parsed.pathname.startsWith(prefix)) return null;
+
+  let path: string;
+  try {
+    path = decodeURIComponent(parsed.pathname.slice(prefix.length));
+  } catch {
+    return null;
+  }
+  const segments = path.split('/');
+  if (segments.some((s) => s === '' || s === '.' || s === '..')) return null;
+  return path;
+}
+
+/** How long a re-signed asset URL lives: enough for one render to download it. */
+export const ASSET_REFRESH_TTL_SEC = 15 * 60;
+
+/**
+ * A fresh URL for an asset in our bucket. Scene rows keep the signed URL their
+ * step got back (24h TTL), and a re-voiced copy reuses its source's pictures
+ * and clips, so a stored URL can be long expired by the time a render reads it.
+ * Anything that isn't one of our signed URLs (mocks, `file://`) is returned as is.
+ */
+export async function freshAssetUrl(
+  url: string,
+  store: Pick<MediaStore, 'signedUrl'>,
+  bucket: string,
+  storageOrigin: string,
+): Promise<string> {
+  const path = storagePathFromSignedUrl(url, bucket, storageOrigin);
+  return path ? store.signedUrl(path, ASSET_REFRESH_TTL_SEC) : url;
+}
+
 type StorageClient = Pick<ReturnType<typeof createSupabaseAdminClient>, 'storage'>;
 
 export class SupabaseMediaStore implements MediaStore {

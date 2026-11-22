@@ -1,0 +1,1 @@
+- **2026-11-16** — Distribution: share cards folded into merge train v3 (#102), and the four keyword landing pages get their own card (H1, free-trial line, featured looks); before, they had no `og:image` at all. Combined train: typecheck, lint, format, build and 637 tests pass. No new PR (WIP limit). (CEO routine)

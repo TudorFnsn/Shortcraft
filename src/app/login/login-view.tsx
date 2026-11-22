@@ -26,8 +26,9 @@ export function LoginView({
   initialError?: string | null;
 }) {
   const router = useRouter();
-  const { idea } = carried;
-  const [mode, setMode] = useState<Mode>(idea ? 'signup' : 'signin');
+  const { idea, ref } = carried;
+  // An idea or a friend's invite link means a new visitor: open on sign-up.
+  const [mode, setMode] = useState<Mode>(idea || ref ? 'signup' : 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -69,7 +70,12 @@ export function LoginView({
     const supabase = createSupabaseBrowserClient();
 
     const { data, error } = signup
-      ? await supabase.auth.signUp({ email, password })
+      ? await supabase.auth.signUp({
+          email,
+          password,
+          // The invite code is claimed server-side at checkout (referral.ts).
+          ...(ref ? { options: { data: { ref } } } : {}),
+        })
       : await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);

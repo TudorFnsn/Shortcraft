@@ -92,6 +92,7 @@ describe('anthropic script adapter', () => {
     ]);
     // $2/M in + $10/M out
     expect(res.costUsd).toBeCloseTo(0.002 + 0.02);
+    expect(res.usage).toEqual({ inputTokens: 1000, outputTokens: 2000 });
 
     const params = (parse.mock.calls as unknown as [Record<string, unknown>][])[0]![0];
     expect(params.model).toBe('claude-sonnet-5-5');
@@ -187,6 +188,7 @@ describe('elevenlabs voice adapter', () => {
     expect(res.output.words.map((w) => w.word)).toEqual(['Octopuses', 'have', 'three', 'hearts']);
     expect(res.output.durationMs).toBe(Math.round(text.length * 50));
     expect(res.costUsd).toBeCloseTo(text.length * USD_PER_CHAR);
+    expect(res.usage).toEqual({ chars: text.length });
     expect(res.output.audioUrl).toBe('memory://voiceover/job_1_scripting_.mp3');
     expect([...store.objects.values()][0]?.contentType).toBe('audio/mpeg');
 

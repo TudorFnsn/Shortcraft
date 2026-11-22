@@ -12,7 +12,7 @@
 import { after } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUser } from '@/features/auth/session';
-import { getPromptModerator } from '@/features/moderation/prompt-check';
+import { getPromptModerator } from '@/features/moderation/moderator';
 import { advanceJob, driveJob } from '@/features/render/orchestrator';
 import { createRevoiceJob, planNarration } from '@/features/render/revoice';
 import { getStore } from '@/features/render/store';

@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { isThemeId } from '@/config/themes';
 import { getCurrentUser } from '@/features/auth/session';
-import { getPromptModerator } from '@/features/moderation/prompt-check';
+import { getPromptModerator } from '@/features/moderation/moderator';
 import { isSupabaseConfigured } from '@/features/render/store';
 import { VoiceFields, voiceChoice } from '@/features/render/voice';
 import { InMemoryPreviewLog, PREVIEW_MAX_CHARS, previewLine } from '@/features/voice/preview';

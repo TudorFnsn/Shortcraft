@@ -44,15 +44,20 @@ export function oauthErrorMessage(code: string | null | undefined): string | nul
 
 /**
  * Where the callback sends a failed sign-in: back to login with a message,
- * keeping a carried idea (read from the `next` Create link).
+ * keeping a carried idea and referral code (read from the `next` Create link).
  */
 export function loginAfterOAuthError(next: string, error: 'oauth_cancelled' | 'oauth_failed') {
   const q = new URLSearchParams({ error });
   const path = safeNextPath(next);
   const inner = new URL(path, 'http://x').searchParams;
-  for (const k of ['idea', 'theme']) {
+  for (const k of ['idea', 'theme', 'ref']) {
     const v = inner.get(k);
     if (v) q.set(k, v);
   }
   return `/login?${q.toString()}`;
+}
+
+/** The referral code carried in the callback's `next` link, if any (unvalidated). */
+export function refFromNext(next: string): string | null {
+  return new URL(safeNextPath(next), 'http://x').searchParams.get('ref');
 }

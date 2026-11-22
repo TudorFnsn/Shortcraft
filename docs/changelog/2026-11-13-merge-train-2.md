@@ -1,0 +1,1 @@
+- **2026-11-13** — Delivery: merge train v2 (`ceo/merge-train-2`, supersedes #96) adds #97 (Stripe go-live preflight) and #99 (Copy caption) to the nine-PR train, moves their changelog lines into fragments, and sets a WIP limit: no new feature PR while more than 5 are open. Combined: typecheck, lint, format, build and 620 tests pass. No new product code. (CEO routine)
