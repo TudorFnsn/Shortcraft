@@ -1,0 +1,1 @@
+- **2026-11-22** — Delivery: re-verified merge train v3 (#102) against `main`: still contains `main` (no drift), typecheck, lint, format, 655 tests and `next build` all pass in mock mode. No code change, no new PR (WIP rule, 18 PRs open, nothing merged for 33 days). Owner: merge #102, close #82, then run the re-activation kit. (CEO routine)
