@@ -4,7 +4,7 @@
 > `TheMasterPlan.md` (which wins on product and priority; this file wins on cost, pricing and
 > cash). Every finance PR updates this file (metrics log + backlog + changelog) in the same change.
 >
-> Last updated: 2026-11-21 (fourth run: no usage for 33 days; F1 + F13 in review)
+> Last updated: 2026-11-24 (fifth run: no usage for 36 days; F1 + F13 in review via #102)
 
 ---
 
@@ -93,6 +93,7 @@ The master then picks **one** item for the day (same rule as the CEO routine: **
 
 | Date       | Net revenue 30d                   | API cost 30d | Fixed                                                    | Profit | Cost ratio | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ---------- | --------------------------------- | ------------ | -------------------------------------------------------- | ------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-24 | $52.47 (MRR only, **unverified**) | $0.00        | $0 known (5 unknown)                                     | $52.47 | 0.000      | Via Supabase connector (scripts: network policy 403 on `*.supabase.co`; Stripe connector sign-in refused again). Same 2 Pro subs, neither row updated since October: A now **19 days** past its 11-05 period end, B no period end. 0 jobs in 30 days (last render 10-19, 36 days), last sign-in 10-15 (40 days), 0 new users (6 total). Gate PASS (Pro 3.00x).                                                                               |
 | 2026-11-21 | $52.47 (MRR only, **unverified**) | $0.00        | $0 known (5 unknown)                                     | $52.47 | 0.000      | Via Supabase connector (scripts: network policy returns 403 on `*.supabase.co`, even with `NODE_USE_ENV_PROXY=1`; Stripe connector still unauthorised). Same 2 Pro subs; A now **16 days** past its 11-05 period end, B no period end, neither row updated since October. **0 jobs in the 30-day window** (last render 10-19, 33 days), last sign-in 10-15 (37 days), 0 new users (6 total), 0 ledger rows in 7 days. Gate PASS (Pro 3.00x). |
 | 2026-11-14 | $52.47 (MRR only, **unverified**) | $0.06        | $0 known (5 unknown)                                     | $52.41 | 0.001      | Via Supabase connector (scripts: `fetch failed` to `*.supabase.co`; Stripe connector unauthorised). Same 2 Pro subs (A now 9 days past its 11-05 period end). 1 job in window (standard $0.058; the $1.92 premium aged out), 0 failed. **0 renders in 26 days, 0 sign-ins in 30 days**, 0 new users (6 total). No ledger rows in 7 days. Gate PASS (Pro 3.00x).                                                                              |
 | 2026-11-13 | $52.47 (MRR only, **unverified**) | $1.98        | $0 known (5 unknown)                                     | $50.49 | 0.038      | Via Supabase connector again (scripts still blocked by network policy; Stripe connector still unauthorised). Same 2 Pro subs (A still "active" 8 days past its 11-05 period end). 2 jobs in window (1 standard $0.058, 1 premium $1.92), 0 failed, **0 renders in 25 days**, 0 new users in 7 days (6 total). All 5 `topup` rows ever (20K, 20K, 10K, 10K, 27K) have **no Stripe key**: none is a sale. Gate PASS (Pro 3.00x).               |
@@ -169,6 +170,8 @@ Read FinancePlan.md (charter, rules, backlog), TheMasterPlan.md §7-§9, and AGE
 ```
 
 ## 11. Changelog (newest on top)
+
+- **2026-11-24** — Fifth run. Still no usage (0 renders in 36 days, 0 sign-ins in 40 days, 30-day API cost $0). No sub-agents and no new PR: nothing moved since 11-12, and merge train #102 (carries #98/#100 and the re-activation kit) waits for review. Blockers unchanged and all Tudor's: F11 (sub A 19 days past period end, likely phantom MRR), F2 (Stripe connector sign-in, fixed costs, Supabase host allowed in the routine network policy), F12 (outreach, kit now in #102), merge #102. (Finance CEO, routine)
 
 - **2026-11-21** — Fourth run (first since 11-14). Still no usage: 0 renders in 33 days, 0 sign-ins in 37 days, 30-day API cost $0. No sub-agents and no new PR, same reason as 11-14 (nothing moved; 12 PRs wait for review, incl. merge train #102 which carries #98/#100). Blockers unchanged and all Tudor's: F11 (sub A 16 days past period end, likely phantom MRR), F2 (Stripe connector sign-in, fixed costs), F12 (outreach), merge #102. (Finance CEO, routine)
 
